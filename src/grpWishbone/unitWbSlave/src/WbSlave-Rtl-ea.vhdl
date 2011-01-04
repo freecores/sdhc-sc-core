@@ -59,9 +59,12 @@ end entity;
 
 architecture Rtl of WbSlave is
 
-	type aWbState is (idle);
+	type aWbState is (idle, ClassicRead, ClassicWrite);
 
 	signal State, NextState : aWbState := idle;
+
+	constant cValid : std_ulogic_vector(gPortSize - 1 downto 0) := (others =>
+		'1');
 
 begin
  
@@ -81,6 +84,45 @@ begin
 		-- Default Assignments
 		oDat <= (others => cInactivated);
 		oWbSlave <= cDefaultWbSlaveCtrlOutput;
+		NextState <= State;
+
+		-- Determine next state
+		case State is
+			when idle =>
+				if iWbSlave.Cyc = cActivated and iWbSlave.Stb = cActivated then
+				
+					case iWbSlave.Cti is
+						when cCtiClassicCycle => 
+			
+							if (iWbSlave.We = cInactivated) then
+								NextState <= ClassicRead;
+							elsif (iWbSlave.We = cActivated) then
+								NextState <= ClassicWrite;
+							end if;
+			
+						when others => null;
+					end case;
+				
+				end if;
+
+			when ClassicRead =>
+				assert (iWbSlave.Cyc = cActivated) report
+				"Cyc deactivated mid cyclus" severity warning;
+
+				oWbSlave.Ack <= cActivated;	
+				oDat <= cValid; -- TODO: Read real data, use Sel
+				NextState <= idle;
+
+			when ClassicWrite =>
+				assert (iWbSlave.Cyc = cActivated) report
+				"Cyc deactivated mid cyclus" severity warning;
+
+				oWbSlave.Ack <= cActivated;	
+				-- TODO: Save data, use Sel
+				NextState <= idle;
+
+			when others => null;
+		end case;
 
 	end process WbNextStateAndOutputs;
 end architecture Rtl;
