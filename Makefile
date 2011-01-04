@@ -1,6 +1,6 @@
 # Recursive makefile for simulations
 
-SIMS = grpCrc/unitCrc grpWishbone/unitWbSlave grpSd/unitSdCmd grpSd/unitSdCardModel grpStrobesClocks/unitTimeoutGenerator grpRs232/unitRs232Tx grpSd/unitSdData
+SIMS = grpCrc/unitCrc grpWishbone/unitWbSlave grpSd/unitSdCmd grpSd/unitSdCardModel grpStrobesClocks/unitTimeoutGenerator grpRs232/unitRs232Tx grpSd/unitSdData grpSd/unitSdClockMaster
 SYSVSIMS = grpSd/unitSdVerificationTestbench
 SYNS = grpCrc/unitCrc grpSd/unitSdCmd grpSd/unitSdTop grpSd/unitTbdSd grpSd/unitSdData
 
