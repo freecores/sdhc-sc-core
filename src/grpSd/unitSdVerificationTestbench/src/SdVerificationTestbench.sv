@@ -8,11 +8,14 @@
 include "../../unitSdCardModel/src/SdCardModel.sv";
 include "../../unitSdVerificationTestbench/src/SdCmdInterface.sv";
 
+`define cCmdCount 1000
+
 program Test(ISdCmd ICmd);
 	initial begin
 	SDCard card = new(ICmd, $root.Testbed.CmdReceived);
 	SDCommandToken recvCmd, sendCmd;
 	bit done = 0;
+	int c = 0;
 
 	ICmd.Clk <= 0;
 	#10;
@@ -24,37 +27,45 @@ program Test(ISdCmd ICmd);
 
     fork
 		begin // generator
-			@ICmd.cb;
-			sendCmd = new();
-			sendCmd.randomize();
-			-> $root.Testbed.ApplyCommand;
+			for (int i = 0; i < `cCmdCount; i++) begin
+				@ICmd.cb;
+				sendCmd = new();
+				sendCmd.randomize();
+				-> $root.Testbed.ApplyCommand;
+				@$root.Testbed.GenCmd;
+			end
 		end
 
         begin // monitor
 	    end
 
         begin // driver for SdCmd
-			@$root.Testbed.ApplyCommand;
-			ICmd.CmdId <= sendCmd.id;
-			ICmd.Arg <= sendCmd.arg;
-			ICmd.Valid <= 1;
-			-> $root.Testbed.CardRecv;
+			for (int i = 0; i < `cCmdCount; i++) begin
+				@$root.Testbed.ApplyCommand;
+				ICmd.CmdId <= sendCmd.id;
+				ICmd.Arg <= sendCmd.arg;
+				ICmd.Valid <= 1;
+				-> $root.Testbed.CardRecv;
+			end
         end
 
         begin // driver for SdCardModel
-			while(done == 0) begin
+			for (int i = 0; i < `cCmdCount; i++) begin
+				@$root.Testbed.CardRecv;
 				card.recv();
-				done = 1;
 			end
         end
 
 		begin // checker
-			@$root.Testbed.CmdReceived;
-			recvCmd = card.getCmd();
-			recvCmd.display();
-			sendCmd.display();
-			recvCmd.checkFromHost();
-			assert(recvCmd.equals(sendCmd) == 1);
+			for (int i = 0; i < `cCmdCount; i++) begin
+				@$root.Testbed.CmdReceived;
+				recvCmd = card.getCmd();
+				//recvCmd.display();
+				//sendCmd.display();
+				recvCmd.checkFromHost();
+				assert(recvCmd.equals(sendCmd) == 1);
+				-> $root.Testbed.GenCmd;
+			end
 		end
 
     join;
@@ -74,6 +85,6 @@ module Testbed();
 
 	Test tb(CmdInterface);
 
-	event ApplyCommand, CardRecv, CmdReceived;
+	event ApplyCommand, CardRecv, CmdReceived, GenCmd;
 
 endmodule
