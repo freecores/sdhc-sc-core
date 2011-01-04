@@ -765,7 +765,8 @@ begin
 				NextR.ToSdData.Valid <= cActivated;
 
 				if (iSdData.Ack = cActivated) then
-					NextR.Region <= NextRegion;
+					NextR.ToSdData.Valid <= cInactivated;
+					NextR.Region         <= NextRegion;
 				end if;
 
 			when checkbusy => 

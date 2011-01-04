@@ -35,7 +35,9 @@ entity SdData is
 		
 		-- ReadFifo
 		iReadFifo : in aiReadFifo;
-		oReadFifo : out aoReadFifo
+		oReadFifo : out aoReadFifo;
+
+		oDisableSdClk : out std_ulogic
 	);
 end entity SdData;
 

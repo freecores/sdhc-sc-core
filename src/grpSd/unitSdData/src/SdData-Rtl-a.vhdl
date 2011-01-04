@@ -25,12 +25,12 @@ architecture Rtl of SdData is
 		WordCounter  : aWordCounter;
 		FirstSend    : std_ulogic;
 		Data         : aoSdData;
-		Enable       : std_ulogic;
 		Controller   : aSdDataToController;
 		Ram          : aSdDataToRam;
 		ReadFifo     : aoReadFifo;
 		Mode         : aSdDataBusMode;
 		Word		 : aWord;
+		DisableSdClk : std_ulogic;
 	end record aReg;
 
 	constant cDefaultReg : aReg := (
@@ -41,12 +41,12 @@ architecture Rtl of SdData is
 	ByteCounter  => to_unsigned(7, aByteCounter'length),
 	FirstSend  	 => cInactivated,
 	Data         => (Data => "0000", En => "0000"),
-	Enable       => cInactivated,
 	Controller   => cDefaultSdDataToController,
 	Ram          => cDefaultSdDataToRam,
 	ReadFifo     => cDefaultoReadFifo,
 	Mode         => standard,
-	Word         => (others => '0'));
+	Word         => (others => '0'),
+	DisableSdClk => cInactivated);
 
 	type aCrcOut is record
 		Clear   : std_ulogic;
@@ -82,6 +82,7 @@ begin
 	oSdDataToController <= R.Controller;
 	oSdDataToRam		<= R.Ram;
 	oReadFifo           <= R.ReadFifo;
+	oDisableSdClk       <= R.DisableSdClk;
 
 	Regs : process (iClk, inResetAsync)
 	begin
@@ -91,11 +92,12 @@ begin
 			if (iStrobe = cActivated) then
 				R <= NextR;
 			end if;
-			R.ReadFifo.rdreq <= NextR.ReadFifo.rdreq and not iStrobe;
+			R.ReadFifo.rdreq <= NextR.ReadFifo.rdreq and iStrobe;
+			R.DisableSdClk   <= NextR.DisableSdClk;
 		end if;
 	end process Regs;
 
-	Comb : process (iData.Data, iSdDataFromController, CrcIn, iStrobe, iReadFifo, R)
+	Comb : process (iData.Data, iSdDataFromController, CrcIn, iReadFifo, R)
 
 		procedure ShiftIntoCrc (constant data : in std_ulogic_vector(3 downto 0)) is
 		begin
@@ -183,7 +185,7 @@ begin
 
 	begin
 		NextR            <= R;
-		NextR.Enable     <= cInactivated;
+		NextR.Data.En    <= (others => cInactivated);
 		NextR.Controller <= cDefaultSdDataToController;
 		NextR.Ram.We     <= cInactivated;
 		NextR.Ram.En     <= cInactivated;
@@ -221,11 +223,14 @@ begin
 				case iReadFifo.rdempty is
 					when cActivated => 
 						report "Fifo empty, waiting for data" severity note;
+						NextR.DisableSdClk <= cActivated;
 
 					when cInactivated => 
 						NextR.State          <= send;
 						NextR.Region         <= startbit;
 						NextR.ReadFifo.rdreq <= cActivated;
+						NextR.DisableSdClk   <= cInactivated;
+						NextR.WordCounter    <= to_unsigned(0, aWordCounter'length);
 
 					when others => 
 						report "rdempty invalid" severity error;
@@ -262,12 +267,6 @@ begin
 							end loop;
 							SendBitAndShiftIntoCrc(temp);
 
-							if (R.ByteCounter = 7 and R.WordCounter = 3 and R.BlockCounter < 127 and R.BlockCounter > 0) then
-								-- TODO: handle rdempty
-								-- request new data from fifo
-								NextR.ReadFifo.rdreq <= cActivated;
-							end if;
-
 							if (R.ByteCounter = 3) then
 								NextR.ByteCounter <= to_unsigned(7, aByteCounter'length);
 
@@ -293,14 +292,34 @@ begin
 								NextR.ByteCounter <= R.ByteCounter - 4;
 							end if;
 
+							if ((R.ByteCounter = 7 and R.WordCounter = 3 and R.BlockCounter < 127)) then
+								-- handle rdempty
+								if (iReadFifo.rdempty = cActivated) then
+									report "No data available, fifo empty, waiting for new data" severity note;
+									NextR.DisableSdClk <= cActivated;
+									NextR.ByteCounter  <= R.ByteCounter;
+
+								else
+									-- request new data from fifo
+									NextR.DisableSdClk <= cInactivated;
+									NextR.ReadFifo.rdreq <= cActivated;
+								end if;
+							end if;
+
+
 						when standard => 
 							temp := "111" & R.Word(CalcBitAddrInWord(R.WordCounter, R.ByteCounter));
 							SendBitAndShiftIntoCrc(temp);
 
-							if (R.ByteCounter = 1 and R.WordCounter = 3 and R.BlockCounter < 127 and R.BlockCounter > 0) then
+							if (R.ByteCounter = 1 and R.WordCounter = 3 and R.BlockCounter < 127) then
 								-- TODO: handle rdempty
-								-- request new data from fifo
-								NextR.ReadFifo.rdreq <= cActivated;
+								if (iReadFifo.rdempty = cActivated) then
+									report "No data available, fifo empty, waiting for new data" severity note;
+
+								else
+									-- request new data from fifo
+									NextR.ReadFifo.rdreq <= cActivated;
+								end if;
 							end if;
 
 							if (R.ByteCounter = 0) then
@@ -336,15 +355,15 @@ begin
 					NextR.Data.Data <= CrcIn.Serial;
 
 					if (R.BlockCounter = 15) then
-						NextR.BlockCounter <= to_unsigned(0, aBlockCounter'length);
-						NextR.Region <= endbit;
+						NextR.BlockCounter   <= to_unsigned(0, aBlockCounter'length);
+						NextR.Region         <= endbit;
+						NextR.Controller.Ack <= cActivated;
 
 					else
 						NextR.BlockCounter <= R.BlockCounter + 1;
 					end if;
 
 				when endbit => 
-					NextR.Controller.Ack <= cActivated;
 					NextR.Data.Data      <= cSdEndBits;
 					NextR.State <= idle;
 

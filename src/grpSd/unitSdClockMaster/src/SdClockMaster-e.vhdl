@@ -21,6 +21,7 @@ entity SdClockMaster is
 		iClk       : in std_ulogic;
 		iRstSync   : in std_ulogic;
 		iHighSpeed : in std_ulogic;
+		iDisable   : in std_ulogic;
 		oSdStrobe  : out std_ulogic;
 		oSdCardClk : out std_ulogic
 	);

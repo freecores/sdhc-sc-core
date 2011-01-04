@@ -57,7 +57,7 @@ add wave -noupdate -format Literal /Testbed/top/sddata_inst/oreadfifo
 add wave -noupdate -format Literal /Testbed/top/sddata_inst/crcin
 add wave -noupdate -format Literal /Testbed/top/sddata_inst/crcout
 add wave -noupdate -format Literal /Testbed/top/sddata_inst/crcdatain
-add wave -noupdate -format Literal /Testbed/top/sddata_inst/r
+add wave -noupdate -format Literal -expand /Testbed/top/sddata_inst/r
 add wave -noupdate -format Literal /Testbed/top/sddata_inst/nextr
 add wave -noupdate -divider fifo
 add wave -noupdate -format Literal -radix unsigned /Testbed/top/writedatafifo_inst/data
@@ -69,7 +69,7 @@ add wave -noupdate -format Literal -radix hexadecimal /Testbed/top/writedatafifo
 add wave -noupdate -format Logic /Testbed/top/writedatafifo_inst/rdempty
 add wave -noupdate -format Logic /Testbed/top/writedatafifo_inst/wrfull
 TreeUpdate [SetDefaultTree]
-WaveRestoreCursors {{Cursor 1} {10084823 ns} 0}
+WaveRestoreCursors {{Cursor 1} {7675026 ns} 0} {{Cursor 2} {10084945 ns} 0} {{Cursor 3} {10085095 ns} 0}
 configure wave -namecolwidth 150
 configure wave -valuecolwidth 100
 configure wave -justifyvalue left
@@ -84,4 +84,4 @@ configure wave -griddelta 40
 configure wave -timeline 0
 configure wave -timelineunits ns
 update
-WaveRestoreZoom {10084721 ns} {10085176 ns}
+WaveRestoreZoom {10084910 ns} {10085169 ns}

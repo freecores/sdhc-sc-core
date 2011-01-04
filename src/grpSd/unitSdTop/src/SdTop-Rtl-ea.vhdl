@@ -80,7 +80,8 @@ architecture Rtl of SdTop is
 	signal WriteFifoToSdWbSlave         : aiWriteFifo;
 	signal iReadFifo                    : aiReadFifo;
 	signal oReadFifo                    : aoReadFifo;
-	signal ReadFifoQTemp : std_logic_vector(31 downto 0);
+	signal ReadFifoQTemp                : std_logic_vector(31 downto 0);
+	signal DisableSdClk                 : std_ulogic;
 
 begin
 
@@ -187,7 +188,8 @@ begin
 		iData                 => iData,
 		oData                 => oData,
 		oReadFifo			  => oReadFifo,
-		iReadFifo			  => iReadFifo
+		iReadFifo			  => iReadFifo,
+		oDisableSdClk         => DisableSdClk
 	);
 
 	DataRam_inst: entity work.SimpleDualPortedRam
@@ -213,6 +215,7 @@ begin
 		iClk       => iSdClk,
 		iRstSync   => iRstSync,
 		iHighSpeed => HighSpeed,
+		iDisable   => DisableSdClk,
 		oSdStrobe  => SdStrobe,
 		oSdCardClk => oSClk
 	);

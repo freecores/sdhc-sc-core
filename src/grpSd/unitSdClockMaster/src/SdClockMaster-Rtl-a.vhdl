@@ -27,32 +27,62 @@ begin
 					Counter <= 0;
 					SdClk <= cInactivated;
 				else
-
-					if (iHighSpeed = cActivated) then
-						if (Counter = 0 or Counter = 2) then
-							SdClk <= cActivated;
-						else
-							SdClk <= cInactivated;
-						end if;
+					if (iDisable = cActivated) then
+						SdClk <= cActivated;
 					else
-						if (Counter = 0 or Counter = 1) then
-							SdClk <= cActivated;
-						else
-							SdClk <= cInactivated;
-						end if;
-					end if;
 
-					if (Counter < 3) then
-						Counter <= Counter + 1;
-					else 
-						Counter <= 0;
+						if (iHighSpeed = cActivated) then
+							if (Counter = 0 or Counter = 2) then
+								SdClk <= cActivated;
+							else
+								SdClk <= cInactivated;
+							end if;
+						else
+							if (Counter = 0 or Counter = 1) then
+								SdClk <= cActivated;
+							else
+								SdClk <= cInactivated;
+							end if;
+						end if;
+
+						if (Counter < 3) then
+							Counter <= Counter + 1;
+						else 
+							Counter <= 0;
+						end if;
 					end if;
 				end if;
 			end if;
 		end process ClkDivider;
 
-		oSdCardClk <= not SdClk;
-		oSdStrobe  <= SdStrobe25MHz when iHighSpeed = cInactivated else SdStrobe50MHz;
+
+		RegSdStrobe : process (iClk, iRstSync)
+		begin
+			if (rising_edge(iClk)) then
+				-- synchronous reset
+				if (iRstSync = cActivated) then
+					oSdCardClk <= cInactivated;
+					oSdStrobe <= cInactivated;
+				else
+
+					if (iDisable = cActivated) then
+						oSdCardClk <= cInactivated;
+						oSdStrobe <= cInactivated;
+
+					else
+						
+						oSdCardClk <= not SdClk;
+
+						if (iHighSpeed = cInactivated) then
+							oSdStrobe <= SdStrobe25MHz;
+						else 
+							oSdStrobe <= SdStrobe50MHz;
+						end if;
+
+					end if;
+				end if;
+			end if;
+		end process RegSdStrobe;
 
 		SdStrobe_inst25: entity work.StrobeGen(Rtl)
 		generic map (

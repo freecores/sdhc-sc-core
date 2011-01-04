@@ -48,17 +48,6 @@ program Test(ISdCard ICmd, WishboneInterface BusInterface);
 
         begin // driver for SdCardModel
 			card.init();
-
-			Bus.Write('b100, 'h00000001);
-			Bus.Write('b100, 'h00000002);
-			Bus.Write('b100, 'h00000003);
-			Bus.Write('b100, 'h00000004);
-			Bus.Write('b100, 'h00000005);
-			Bus.Write('b100, 'h00000006);
-			Bus.Write('b100, 'h00000007);
-			Bus.Write('b100, 'h00000008);
-			Bus.Write('b001, 'h00000001);
-			Bus.Write('b000, 'h00000010);
 			card.write();
 
 			/*for (int i = 0; i < `cCmdCount; i++) begin
@@ -68,6 +57,25 @@ program Test(ISdCard ICmd, WishboneInterface BusInterface);
 				card.recv();
 			end*/
         end
+
+		begin // driver for wishbone interface
+			@$root.Testbed.InitDone;
+
+			Bus.Write('b100, 'h01010101);
+			Bus.Write('b100, 'h02020202);
+			Bus.Write('b100, 'h03030303);
+			Bus.Write('b100, 'h04040404);
+			Bus.Write('b100, 'h05050505);
+			Bus.Write('b100, 'h06060606);
+			Bus.Write('b100, 'h07070707);
+			Bus.Write('b100, 'h08080808);
+			Bus.Write('b001, 'h00000001);
+			Bus.Write('b000, 'h00000010);
+
+			#10000;
+			Bus.Write('b100, 'h09090909);
+
+		end
 
 		begin // checker
 			@$root.Testbed.InitDone;

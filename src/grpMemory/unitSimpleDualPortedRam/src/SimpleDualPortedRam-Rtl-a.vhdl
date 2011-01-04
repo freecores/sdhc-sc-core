@@ -9,27 +9,25 @@
 
 architecture Rtl of SimpleDualPortedRam is
 
-	subtype aWord is std_ulogic_vector(gDataWidth - 1 downto 0);
-	type aMemory is array (0 to 2**gAddrWidth - 1) of aWord;
-
-	signal memory : aMemory := (others => (others => '0'));
+	signal tempq : std_logic_vector(31 downto 0);
+	signal rdaddr, wraddr : unsigned(6 downto 0);
 
 begin
 
-	DualPort : process (iClk)
-	begin
-		if (iClk'event and iClk = '1') then
-			if (iWeRW = '1') then
-				memory(iAddrRW) <= iDataRW;
+	Ram_inst: ENTITY work.CycSimpleDualPortedRam
+	PORT map
+	(
+		clock => iClk,
+		data => std_logic_vector(iDataRw),
+		rdaddress => std_logic_vector(rdaddr),
+		wraddress => std_logic_vector(wraddr),
+		wren => iWeRW,
+		q => tempq
+	);
 
-				oDataRW <= iDataRW;
-			else
-				oDataRW <= memory(iAddrRW);
-			end if;
-
-			oDataR <= memory(iAddrR);
-		end if;
-	end process DualPort;
+	oDataR <= std_ulogic_vector(tempq);
+	rdaddr <= to_unsigned(iAddrR, rdaddr'length);
+	wraddr <= to_unsigned(iAddrRW, wraddr'length);
 	
 end architecture Rtl;
 
