@@ -104,14 +104,18 @@ begin
 
 		case R.State is
 			when idle => 
-				NextR.Mode <= iSdDataFromController.Mode; 
+				if (iSdDataFromController.CheckBusy = cActivated and ioData(0) = cInactivated) then
+					NextR.Controller.Busy <= cActivated;
 
-				if (ioData = std_logic_vector(cSdStartBits)) then
+				elsif (R.Mode = wide and ioData = std_logic_vector(cSdStartBits)) or
+			   		  (R.Mode = standard and ioData(0) = cSdStartBit) then
 					NextR.State <= receive;
 
 				elsif (iSdDataFromController.Valid = cActivated) then
 					NextR.State  <= send;
 					NextR.Region <= startbit;
+				else 
+					NextR.Mode <= iSdDataFromController.Mode; 
 				end if;
 
 			when send =>

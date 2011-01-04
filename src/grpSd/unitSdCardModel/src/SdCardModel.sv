@@ -34,6 +34,8 @@ class SDCard;
 
 	// Receive a command token and handle it
 	task recv();
+		repeat(8) @ICmd.cb;
+
 		recvcmd = new();
 		ICmd.cb.Cmd <= 'z;
 

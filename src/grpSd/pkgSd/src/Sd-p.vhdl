@@ -140,7 +140,14 @@ package Sd is
 		Mode      : aSdDataBusMode; -- select 1 bit or 4 bit mode
 		DataBlock : aSdDataBlock; -- DataBlock to send to card
 		Valid     : std_ulogic; -- valid, when the datablock is valid and has to be sent
+		CheckBusy : std_ulogic; -- check for busy signaling
 	end record aSdDataFromController;
+
+	constant cDefaultSdDataFromController : aSdDataFromController := (
+	Mode => standard,
+	DataBlock => (others => '0'),
+	Valid => cInactivated,
+	CheckBusy => cInactivated);
 
 	type aSdDataToController is record
 		Ack       : std_ulogic; -- gets asserted when a datablock was sent to the card

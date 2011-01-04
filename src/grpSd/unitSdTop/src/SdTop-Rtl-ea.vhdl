@@ -47,6 +47,8 @@ begin
 		inResetAsync => inResetAsync,
 		iSdCmd       => SdCmdToController,
 		oSdCmd       => SdCmdFromController,
+		iSdData      => SdDataToController,
+		oSdData		 => SdDataFromController,
 		oSdRegisters => SdRegisters,
 		oLedBank     => oLedBank
 	);
