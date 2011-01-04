@@ -84,7 +84,7 @@ begin
 
 	-- Comb. process
 	NextStateAndOutput : process (iFromController, ioCmd, SerialCrc, CrcCorrect,
-		State, Counter, ReceivedToken)
+		State, Counter, ReceivedToken, Cid)
 
 		procedure NextStateWhenAllSent (constant nextlength : in natural; constant toState : in aSdCmdState) is
 		begin
@@ -110,7 +110,7 @@ begin
 			NextStateWhenAllSent(nextlength, toState);
 		end procedure SendBitsAndCalcCrc;
 
-		procedure RecvBitsAndCalcCrc (signal container : inout std_ulogic_vector;
+		procedure RecvBitsAndCalcCrc (signal container : out std_ulogic_vector;
 		constant toState : in aSdCmdState; constant nextlength : in natural) is
 		begin
 			container(to_integer(Counter)) <= ioCmd;		

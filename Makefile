@@ -2,7 +2,7 @@
 
 SIMS = grpCrc/unitCrc grpWishbone/unitWbSlave grpSd/unitSdCmd grpSd/unitSdCardModel 
 SYSVSIMS = grpSd/unitSdVerificationTestbench
-SYNS = grpCrc/unitCrc grpSd/unitSdCmd
+SYNS = grpCrc/unitCrc grpSd/unitSdCmd grpSd/unitSdTop
 
 sim:
 	for i in $(SIMS); do make -C src/$$i/sim; done

@@ -64,6 +64,7 @@ begin
 		-- default assignments
 		oSdCmd <= cDefaultoSdCmd; 
 		NextReg <= Reg;
+		NextState <= State;
 
 		case State is
 			when idle => null;
