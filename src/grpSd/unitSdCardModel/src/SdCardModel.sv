@@ -235,7 +235,7 @@ class SDCard;
 		response.send(ICmd);
 
 		data = {};
-		for(int i = 0; i < (512 * 8) - 1; i++)
+		for(int i = 0; i < (512 * 8); i++)
 			data.push_back(1);
 
 		sddata.send(ICmd, data);
