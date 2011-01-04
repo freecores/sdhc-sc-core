@@ -20,7 +20,6 @@ modelsim.ini
 *.rpt
 *.done
 *.summary
-
 src/libaltera_mf/sim/altera_mf/
 src/libcycloneii/sim/cycloneii/
 doc/diplomarbeit/SdControllerSyncFsm.*
@@ -41,3 +40,4 @@ doc/diplomarbeit/TopDesign.*
 doc/diplomarbeit/_DaBa.out
 doc/diplomarbeit/_DaBa.run.xml
 doc/diplomarbeit/images/SdCmdMain.*
+doc/diplomarbeit/designphases.*
