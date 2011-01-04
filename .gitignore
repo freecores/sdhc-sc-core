@@ -22,4 +22,6 @@ src/libcycloneii/sim/cycloneii/
 doc/diplomarbeit/SdControllerSyncFsm.*
 doc/diplomarbeit/SdwbslaveFifo.*
 doc/diplomarbeit/SdwbslaveMain.*
-
+doc/diplomarbeit/SdControllerConfig.*
+doc/diplomarbeit/SdControllerInit.*
+doc/diplomarbeit/SdControllerMain.*
