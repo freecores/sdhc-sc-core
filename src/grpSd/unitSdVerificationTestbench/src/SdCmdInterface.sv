@@ -5,6 +5,9 @@
 // Interface for the SdCmd entity
 // 
 
+`ifndef SDCMDINTERFACE
+`define SDCMDINTERFACE
+
 interface ISdCard;
 	logic Clk = 0;
 	logic nResetAsync;
@@ -31,4 +34,6 @@ interface ISdCard;
 	);
 
 endinterface
+
+`endif
 

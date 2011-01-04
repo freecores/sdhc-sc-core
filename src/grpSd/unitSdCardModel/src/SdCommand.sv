@@ -4,8 +4,15 @@
 //
 // Classes and types describing the commands of the SD spec, used in SdCardModel
 // 
-`define cSDArgWith 32
-typedef logic[`cSDArgWith-1:0] SDCommandArg;
+
+`ifndef SDCOMMAND
+`define SDCOMMAND
+
+`include "SDCommandArg.sv";
+`include "SdCardState.sv";
+`include "SDCID.sv";
+`include "SDOCR.sv";
+
 typedef logic[15:0] RCA_t;
 
 typedef enum {
@@ -32,8 +39,6 @@ typedef enum {
 } SDAppCommandId;
 
 const SDCommandArg cSdArgACMD41HCS = 'b01000000111111111000000000000000;
-
-include "../../unitSdCardModel/src/SdCardState.sv";
 
 class SDCommandToken;
 	logic startbit;
@@ -154,7 +159,6 @@ class SDCommandR1 extends SDCommandResponse;
 	
 endclass
 
-include "../../unitSdCardModel/src/SDOCR.sv";
 class SDCommandR3 extends SDCommandResponse;
 
 	function new(SDOCR ocr);
@@ -183,7 +187,6 @@ class SDCommandR3 extends SDCommandResponse;
 
 endclass
 
-include "../../unitSdCardModel/src/SDCID.sv";
 class SDCommandR2 extends SDCommandResponse;
 	local SDCID cid;
 	
@@ -238,3 +241,4 @@ class SDCommandR6 extends SDCommandResponse;
 
 endclass
 
+`endif

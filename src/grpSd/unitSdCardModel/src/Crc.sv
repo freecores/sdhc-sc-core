@@ -5,6 +5,9 @@
 // CRC7 calculation 
 // 
 
+`ifndef CRC
+`define CRC
+
 typedef logic[6:0] aCrc7;
 typedef logic[15:0] aCrc16;
 
@@ -32,4 +35,6 @@ function automatic aCrc16 calcCrc16(logic data[$]);
 	return crc;	
 
 endfunction
+
+`endif
 

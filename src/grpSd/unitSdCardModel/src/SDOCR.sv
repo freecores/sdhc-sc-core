@@ -6,6 +6,9 @@
 // See SD Spec 2.00 page 74 (85 in pdf)
 // 
 
+`ifndef SDOCR
+`define SDOCR
+
 typedef logic[23:15] voltage_t;
 const voltage_t cSdVoltageWindow = 'b111111111;
 const logic cOCRBusy = 0;
@@ -41,4 +44,6 @@ class SDOCR;
 	endfunction
 
 endclass
+
+`endif
 

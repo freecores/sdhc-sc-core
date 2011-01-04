@@ -6,6 +6,11 @@
 // Wishbone spec Revision B.3
 //
 
+`ifndef WISHBONE
+`define WISHBONE
+
+`include "WishboneInterface.sv";
+
 class Wishbone;
 
 	virtual WishboneInterface.Master Bus;
@@ -215,4 +220,6 @@ class Wishbone;
 	endtask;
 
 endclass
+
+`endif
 

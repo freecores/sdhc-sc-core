@@ -5,6 +5,9 @@
 // Description: Wishbone interface
 //
 
+`ifndef WISHBONEINTERFACE
+`define WISHBONEINTERFACE
+
 interface WishboneInterface;
 
 		logic 						 ERR_I;
@@ -43,4 +46,6 @@ interface WishboneInterface;
 		);
 
 endinterface;
+
+`endif
 

@@ -4,6 +4,9 @@
 //
 // Class for sending and receiving data (SD spec 2.00)
 //
+
+`ifndef SDDATA
+`define SDDATA
  
 typedef enum {
 	standard,
@@ -124,3 +127,4 @@ class SdData;
 
 endclass
 
+`endif

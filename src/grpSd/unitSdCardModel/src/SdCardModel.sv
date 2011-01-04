@@ -5,12 +5,15 @@
 // Models a SDCard for verification
 // 
 
+`ifndef SDCARDMODEL
+`define SDCARDMODEL
+
 const logic cActivated = 1;
 const logic cInactivated = 0;
 
-include "../../unitSdCardModel/src/Crc.sv";
-include "../../unitSdCardModel/src/SdCommand.sv";
-include "../../unitSdCardModel/src/SdData.sv";
+`include "Crc.sv";
+`include "SdCommand.sv";
+`include "SdData.sv";
 
 class SDCard;
 	local virtual ISdCard.Card ICard;
@@ -326,3 +329,5 @@ class NoSDCard extends SDCard;
 	endtask
 
 endclass
+
+`endif

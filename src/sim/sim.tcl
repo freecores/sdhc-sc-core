@@ -102,7 +102,11 @@ if [info exists svunits] {
 	foreach {grp unit} $svunits {
 		set fname ../../../grp$grp/unit$unit/src/$unit.sv
 		if [file isfile $fname] {
-			vlog $fname
+			if [info exists sysvlogparams] {
+				vlog $fname $sysvlogparams
+			} else {
+				vlog $arg
+			}
 		} else {
 			echo "Svunit $grp $unit not found! ($fname)"
 		}

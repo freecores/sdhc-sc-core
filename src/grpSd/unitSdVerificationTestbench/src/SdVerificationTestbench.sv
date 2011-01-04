@@ -5,6 +5,9 @@
 // SystemVerilog Testbench testing SdCmd and SdController
 //
 
+`ifndef SDVERIFICATIONTESTBENCH
+`define SDVERIFICATIONTESTBENCH
+
 `define cWishboneWidth 32
 const integer cWishboneWidth = 32;
 const logic   cAsserted = 1;
@@ -15,10 +18,9 @@ typedef logic [2:0] aCTI;
 const aCTI ClassicCycle = "000";
 
 
-include "../../unitSdCardModel/src/SdCardModel.sv";
-include "../../unitSdVerificationTestbench/src/SdCmdInterface.sv";
-include "../../unitSdWbSlave/src/WishboneInterface.sv";
-include "../../unitSdWbSlave/src/Wishbone-BFM.sv";
+`include "SdCardModel.sv";
+`include "SdCmdInterface.sv";
+`include "Wishbone-BFM.sv";
 
 `define cCmdCount 1000
 
@@ -144,3 +146,5 @@ module Testbed();
 	event ApplyCommand, CardRecv, CmdReceived, GenCmd, InitDone;
 
 endmodule
+
+`endif

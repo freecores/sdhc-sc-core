@@ -5,6 +5,9 @@
 // Register CID
 //
 
+`ifndef SDCID
+`define SDCID
+
 typedef logic[7:0] manufacturer_id_t;
 typedef logic[15:0] app_id_t;
 typedef logic[39:0] pname_t;
@@ -48,4 +51,6 @@ class SDCID;
 	endfunction
 
 endclass
+
+`endif
 

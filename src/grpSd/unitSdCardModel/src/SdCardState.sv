@@ -5,6 +5,11 @@
 // SDCardState class for use in the SdCardModel
 // 
 
+`ifndef SDCARDSTATE
+`define SDCARDSTATE
+
+`include "SDCommandArg.sv"
+
 typedef enum {
 	idle = 0, ready = 1, ident = 2, stby = 3, trans = 4,
 	data = 5, rcv = 6, prg = 7, dis = 8
@@ -51,3 +56,6 @@ class SDCardState;
 	endfunction
 
 endclass
+
+`endif
+
