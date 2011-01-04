@@ -36,17 +36,17 @@ program Test(ISdCmd ICmd);
         begin // driver for SdCardModel
 			card.init();
 
-			for (int i = 0; i < `cCmdCount; i++) begin
+			/*for (int i = 0; i < `cCmdCount; i++) begin
 				@$root.Testbed.CardRecv;
 
 				$display("driver2: %0d", i);
 				card.recv();
-			end
+			end*/
         end
 
 		begin // checker
 			@$root.Testbed.InitDone;
-
+/*
 			for (int i = 0; i < `cCmdCount; i++) begin
 				@$root.Testbed.CmdReceived;
 				$display("checker: %0d", i);
@@ -56,7 +56,7 @@ program Test(ISdCmd ICmd);
 				recvCmd.checkFromHost();
 				assert(recvCmd.equals(sendCmd) == 1);
 				-> $root.Testbed.GenCmd;
-			end
+			end*/
 		end
 
     join;

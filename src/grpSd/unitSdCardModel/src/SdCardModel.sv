@@ -98,6 +98,7 @@ class SDCommandResponse;
 
 	function automatic void calcCrc();
 		logic[39:0] temp;
+		crc = 0;
 
 		temp[39] = startbit;
 		temp[38] = transbit;
@@ -132,7 +133,7 @@ class SDCommandResponse;
 			ICmd.cb.Cmd <= arg[i];
 		end
 
-		for (int i = 5; i >= 0; i--) begin
+		for (int i = 6; i >= 0; i--) begin
 			@ICmd.cb;
 			ICmd.cb.Cmd <= crc[i];
 		end

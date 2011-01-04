@@ -35,7 +35,7 @@ package Sd is
 		crc7 : std_ulogic_vector(6 downto 0); -- CRC of content
 		endbit : std_ulogic; --cSdEndBit
 	end record aSdCmdToken;
-	
+
 	-- Types for entities
 	type aSdCmdFromController is record
 		Content : aSdCmdContent;
@@ -46,6 +46,9 @@ package Sd is
 		Ack : std_ulogic; -- Gets asserted when crc was sent, but endbit was
 		-- not. This way we can minimize the wait time between sending 2 cmds.
 		Receiving : std_ulogic;
+		CmdContent : aSdCmdContent;
+		Valid : std_ulogic; -- gets asserted when CmdContent is valid (therefore
+		-- a cmd was received)
 	end record aSdCmdToController;
 
 	-- command ids
