@@ -22,6 +22,7 @@ architecture Rtl of SdWbSlave is
 		oWbDat         : aSdWbSlaveDataOutput;
 		oWbCtrl        : aWbSlaveCtrlOutput;
 		oController    : aSdWbSlaveToSdController;
+		oWriteFifo     : aoWriteFifo;
 
 	end record aRegs;
 
@@ -32,7 +33,8 @@ architecture Rtl of SdWbSlave is
 	ReqOperation   => cInactivated,
 	oWbDat         => (Dat => (others                           => '0')),
 	oWbCtrl        => cDefaultWbSlaveCtrlOutput,
-	oController    => cDefaultSdWbSlaveToSdController);
+	oController    => cDefaultSdWbSlaveToSdController,
+	oWriteFifo     => cDefaultoWriteFifo);
 
 	signal R, NxR : aRegs;
 
@@ -40,6 +42,7 @@ begin
 	oWbDat      <= R.oWbDat;
 	oWbCtrl     <= R.oWbCtrl;
 	oController <= R.oController;
+	oWriteFifo  <= R.oWriteFifo;
 
 	WbStateReg  : process (iClk, iRstSync)
 	begin
@@ -52,13 +55,14 @@ begin
 		end if;
 	end process WbStateReg ;
 
-	WbStateAndOutputs : process (iWbCtrl, iWbDat, iController, R)
+	WbStateAndOutputs : process (iWbCtrl, iWbDat, iController, iWriteFifo, R)
 	begin
 		-- Default Assignments
 
 		NxR             <= R;
 		NxR.oWbDat.Dat  <= (others => 'X');
 		NxR.oWbCtrl     <= cDefaultWbSlaveCtrlOutput;
+		NxR.oWriteFifo  <= cDefaultoWriteFifo;
 
 		-- Determine next state
 		case R.WbState is
@@ -101,13 +105,20 @@ begin
 									NxR.oWbCtrl.Ack <= cActivated;
 									NxR.WbState     <= ClassicWrite;
 
-									if (iWbDat.Sel = "1" and 
-									iWbDat.Adr = cOperationAddr and 
-									R.SdIntState = newOperation) then
+									if (iWbDat.Sel = "1") then
+										if (iWbDat.Adr = cOperationAddr and 
+										R.SdIntState = newOperation) then
 										-- insert waitstates until we can notify the SdController again
 
-										NxR.oWbCtrl.Ack <= cInactivated;
-										NxR.WbState     <= idle;
+											NxR.oWbCtrl.Ack <= cInactivated;
+											NxR.WbState     <= idle;
+										end if;
+
+										if (iWbDat.Adr = cWriteDataAddr and iWriteFifo.wrfull = cActivated) then
+											NxR.oWbCtrl.Ack <= cInactivated;
+											NxR.oWbCtrl.Err <= cActivated;
+											NxR.WbState     <= idle;
+										end if;
 
 									end if;
 
@@ -123,7 +134,6 @@ begin
 			when ClassicRead => 
 				NxR.WbState <= idle;
 
-				
 			when ClassicWrite => 
 				NxR.WbState <= idle;
 
@@ -143,7 +153,9 @@ begin
 							NxR.OperationBlock.EndAddr <= iWbDat.Dat;
 
 						when cWriteDataAddr => 
-							-- put into fifo
+
+							NxR.oWriteFifo.data  <= iWbDat.Dat;
+							NxR.oWriteFifo.wrreq <= cActivated;
 
 						when others => 
 							report "Write to an invalid address" severity warning;

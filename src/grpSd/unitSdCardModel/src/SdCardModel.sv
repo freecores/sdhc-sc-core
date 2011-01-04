@@ -29,7 +29,7 @@ class SDCard;
 		state = new();
 		this.CmdReceived = CmdReceived;
 		this.InitDone = InitDone;
-		this.CCS = 1;
+		this.CCS = 0;
 		rca = 0;
 		mode = standard;
 		ICard.cbcard.Data <= 'z;
@@ -186,6 +186,7 @@ class SDCard;
 		response.send(ICard);
 
 		sddata.mode = wide;
+		mode = wide;
 
 		// expect CMD6
 		recv();
@@ -234,7 +235,7 @@ class SDCard;
 	task read();
 		SDCommandR1 response;
 		logic data[$];
-		SdData sddata;
+		SdData sddata = new(mode, usual);
 
 		// expect Read
 		recv();
@@ -248,7 +249,19 @@ class SDCard;
 			data.push_back(1);
 
 		sddata.send(ICard, data);
+	endtask
 
+	task write();
+		SDCommandR1 response;
+
+		// expect Write
+		recv();
+		assert(recvcmd.id == cSdCmdWriteSingleBlock);
+		// recvcmd.arg = address
+		response = new(cSdCmdWriteSingleBlock, state);
+		response.send(ICard);
+
+		// TODO: receive data
 
 	endtask
 

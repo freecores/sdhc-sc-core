@@ -267,6 +267,7 @@ package Sd is
 	constant cSdArgAppCmdPos : natural := 5;
 
 	constant cSdCmdReadSingleBlock : aSdCmdId := std_ulogic_vector(to_unsigned(17, cSdCmdIdHigh));
+	constant cSdCmdWriteSingleBlock : aSdCmdId := std_ulogic_vector(to_unsigned(24, cSdCmdIdHigh));
 
 	constant cSdCmdACMD41 : aSdCmdId := std_ulogic_vector(to_unsigned(41, cSdCmdIdHigh));
 	constant cSdCmdSendSCR : aSdCmdId := std_ulogic_vector(to_unsigned(51, cSdCmdIdHigh));
@@ -304,6 +305,17 @@ package Sd is
 		Data : std_ulogic_vector(3 downto 0);
 		En : std_ulogic_vector(3 downto 0);
 	end record aoSdData;
+
+	type aoReadFifo is record
+		rdreq : std_ulogic; -- read request
+	end record aoReadFifo;
+
+	constant cDefaultoReadFifo : aoReadFifo := (rdreq => '0');
+
+	type aiReadFifo is record
+		q       : std_ulogic_vector(31 downto 0); -- read data (1 cycle after rdreq)
+		rdempty : std_ulogic; -- no data available
+	end record aiReadFifo;
 
 end package Sd;
 

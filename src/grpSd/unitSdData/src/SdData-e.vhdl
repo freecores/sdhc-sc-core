@@ -31,7 +31,11 @@ entity SdData is
 
 		-- Card
 		iData : in aiSdData;
-		oData : out aoSdData
+		oData : out aoSdData;
+		
+		-- ReadFifo
+		iReadFifo : in aiReadFifo;
+		oReadFifo : out aoReadFifo
 	);
 end entity SdData;
 

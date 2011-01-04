@@ -28,7 +28,9 @@ architecture Rtl of SdData is
 		Enable       : std_ulogic;
 		Controller   : aSdDataToController;
 		Ram          : aSdDataToRam;
+		ReadFifo     : aoReadFifo;
 		Mode         : aSdDataBusMode;
+		Word		 : aWord;
 	end record aReg;
 
 	constant cDefaultReg : aReg := (
@@ -42,7 +44,9 @@ architecture Rtl of SdData is
 	Enable       => cInactivated,
 	Controller   => cDefaultSdDataToController,
 	Ram          => cDefaultSdDataToRam,
-	Mode         => standard);
+	ReadFifo     => cDefaultoReadFifo,
+	Mode         => standard,
+	Word         => (others => '0'));
 
 	type aCrcOut is record
 		Clear   : std_ulogic;
@@ -77,6 +81,7 @@ begin
 
 	oSdDataToController <= R.Controller;
 	oSdDataToRam		<= R.Ram;
+	oReadFifo           <= R.ReadFifo;
 
 	Regs : process (iClk, inResetAsync)
 	begin
@@ -86,10 +91,11 @@ begin
 			if (iStrobe = cActivated) then
 				R <= NextR;
 			end if;
+			R.ReadFifo.rdreq <= NextR.ReadFifo.rdreq and not iStrobe;
 		end if;
 	end process Regs;
 
-	Comb : process (iData.Data, iSdDataFromController, CrcIn, iStrobe, R)
+	Comb : process (iData.Data, iSdDataFromController, CrcIn, iStrobe, iReadFifo, R)
 
 		procedure ShiftIntoCrc (constant data : in std_ulogic_vector(3 downto 0)) is
 		begin
@@ -173,7 +179,7 @@ begin
 
 		end procedure NextCounterAndSaveToRamUsual;
 
-		variable temp : std_ulogic_vector(3 downto 0);
+		variable temp : std_ulogic_vector(3 downto 0) := "0000";
 
 	begin
 		NextR            <= R;
@@ -181,6 +187,7 @@ begin
 		NextR.Controller <= cDefaultSdDataToController;
 		NextR.Ram.We     <= cInactivated;
 		NextR.Ram.En     <= cInactivated;
+		NextR.ReadFifo   <= cDefaultoReadFifo;
 		CrcOut           <= cDefaultCrcOut;
 
 		case R.State is
@@ -211,88 +218,140 @@ begin
 					end if;
 
 			elsif (iSdDataFromController.Valid = cActivated) then
-				NextR.State <= send;
-				NextR.Region <= startbit;
+				case iReadFifo.rdempty is
+					when cActivated => 
+						report "Fifo empty, waiting for data" severity note;
+
+					when cInactivated => 
+						NextR.State          <= send;
+						NextR.Region         <= startbit;
+						NextR.ReadFifo.rdreq <= cActivated;
+
+					when others => 
+						report "rdempty invalid" severity error;
+				end case;
 			else 
 				NextR.Mode <= iSdDataFromController.Mode; 
 			end if;
 
 		when send =>
-			report "sending not implemented" severity error;
---			NextR.Enable  <= cActivated;
---
---			case R.Region is
---				when startbit => 
---					SendBitAndShiftIntoCrc(cSdStartBits);
---					NextR.Region <= data;
---
---				when data => 
---					case R.Mode is
---						when wide => 
---							for idx in 3 downto 0 loop
---								temp(idx) := iSdDataFromController.DataBlock(to_integer(R.BlockCounter * 8 + R.ByteCounter) - idx);
---							end loop;
---
---							SendBitAndShiftIntoCrc(temp);
---
---							if (R.ByteCounter = 3) then
---								NextR.ByteCounter <= to_unsigned(7, aByteCounter'length);
---
---								if (R.BlockCounter = 511) then
---									NextR.BlockCounter <= to_unsigned(0, aBlockCounter'length);
---									NextR.Region <= crc;
---
---								else
---									NextR.BlockCounter <= R.BlockCounter + 1;
---								end if;
---
---							else
---								NextR.ByteCounter <= R.ByteCounter - 4;
---							end if;
---
---						when standard => 
---							temp := "000" & iSdDataFromController.DataBlock(to_integer(R.BlockCounter * 8 + R.ByteCounter));
---							SendBitAndShiftIntoCrc(temp);
---
---							if (R.ByteCounter = 0) then
---								NextR.ByteCounter <= to_unsigned(7, aByteCounter'length);
---
---								if (R.BlockCounter = 511) then
---									NextR.BlockCounter <= to_unsigned(0, aBlockCounter'length);
---									NextR.Region <= crc;
---
---								else 
---									NextR.BlockCounter <= R.BlockCounter + 1;
---								end if;
---
---							else
---								NextR.ByteCounter <= R.ByteCounter - 1;
---							end if;
---
---						when others => 
---							report "Invalid SdData mode!" severity error;
---					end case;
---
---				when crc => 
---					NextR.data <= CrcIn.Serial;
---
---					if (R.BlockCounter = 15) then
---						NextR.BlockCounter <= to_unsigned(0, aBlockCounter'length);
---						NextR.Region <= endbit;
---
---					else
---						NextR.BlockCounter <= R.BlockCounter + 1;
---					end if;
---
---				when endbit => 
---					NextR.Controller.Ack <= cActivated;
---					NextR.Data           <= cSdEndBits;
---					NextR.State <= idle;
---
---				when others => 
---					report "Region not handled" severity error;
---			end case;	
---
+			case R.Mode is
+				when wide => 
+					NextR.Data.En <= (others => cActivated);
+
+				when standard => 
+					NextR.Data.En <= "0001";
+
+				when others => 
+					report "Invalid mode" severity error;
+			end case;
+
+			case R.Region is
+				when startbit => 
+					SendBitAndShiftIntoCrc(cSdStartBits);
+					NextR.Region <= data;
+
+					-- save data from fifo
+					NextR.Word <= iReadFifo.q;
+
+				when data => 
+					case R.Mode is
+						when wide => 
+							for i in 0 to 3 loop
+								temp(i) := R.Word(CalcBitAddrInWord(R.WordCounter, R.ByteCounter - i));
+							end loop;
+							SendBitAndShiftIntoCrc(temp);
+
+							if (R.ByteCounter = 7 and R.WordCounter = 3 and R.BlockCounter < 127 and R.BlockCounter > 0) then
+								-- TODO: handle rdempty
+								-- request new data from fifo
+								NextR.ReadFifo.rdreq <= cActivated;
+							end if;
+
+							if (R.ByteCounter = 3) then
+								NextR.ByteCounter <= to_unsigned(7, aByteCounter'length);
+
+								if (R.WordCounter = 3) then
+									NextR.WordCounter <= to_unsigned(0, aWordCounter'length);
+
+									if (R.BlockCounter = 127) then
+										NextR.Region       <= crc;
+										NextR.BlockCounter <= to_unsigned(0, aBlockCounter'length);
+
+									else
+										NextR.BlockCounter   <= R.BlockCounter + 1;
+
+										-- save data
+										NextR.Word <= iReadFifo.q;
+									end if;
+
+								else 
+									NextR.WordCounter <= R.WordCounter + 1;
+								end if;
+
+							else
+								NextR.ByteCounter <= R.ByteCounter - 4;
+							end if;
+
+						when standard => 
+							temp := "111" & R.Word(CalcBitAddrInWord(R.WordCounter, R.ByteCounter));
+							SendBitAndShiftIntoCrc(temp);
+
+							if (R.ByteCounter = 1 and R.WordCounter = 3 and R.BlockCounter < 127 and R.BlockCounter > 0) then
+								-- TODO: handle rdempty
+								-- request new data from fifo
+								NextR.ReadFifo.rdreq <= cActivated;
+							end if;
+
+							if (R.ByteCounter = 0) then
+								NextR.ByteCounter <= to_unsigned(7, aByteCounter'length);
+
+								if (R.WordCounter = 3) then
+									NextR.WordCounter <= to_unsigned(0, aWordCounter'length);
+
+									if (R.BlockCounter = 127) then
+										NextR.Region       <= crc;
+										NextR.BlockCounter <= to_unsigned(0, aBlockCounter'length);
+
+									else
+										NextR.BlockCounter   <= R.BlockCounter + 1;
+
+										-- save data
+										NextR.Word <= iReadFifo.q;
+									end if;
+
+								else 
+									NextR.WordCounter <= R.WordCounter + 1;
+								end if;
+
+							else
+								NextR.ByteCounter <= R.ByteCounter - 1;
+							end if;
+
+						when others => 
+							report "Invalid SdData mode!" severity error;
+					end case;
+
+				when crc => 
+					NextR.Data.Data <= CrcIn.Serial;
+
+					if (R.BlockCounter = 15) then
+						NextR.BlockCounter <= to_unsigned(0, aBlockCounter'length);
+						NextR.Region <= endbit;
+
+					else
+						NextR.BlockCounter <= R.BlockCounter + 1;
+					end if;
+
+				when endbit => 
+					NextR.Controller.Ack <= cActivated;
+					NextR.Data.Data      <= cSdEndBits;
+					NextR.State <= idle;
+
+				when others => 
+					report "Region not handled" severity error;
+			end case;	
+
 		when receive => 
 			case R.Region is
 				when data => 

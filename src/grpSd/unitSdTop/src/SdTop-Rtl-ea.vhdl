@@ -66,19 +66,21 @@ architecture Rtl of SdTop is
 	signal SdControllerFromDataRam      : aSdControllerFromRam;
 	signal iSdWbSync, oSdControllerSync : aSdWbSlaveToSdController;
 	signal iSdControllerSync, oSdWbSync : aSdControllerToSdWbSlave;
-
 	signal SdStrobe                     : std_ulogic;
 	signal HighSpeed                    : std_ulogic;
-
 	signal iCmd                         : aiSdCmd;
 	signal oCmd                         : aoSdCmd;
 	signal iData                        : aiSdData;
 	signal oData                        : aoSdData;
-
 	signal iWbCtrl                      : aWbSlaveCtrlInput;
 	signal oWbCtrl                      : aWbSlaveCtrlOutput;
 	signal iWbDat                       : aSdWbSlaveDataInput;
 	signal oWbDat                       : aSdWbSlaveDataOutput;
+	signal SdWbSlaveToWriteFifo         : aoWriteFifo;
+	signal WriteFifoToSdWbSlave         : aiWriteFifo;
+	signal iReadFifo                    : aiReadFifo;
+	signal oReadFifo                    : aoReadFifo;
+	signal ReadFifoQTemp : std_logic_vector(31 downto 0);
 
 begin
 
@@ -135,7 +137,11 @@ begin
 
 		-- To sd controller
 		iController         => oSdWbSync,
-		oController         => iSdWbSync
+		oController         => iSdWbSync,
+
+		-- To write fifo
+		oWriteFifo          => SdWbSlaveToWriteFifo,
+		iWriteFifo          => WriteFifoToSdWbSlave
 	);
 
 	SdController_inst: entity work.SdController(Rtl)
@@ -179,7 +185,9 @@ begin
 		iSdDataFromRam        => SdDataFromRam,
 		oSdDataToRam          => SdDataToRam,
 		iData                 => iData,
-		oData                 => oData
+		oData                 => oData,
+		oReadFifo			  => oReadFifo,
+		iReadFifo			  => iReadFifo
 	);
 
 	DataRam_inst: entity work.SimpleDualPortedRam
@@ -220,6 +228,20 @@ begin
 		oDataSync  => iData.Data
 
 	);
+
+	WriteDataFifo_inst: entity work.WriteDataFifo
+	port map (
+		data    => std_logic_vector(SdWbSlaveToWriteFifo.data),
+		rdclk   => iSdClk,
+		rdreq   => oReadFifo.rdreq,
+		wrclk   => iWbClk,
+		wrreq   => SdWbSlaveToWriteFifo.wrreq,
+		q       => ReadFifoQTemp,
+		rdempty => iReadFifo.rdempty,
+		wrfull  => WriteFifoToSdWbSlave.wrfull
+	);
+
+	iReadFifo.q <= std_ulogic_vector(ReadFifoQTemp);
 
 end architecture Rtl;
 

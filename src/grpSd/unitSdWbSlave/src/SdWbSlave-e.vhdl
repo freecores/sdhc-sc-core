@@ -27,7 +27,11 @@ entity SdWbSlave is
 		
 		-- To sd controller
 		iController : in aSdControllerToSdWbSlave;
-		oController : out aSdWbSlaveToSdController	
+		oController : out aSdWbSlaveToSdController;
+
+		-- To write fifo
+		oWriteFifo : out aoWriteFifo;
+		iWriteFifo : in aiWriteFifo
 	);
 end entity;
 

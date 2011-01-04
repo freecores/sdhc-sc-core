@@ -1,3 +1,4 @@
+set libs {altera_mf}
 
 set pkgs {Global Global
 	Sd Sd
@@ -22,6 +23,7 @@ set units {Crc Crc {Rtl}
 	Synchronization Synchronizer {Rtl}
 	StrobesClocks EdgeDetector {Rtl}
 	Sd SdWbSdControllerSync {Rtl}
+	Cyclone2 WriteDataFifo {Syn}
 	Sd SdTop {Rtl}}
 
 set svunits {Sd SdCardModel

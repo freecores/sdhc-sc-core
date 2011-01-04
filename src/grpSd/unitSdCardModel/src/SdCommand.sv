@@ -21,6 +21,7 @@ typedef enum {
 	 cSdCmdStopTrans = 12,
 	 cSdCmdSendStatus = 13, // [31:16] RCA
 	 cSdCmdReadSingleBlock = 17,
+	 cSdCmdWriteSingleBlock = 24,
 	 cSdCmdNextIsACMD = 55 // [31:16] RCA
 } SDCommandId;
 

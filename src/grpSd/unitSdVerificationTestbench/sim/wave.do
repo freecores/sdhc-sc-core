@@ -40,10 +40,36 @@ add wave -noupdate -format Literal /Testbed/top/sdcontroller_inst/odataram
 add wave -noupdate -format Literal /Testbed/top/sdcontroller_inst/isdwbslave
 add wave -noupdate -format Literal /Testbed/top/sdcontroller_inst/osdwbslave
 add wave -noupdate -format Literal /Testbed/top/sdcontroller_inst/oledbank
-add wave -noupdate -format Literal -expand /Testbed/top/sdcontroller_inst/r
+add wave -noupdate -format Literal /Testbed/top/sdcontroller_inst/r
 add wave -noupdate -format Literal /Testbed/top/sdcontroller_inst/nextr
+add wave -noupdate -divider data
+add wave -noupdate -format Logic /Testbed/top/sddata_inst/iclk
+add wave -noupdate -format Logic /Testbed/top/sddata_inst/inresetasync
+add wave -noupdate -format Logic /Testbed/top/sddata_inst/istrobe
+add wave -noupdate -format Literal /Testbed/top/sddata_inst/isddatafromcontroller
+add wave -noupdate -format Literal /Testbed/top/sddata_inst/osddatatocontroller
+add wave -noupdate -format Literal /Testbed/top/sddata_inst/isddatafromram
+add wave -noupdate -format Literal /Testbed/top/sddata_inst/osddatatoram
+add wave -noupdate -format Literal /Testbed/top/sddata_inst/idata
+add wave -noupdate -format Literal /Testbed/top/sddata_inst/odata
+add wave -noupdate -format Literal /Testbed/top/sddata_inst/ireadfifo
+add wave -noupdate -format Literal /Testbed/top/sddata_inst/oreadfifo
+add wave -noupdate -format Literal /Testbed/top/sddata_inst/crcin
+add wave -noupdate -format Literal /Testbed/top/sddata_inst/crcout
+add wave -noupdate -format Literal /Testbed/top/sddata_inst/crcdatain
+add wave -noupdate -format Literal /Testbed/top/sddata_inst/r
+add wave -noupdate -format Literal /Testbed/top/sddata_inst/nextr
+add wave -noupdate -divider fifo
+add wave -noupdate -format Literal -radix unsigned /Testbed/top/writedatafifo_inst/data
+add wave -noupdate -format Logic /Testbed/top/writedatafifo_inst/rdclk
+add wave -noupdate -format Logic /Testbed/top/writedatafifo_inst/rdreq
+add wave -noupdate -format Logic /Testbed/top/writedatafifo_inst/wrclk
+add wave -noupdate -format Logic /Testbed/top/writedatafifo_inst/wrreq
+add wave -noupdate -format Literal -radix hexadecimal /Testbed/top/writedatafifo_inst/q
+add wave -noupdate -format Logic /Testbed/top/writedatafifo_inst/rdempty
+add wave -noupdate -format Logic /Testbed/top/writedatafifo_inst/wrfull
 TreeUpdate [SetDefaultTree]
-WaveRestoreCursors {{Cursor 1} {10082779 ns} 0}
+WaveRestoreCursors {{Cursor 1} {10084823 ns} 0}
 configure wave -namecolwidth 150
 configure wave -valuecolwidth 100
 configure wave -justifyvalue left
@@ -58,4 +84,4 @@ configure wave -griddelta 40
 configure wave -timeline 0
 configure wave -timelineunits ns
 update
-WaveRestoreZoom {10082634 ns} {10083617 ns}
+WaveRestoreZoom {10084721 ns} {10085176 ns}

@@ -23,7 +23,8 @@ package SdWb is
 	subtype aOperation is std_ulogic_vector(31 downto 0);
 
 	-- different valid operation values
-	constant cOperationRead : aOperation := X"00000001";
+	constant cOperationRead  : aOperation := X"00000001";
+	constant cOperationWrite : aOperation := X"00000010";
 
 
 	-- addresses for register banks in SdWbSlave
@@ -88,6 +89,25 @@ package SdWb is
 	constant cDefaultSdControllerToSdWbSlave : aSdControllerToSdWbSlave := (
 	ReqOperation => '0',
 	ReadData     => (others => '0'));
+
+	-- to fifo
+
+	type aoWriteFifo is record
+
+		data : aData;
+		wrreq : std_ulogic; -- write request
+
+	end record aoWriteFifo;
+
+	constant cDefaultoWriteFifo : aoWriteFifo := (
+	data  => (others => '0'),
+	wrreq => '0');
+
+	type aiWriteFifo is record
+
+		wrfull : std_ulogic; -- write full
+
+	end record aiWriteFifo;
 
 end package SdWb;
 

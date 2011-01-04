@@ -570,11 +570,25 @@ begin
 
 				case R.Region is
 					when send =>
+						-- send a read command
 						NextR.ToSdCmd.Content.id  <= cSdCmdReadSingleBlock;
-						NextR.ToSdCmd.Content.arg <= (others => '0');
+						
+						-- we get a block address, but a standard capacity card needs a byte address
+						case R.CCS is
+							when cActivated => 
+								NextR.ToSdCmd.Content.arg <= R.OperationBlock.StartAddr;
+
+							when cInactivated => 
+								NextR.ToSdCmd.Content.arg <= R.OperationBlock.StartAddr(31-9 downto 0) & X"00" & '0'; -- calculate byte address
+
+							when others => 
+								report "Invalid CCS" severity error;
+						end case;
+
 						NextRegion                := response;
 
 					when response => 
+						-- wait for the response and handle it
 						if (iSdCmd.Valid = cActivated) then
 							if (iSdCmd.Content.id = cSdCmdReadSingleBlock) then
 								NextR.CardStatus <= iSdCmd.Content.arg;
@@ -588,7 +602,53 @@ begin
 						end if;
 
 					when receivedata => 
-						-- TODO: send to interface
+
+					when waitstatedata => 
+						NextR.Region <= idle;
+						NextR.State  <= requestnewoperation;
+
+					when others => 
+						report "Unhandled region";
+				end case;
+
+			when write => 
+				NextR.ToSdData.DataMode <= usual;
+
+				case R.Region is
+					when send =>
+						-- send a write command
+						NextR.ToSdCmd.Content.id  <= cSdCmdWriteSingleBlock;
+						
+						-- we get a block address, but a standard capacity card needs a byte address
+						case R.CCS is
+							when cActivated => 
+								NextR.ToSdCmd.Content.arg <= R.OperationBlock.StartAddr;
+
+							when cInactivated => 
+								NextR.ToSdCmd.Content.arg <= R.OperationBlock.StartAddr(31-9 downto 0) & X"00" & '0'; -- calculate byte address
+
+							when others => 
+								report "Invalid CCS" severity error;
+						end case;
+
+						NextRegion                := response;
+
+					when response => 
+						-- wait for the response and handle it
+						if (iSdCmd.Valid = cActivated) then
+							if (iSdCmd.Content.id = cSdCmdWriteSingleBlock) then
+								NextR.CardStatus <= iSdCmd.Content.arg;
+								NextR.Region     <= senddata;
+
+							else
+								NextR.State <= invalidCard;
+							end if;
+						elsif (Timeout = cActivated) then
+							NextR.State <= invalidCard;
+						end if;
+
+					when senddata => 
+						NextRegion := waitstatedata;
 
 					when waitstatedata => 
 						NextR.Region <= idle;
@@ -617,6 +677,11 @@ begin
 						when cOperationRead => 
 
 							NextR.State  <= read;
+							NextR.Region <= send;
+
+						when cOperationWrite => 
+
+							NextR.State  <= write;
 							NextR.Region <= send;
 
 						when others => 
@@ -694,6 +759,13 @@ begin
 					NextR.Region    <= NextRegion;
 					NextR.CmdRegion <= NextCmdRegion;
 					NextR.State     <= NextState;
+				end if;
+
+			when senddata => 
+				NextR.ToSdData.Valid <= cActivated;
+
+				if (iSdData.Ack = cActivated) then
+					NextR.Region <= NextRegion;
 				end if;
 
 			when checkbusy => 

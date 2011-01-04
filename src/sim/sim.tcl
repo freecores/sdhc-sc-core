@@ -29,6 +29,12 @@ proc compileTb {grp en arch} {
 vlib work
 vmap work work
 
+if [info exists libs] {
+	foreach {lib} $libs {
+		vmap $lib ../../../lib$lib/sim/$lib
+	}
+}
+
 if [info exists pkgs] {
 	foreach {grp pkg} $pkgs {
 		set fname ../../../grp$grp/pkg$pkg/src/$pkg-p.vhdl
