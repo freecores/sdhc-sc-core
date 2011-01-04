@@ -36,11 +36,13 @@ entity WbSlave is
 					  -- write cycle
 
 	-- Data 
-	iAdr : std_ulogic_vector(gPortSize-1 downto log2(gPortGranularity) - 1);
+	iAdr : std_ulogic_vector(gPortSize-1 downto integer(log2(
+	real(gPortGranularity) )) - 1);
 	iDat : std_ulogic_vector(gPortSize-1 downto 0); -- Data input
-	oDat : std_ulogic_vector(gPortSize-1 downto 0); -- Data output
+	oDat : std_ulogic_vector(gPortSize-1 downto 0) -- Data output
 
 -- Tags are currently not supported
+);
 
 begin
 
@@ -48,8 +50,7 @@ begin
 	64) report "gPortSize is invalid." severity failure;
 
 	assert (gPortGranularity = 8 or gPortGranularity = 16 or
-	gPortGranularity = 32 or gPortGranularity = 64) report "gPortGranularity
-	is invalid." severity failure;
+	gPortGranularity = 32 or gPortGranularity = 64) report "gPortGranularity is invalid." severity failure;
 
 	assert (gMaximumOperandSize = 8 or gMaximumOperandSize = 16 or
 	gMaximumOperandSize = 32 or gMaximumOperandSize = 64) report
