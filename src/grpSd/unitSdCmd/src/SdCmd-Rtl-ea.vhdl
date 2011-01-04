@@ -20,7 +20,7 @@ entity SdCmd is
 		inResetAsync : in std_ulogic; -- Reset, asynchronous active low
 
 		iCmdContent: in aSdCmdContent; -- Content to send to card
-		ioCmd : inout std_ulogic -- Cmd line to and from card
+		ioCmd : inout std_logic -- Cmd line to and from card
 	);
 end entity SdCmd;
 
@@ -38,15 +38,16 @@ begin
 	CmdStateReg : process (iClk, inResetAsync)
 	begin
 		if inResetAsync = cInactivated then
-			State <= endbit;
+			State <= idle;
 			Counter <= to_unsigned(0, Counter'length);
 		elsif iClk'event and iClk = cActivated then
 			State <= NextState;
+			Counter <= NextCounter;
 		end if;
 	end process CmdStateReg;
 
 	-- Comb. process
-	NextStateAndOutput : process (iCmdContent, State)
+	NextStateAndOutput : process (iCmdContent, State, Counter)
 
 		procedure NextStateWhenAllSent (constant length : in natural; constant toState : in aSdCmdState) is
 		begin
@@ -81,24 +82,47 @@ begin
 			when idle => 
 				-- todo: implement Sync. with host
 				NextState <= startbit;
+				CrcDataIn <= cActivated;
+				CrcData <= cSdStartBit;
 
 			when startbit =>
 				ioCmd <= cSdStartBit;
 				NextState <= transbit;
+				CrcDataIn <= cActivated;
+				CrcData <= cSdTransBitHost;
 
 			when transbit => 
 				ioCmd <= cSdTransBitHost;
 				NextState <= cmdid;
+				CrcDataIn <= cActivated;
+				CrcData <= iCmdContent.id(to_integer(NextCounter));
 
 			when cmdid => 
-				SendBitsAndCalcCrc(iCmdContent.id, arg);
+				-- SendBitsAndCalcCrc(iCmdContent.id, arg);
+				ioCmd <= iCmdContent.id(to_integer(NextCounter));
+				if (NextCounter < iCmdContent.id'length-2) then
+					CrcData <= iCmdContent.id(to_integer(NextCounter)+1);
+				else 
+					CrcData <= iCmdContent.arg(0);
+				end if;
+				CrcDataIn <= cActivated;
+				NextStateWhenAllSent(iCmdContent.id'length, arg);
+
 
 			when arg => 
-				SendBitsAndCalcCrc(iCmdContent.arg, crc);
+				-- SendBitsAndCalcCrc(iCmdContent.arg, crc);
+				ioCmd <= iCmdContent.arg(to_integer(NextCounter));
+				if (NextCounter < iCmdContent.arg'length-2) then
+					CrcData <= iCmdContent.arg(to_integer(NextCounter)+1);
+					CrcDataIn <= cActivated;
+				else 
+					CrcDataIn <= cInactivated;
+				end if;
+				NextStateWhenAllSent(iCmdContent.arg'length, crc);
 
 			when crc => 
 				ioCmd <= SerialCrc;
-				NextStateWhenAllSent(crc7'length, endbit);
+				NextStateWhenAllSent(crc7'length-1, endbit);
 
 			when endbit =>
 				ioCmd <= cSdEndBit;

@@ -13,6 +13,8 @@ package Global is
 
 	constant cActivated : std_ulogic := '1';
 	constant cInactivated : std_ulogic := '0';
+	constant cnActivated : std_ulogic := '0';
+	constant cnInactivated : std_ulogic := '1';
 
 end package Global;
 

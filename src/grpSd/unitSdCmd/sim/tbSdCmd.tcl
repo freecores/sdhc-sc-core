@@ -17,9 +17,9 @@ foreach {grp en arch} $units {
     vcom ../../../grp$grp/unit$en/src/$en-$arch-ea.vhdl
 }
 
-#vcom ../../unit$tb/src/tb$tb-$tbarch-ea.vhdl
+vcom ../../unit$tb/src/tb$tb-$tbarch-ea.vhdl
 
-#vsim tb$tb
+vsim tb$tb
 
-#do wave.do
-#run -all
+do wave.do
+run -all
