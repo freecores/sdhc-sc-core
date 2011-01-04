@@ -87,7 +87,7 @@ begin
 
 		-- Status
 		oLedBank <= (others => cInactivated);
-		oLedBank(5)   <= R.HCS;
+		oLedBank(5) <= R.CCS;
 
 		case R.State is
 			when startup => 
@@ -180,7 +180,8 @@ begin
 								end if;
 
 							when receive => 
-								oLedBank(0) <= cActivated;
+								oLedBank(0)   <= cActivated;
+								TimeoutEnable <= cActivated;
 
 								if (iSdCmd.Valid = cActivated) then
 									if (iSdCmd.Content.id = cSdNextIsACMD) then
@@ -195,7 +196,8 @@ begin
 									else 
 										NextR.State <= invalidCard;
 									end if;
-								-- elsif timeout
+								elsif (Timeout = cActivated) then
+									NextR.State <= invalidCard;
 								end if;
 
 							when waitstate => 
@@ -228,12 +230,12 @@ begin
 
 							when receive => 
 								oLedBank(0)     <= cActivated;
-								-- TimeoutEnable   <= cActivated;
+								TimeoutEnable   <= cActivated;
 								oSdCmd.CheckCrc <= cInactivated;
 
 								if (iSdCmd.Valid = cActivated) then
-									NextR.CmdRegion <= CMD55;
-									NextR.Region    <= send;
+									NextR.CmdRegion <= CMD8;
+									NextR.Region    <= waitstate;
 
 									if (iSdCmd.Content.id = cSdR3Id) then
 										ocr := ArgToOcr(iSdCmd.Content.arg);
@@ -280,6 +282,7 @@ begin
 							when receive => 
 								oLedBank(0)      <= cActivated;
 								oSdCmd.ExpectCID <= cActivated;
+								TimeoutEnable    <= cActivated;
 
 								if (iSdCmd.Valid = cActivated) then
 									NextR.State <= invalidCard;
@@ -288,7 +291,8 @@ begin
 										NextR.State     <= init;
 										NextR.Region    <= waitstate;
 									end if;
-								-- elsif timeout
+								elsif (Timeout = cActivated) then
+									NextR.State <= invalidCard;
 								end if;
 							
 							when waitstate => 
@@ -316,6 +320,7 @@ begin
 
 							when receive => 
 								oLedBank(0) <= cActivated;
+								TimeoutEnable    <= cActivated;
 
 								if (iSdCmd.Valid = cActivated) then
 									if (iSdCmd.Content.id = cSdCmdSendRelAdr) then
@@ -323,7 +328,8 @@ begin
 										NextR.RCA <= iSdCmd.Content.arg(31 downto 16);
 										NextR.State <= idle;
 									end if;
-								--elsif timeout
+								elsif (Timeout = cActivated) then
+									NextR.State <= invalidCard;
 								end if;
 
 							when others => 
