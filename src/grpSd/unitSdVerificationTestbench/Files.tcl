@@ -68,4 +68,4 @@ set sysvlogparams [list +incdir+../../unitSdCardModel/src+../src+../../unitSdWbS
 
 #set tb
 set top Testbed
-
+set vsimargs -coverage
