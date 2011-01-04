@@ -67,7 +67,8 @@ class RamModel;
 				data[addr][i][j] = block.data.pop_front();
 			end
 		end
-	
+
+		if (RamActionOutMb != null)	
 		begin
 			RamAction action = new(RamAction::Write, addr, data[addr]);
 			RamActionOutMb.put(action);

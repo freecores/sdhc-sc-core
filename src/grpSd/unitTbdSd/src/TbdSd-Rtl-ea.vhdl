@@ -123,7 +123,7 @@ begin
 	)
 	port map (
 		iWbClk       => iClk,
-		iRstSync     => RstSync(1),
+		iWbRstSync   => RstSync(1),
 
 		iCyc         => iCyc,
 		iLock        => iLock,
@@ -141,6 +141,7 @@ begin
 		oRty         => oRty,
 
 		iSdClk       => iClk,
+		iSdRstSync   => RstSync(1),
 		ioCmd        => ioCmd,
 		oSclk        => oSclk,
 		ioData       => ioData,
