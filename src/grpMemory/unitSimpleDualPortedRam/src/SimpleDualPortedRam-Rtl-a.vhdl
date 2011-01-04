@@ -1,13 +1,13 @@
 --
--- Title: Ram
--- File: Ram-Rtl-a.vhdl
+-- Title: Simple dual ported ram
+-- File: SimpleDualPortedRam-Rtl-a.vhdl
 -- Author: Copyright 2010: Rainer Kastl
 -- Standard: VHDL'93
 -- 
 -- Description:  
 --
 
-architecture Rtl of Ram is
+architecture Rtl of SimpleDualPortedRam is
 
 	subtype aWord is std_ulogic_vector(gDataWidth - 1 downto 0);
 	type aMemory is array (0 to 2**gAddrWidth - 1) of aWord;
@@ -16,18 +16,20 @@ architecture Rtl of Ram is
 
 begin
 
-	SinglePort : process (iClk)
+	DualPort : process (iClk)
 	begin
 		if (iClk'event and iClk = '1') then
-			if (iWe = '1') then
-				memory(iAddr) <= iData;
+			if (iWeRW = '1') then
+				memory(iAddrRW) <= iDataRW;
 
-				oData <= iData;
+				oDataRW <= iDataRW;
 			else
-				oData <= memory(iAddr);
+				oDataRW <= memory(iAddrRW);
 			end if;
+
+			oDataR <= memory(iAddrR);
 		end if;
-	end process SinglePort;
+	end process DualPort;
 	
 end architecture Rtl;
 

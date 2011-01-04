@@ -13,7 +13,8 @@ use work.Sd.all;
 
 entity SdTop is
 	generic (
-		gClkFrequency : natural := 25E6
+		gClkFrequency  : natural := 25E6;
+		gHighSpeedMode : boolean := false
 	);
 	port (
 		iClk         : in std_ulogic;
@@ -29,34 +30,68 @@ entity SdTop is
 		oReceivedContentValid : out std_ulogic;
 		oReceivedData         : out std_ulogic_vector(511 downto 0);
 		oReceivedDataValid    : out std_ulogic;
-		oCrc                  : out std_ulogic_vector(15 downto 0);
 		oLedBank              : out aLedBank
 	);
+
+	begin
+
+		assert (gClkFrequency = 25E6 or gClkFrequency = 50E6)
+		report "invalid clock frequency"
+		severity failure;
+
+		assert ((gHighSpeedMode = true and gClkFrequency = 50E6) or gHighSpeedMode = false)
+		report "High speed mode needs 50 MHz clock"
+		severity note;
+
 end entity SdTop;
 
 architecture Rtl of SdTop is
 
-	signal SdCmdToController    : aSdCmdToController;
-	signal SdCmdFromController  : aSdCmdFromController;
-	signal SdRegisters          : aSdRegisters;
-	signal SdDataToController   : aSdDataToController;
-	signal SdDataFromController : aSdDataFromController;
-	signal SdStrobe				: std_ulogic;
-	signal SdStrobe25MHz        : std_ulogic;
-	signal HighSpeed		    : std_ulogic;
+	signal SdCmdToController       : aSdCmdToController;
+	signal SdCmdFromController     : aSdCmdFromController;
+	signal SdDataToController      : aSdDataToController;
+	signal SdDataFromController    : aSdDataFromController;
+	signal SdDataFromRam           : aSdDataFromRam;
+	signal SdDataToRam             : aSdDataToRam;
+	signal SdControllerToDataRam   : aSdControllerToRam;
+	signal SdControllerFromDataRam : aSdControllerFromRam;
+	signal SdStrobe                : std_ulogic;
+	signal SdStrobe25MHz           : std_ulogic;
+	signal HighSpeed               : std_ulogic;
 
 begin
+
+	Sclk50Mhz: if gClkFrequency = 50E6 generate
+
+		oSclk    <= SdStrobe25MHz when HighSpeed = cInactivated else iClk;
+		SdStrobe <= SdStrobe25MHz when HighSpeed = cInactivated else cActivated;
 	
-	oSclk                 <= SdStrobe25MHz when HighSpeed = cInactivated else iClk;
+		SdStrobe_inst: entity work.StrobeGen(Rtl)
+		generic map (
+			gClkFrequency    => gClkFrequency,
+			gStrobeCycleTime => 1 sec / 25E6)
+		port map (
+			iClk         => iClk,
+			inResetAsync => inResetAsync,
+			oStrobe      => SdStrobe25MHz);
+	
+	end generate;	
+
+	Sclk25MHz: if gClkFrequency = 25E6 generate
+
+		oSclk    <= iClk;
+		SdStrobe <= cActivated;
+
+	end generate;
+
 	oReceivedContent      <= SdCmdToController.Content;
 	oReceivedContentValid <= SdCmdToController.Valid;
-	oReceivedData         <= SdDataToController.DataBlock(511 downto 0);
 	oReceivedDataValid    <= SdDataToController.Valid;
-	SdStrobe              <= SdStrobe25MHz when HighSpeed = cInactivated else cActivated;
 
 	SdController_inst: entity work.SdController(Rtl)
 	generic map (
-		gClkFrequency => gClkFrequency
+		gClkFrequency  => gClkFrequency,
+		gHighSpeedMode => gHighSpeedMode
 	)
 	port map (
 		iClk         => iClk,
@@ -66,7 +101,8 @@ begin
 		oSdCmd       => SdCmdFromController,
 		iSdData      => SdDataToController,
 		oSdData		 => SdDataFromController,
-		oSdRegisters => SdRegisters,
+		iDataRam     => SdControllerFromDataRam,
+		oDataRam     => SdControllerToDataRam,
 		oLedBank     => oLedBank
 	);
 
@@ -87,19 +123,25 @@ begin
 		iStrobe               => SdStrobe,
 		iSdDataFromController => SdDataFromController,
 		oSdDataToController   => SdDataToController,
-		ioData                => ioData,
-		oCrc                  => oCrc
+		iSdDataFromRam        => SdDataFromRam,
+		oSdDataToRam		  => SdDataToRam,
+		ioData                => ioData
 	);
 
-	SdStrobe_inst: entity work.StrobeGen(Rtl)
+	DataRam_inst: entity work.SimpleDualPortedRam
 	generic map (
-		gClkFrequency    => gClkFrequency,
-		gStrobeCycleTime => 1 sec / 25E6)
+		gDataWidth => 32,
+		gAddrWidth => 7
+	)
 	port map (
-		iClk         => iClk,
-		inResetAsync => inResetAsync,
-		oStrobe      => SdStrobe25MHz);
-
+		iClk  => iClk,
+		iAddrRW => SdDataToRam.Addr,
+		iDataRW => SdDataToRam.Data,
+		iWeRW   => SdDataToRam.We,
+		oDataRW => SdDataFromRam.Data,
+		iAddrR  => SdControllerToDataRam.Addr,
+		oDataR  => SdControllerFromDataRam.Data
+	);
 
 end architecture Rtl;
 

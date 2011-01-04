@@ -7,7 +7,8 @@ set pkgs {Global Global
 set units {Crc Crc {Rtl}
 	Sd SdCmd {Rtl}
 	StrobesClocks Counter {Rtl}
-	Memory Ram {Rtl}
+	Memory SimpleDualPortedRam {Rtl}
+	Memory SinglePortedRam {Rtl}
 	Sd SdController {Rtl}
 	Sd SdData {Rtl}
 	Sd SdTop {Rtl}

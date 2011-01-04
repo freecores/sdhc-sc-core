@@ -104,7 +104,7 @@ package Sd is
 	subtype aSdRCA is std_ulogic_vector(15 downto 0);
 	constant cDefaultRCA : aSdRCA := (others => '0');
 
-	constant cSdWideModeBit : natural := 50;
+	constant cSdWideModeBit : natural := 31-(63-50); -- first word
 
 	-- Data types
 	constant cBlocklen : natural := 512 * 8; -- 512 bytes
@@ -140,12 +140,27 @@ package Sd is
 	Err       => cInactivated,
 	Cid       => cDefaultSdRegCID);
 
+	constant cDataRamAddrWidth : natural := 7;
+	constant cDataRamDataWidth : natural := 32;
+	subtype aWord is std_ulogic_vector(cDataRamDataWidth - 1 downto 0);
+	subtype aAddr is natural range 0 to 2**cDataRamAddrWidth - 1;
+
+	type aSdControllerToRam is record
+		Addr : aAddr;
+	end record aSdControllerToRam;
+
+	constant cDefaultSdControllerToRam : aSdControllerToRam := (Addr => 0);
+
+	type aSdControllerFromRam is record
+		Data : aWord;
+	end record aSdControllerFromRam;
+
 	-- between SdController and SdData
 	type aSdDataFromController is record
 		Mode       : aSdDataBusMode; -- select 1 bit or 4 bit mode
 		DataMode   : aSdDataMode; -- select usual or wide width data
 		ExpectBits : aSdDataBits; -- how many bits are expected in wide with data mode
-		DataBlock  : aSdDataBlock; -- DataBlock to send to card
+		StartAddr  : aAddr;
 		Valid      : std_ulogic; -- valid, when the datablock is valid and has to be sent
 		CheckBusy  : std_ulogic; -- check for busy signaling
 	end record aSdDataFromController;
@@ -153,15 +168,14 @@ package Sd is
 	constant cDefaultSdDataFromController : aSdDataFromController := (
 	Mode       => standard,
 	DataMode   => usual,
-	DataBlock  => (others        => '0'),
 	ExpectBits => ScrBits,
+	StartAddr  => 0,
 	Valid      => cInactivated,
 	CheckBusy  => cInactivated);
 
 	type aSdDataToController is record
 		Ack       : std_ulogic; -- gets asserted when a datablock was sent to the card
 		Receiving : std_ulogic; -- gets asserted when a datablock is currently received
-		DataBlock : aSdDataBlock;
 		Valid     : std_ulogic; -- gets asserted when DataBlock is valid and therefore it was received correctly
 		Busy      : std_ulogic; -- gets asserted when the card returns busy
 		Err       : std_ulogic; -- gets asserted when an error occurred during receiving a data block (CRC)
@@ -170,10 +184,27 @@ package Sd is
 	constant cDefaultSdDataToController : aSdDataToController := (
 	Ack       => cInactivated,
 	Receiving => cInactivated,
-	DataBlock => (others        => '0'),
 	Valid     => cInactivated,
 	Busy      => cInactivated,
 	Err       => cInactivated);
+
+	-- SdData to Ram
+	type aSdDataToRam is record
+		En   : std_ulogic;
+		Addr : aAddr;
+		Data : aWord;
+		We   : std_ulogic;
+	end record aSdDataToRam;
+
+	constant cDefaultSdDataToRam : aSdDataToRam := (
+	En   => cInactivated,
+	Addr => 0,
+	Data => (others => '0'),
+	We   => cInactivated);
+
+	type aSdDataFromRam is record
+		Data : aWord;
+	end record aSdDataFromRam;
 
 	-- between SdController and wishbone interface
 	type aSdRegisters is record

@@ -19,7 +19,8 @@ use work.Sd.all;
 entity SdController is
 	generic (
 		gClkFrequency   : natural := 25E6;
-		gStartupTimeout : time    := 15 ms;
+		gHighSpeedMode  : boolean := false;
+		gStartupTimeout : time    := 10 ms;
 		gReadTimeout    : time    := 100 ms
 	);
 	port (
@@ -35,13 +36,25 @@ entity SdController is
 		iSdData : in aSdDataToController;
 		oSdData : out aSdDataFromController;
 
+		-- DataRam
+		iDataRam : in aSdControllerFromRam;
+		oDataRam : out aSdControllerToRam;
+
 		-- Status
-		oSdRegisters : out aSdRegisters;
 		oLedBank     : out aLedBank
 	);
 	begin
+		
 		assert (gStartupTimeout < gReadTimeout)
 		report "gStartupTimeout has to be smaller than the read timeout"
+		severity error;
+
+		assert (gClkFrequency = 25E6 or gClkFrequency = 50E6)
+		report "invalid clock frequency"
+		severity failure;
+
+		assert ((gHighSpeedMode = true and gClkFrequency = 50E6) or gHighSpeedMode = false)
+		report "High speed Mode needs 50 MHz clock"
 		severity error;
 
 end entity SdController;

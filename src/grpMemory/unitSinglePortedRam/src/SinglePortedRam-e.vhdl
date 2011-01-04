@@ -1,6 +1,6 @@
 --
--- Title: Ram
--- File: Ram-e.vhdl
+-- Title: Single ported ram
+-- File: SinglePortedRam-e.vhdl
 -- Author: Copyright 2010: Rainer Kastl
 -- Standard: VHDL'93
 -- 
@@ -11,7 +11,7 @@ library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 
-entity Ram is
+entity SinglePortedRam is
 
 	generic (
 		gDataWidth : natural := 32;
@@ -25,5 +25,5 @@ entity Ram is
 		iWe   : in std_ulogic;
 		oData : out std_ulogic_vector(gDataWidth - 1 downto 0)
 	);
-end entity Ram;	
+end entity SinglePortedRam;	
 

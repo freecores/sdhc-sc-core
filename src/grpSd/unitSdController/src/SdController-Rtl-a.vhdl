@@ -33,6 +33,7 @@ architecture Rtl of SdController is
 		CardStatus  : aSdCardStatus;
 		ToSdCmd     : aSdCmdFromController;
 		ToSdData    : aSdDataFromController;
+		ToDataRam   : aSdControllerToRam;
 		HighSpeed   : std_ulogic;
 	end record aSdControllerReg;
 
@@ -48,6 +49,7 @@ architecture Rtl of SdController is
 	CardStatus  => cDefaultSdCardStatus,
 	ToSdCmd     => cDefaultToSdCmd,
 	ToSdData    => cDefaultSdDataFromController,
+	ToDataRam   => cDefaultSdControllerToRam,
 	HighSpeed   => cInactivated);
 
 	signal R, NextR       : aSdControllerReg;
@@ -72,7 +74,6 @@ architecture Rtl of SdController is
 	
 begin
 
-	oSdRegisters.CardStatus <= R.CardStatus;
 	oSdCmd                  <= R.ToSdCmd;
 	oSdData                 <= R.ToSdData;
 	oHighSpeed              <= R.HighSpeed;
@@ -86,7 +87,7 @@ begin
 		end if;
 	end process Regs;
 
-	Comb : process (iSdCmd, iSdData, Timeout, R)
+	Comb : process (iSdCmd, iSdData, iDataRam, Timeout, R)
 		variable ocr           : aSdRegOCR;
 		variable arg           : aSdCmdArg;
 		variable NextRegion    : aRegion;
@@ -366,10 +367,11 @@ begin
 									null;
 
 								when waitstatedata => 
-									NextRegion := send;
+									NextRegion           := send;
+									NextR.ToDataRam.Addr <= R.ToSdData.StartAddr;
 
 									if (Timeout = cActivated) then
-										if (iSdData.DataBlock(cSdWideModeBit) = cActivated) then
+										if (iDataRam.Data(cSdWideModeBit) = cActivated) then
 											NextCmdRegion   := SetBusWidth;
 											NextR.SendCMD55 <= cActivated;
 
@@ -406,9 +408,18 @@ begin
 									end if;
 
 								when waitstate => 
-									NextRegion          := send;
-									NextCmdRegion       := CheckSpeed;
-									NextR.ToSdData.Mode <= wide;
+
+									if gHighSpeedMode = true then
+
+										NextRegion          := send;
+										NextCmdRegion       := CheckSpeed;
+										NextR.ToSdData.Mode <= wide;
+
+									else
+
+										NextState := idle;
+
+									end if;
 
 								when others => 
 									report "Unhandled region" severity error;
@@ -445,13 +456,15 @@ begin
 								NextRegion := send;
 
 								if (Timeout = cActivated) then
-									if (iSdData.DataBlock(cSdHighSpeedFunctionSupportBit) = cActivated and
-									iSdData.DataBlock(cSdHighSpeedFunctionGroupLow+3 downto cSdHighSpeedFunctionGroupLow) = X"1") then
-										NextCmdRegion := ChangeSpeed;
+									--if (iSdData.DataBlock(cSdHighSpeedFunctionSupportBit) = cActivated and
+									--iSdData.DataBlock(cSdHighSpeedFunctionGroupLow+3 downto cSdHighSpeedFunctionGroupLow) = X"1") then
+									--	NextCmdRegion := ChangeSpeed;
 
-									else 
-										NextState := idle;
-									end if;
+									--else 
+									--	NextState := idle;
+									--end if;
+									-- TODO: Read data from ram and check it
+									NextState := idle;
 								end if;
 
 
@@ -486,17 +499,18 @@ begin
 								NextRegion := send;
 
 								if (Timeout = cActivated) then
-									if (iSdData.DataBlock(cSdHighSpeedFunctionSupportBit) = cActivated and
-									iSdData.DataBlock(cSdHighSpeedFunctionGroupLow+3 downto cSdHighSpeedFunctionGroupLow) = X"1") then
-										NextR.HighSpeed <= cActivated;
-										NextCmdRegion   := GetStatus;
-										NextRegion      := idle;
+									--if (iSdData.DataBlock(cSdHighSpeedFunctionSupportBit) = cActivated and
+									--iSdData.DataBlock(cSdHighSpeedFunctionGroupLow+3 downto cSdHighSpeedFunctionGroupLow) = X"1") then
+									--	NextR.HighSpeed <= cActivated;
+									--	NextCmdRegion   := GetStatus;
+									--	NextRegion      := idle;
 
-									else 
-										NextState := invalidCard;
-									end if;
+									--else 
+									--	NextState := invalidCard;
+									--end if;
+									-- TODO: read data from ram and check it
+									NextState := idle;
 								end if;
-
 
 							when others => 
 								report "Unhandled region" severity error;
