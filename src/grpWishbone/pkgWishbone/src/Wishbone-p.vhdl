@@ -26,30 +26,32 @@ package Wishbone is
 	constant cBteEightBeat   : aBte := "10";
 	constant cBteSixteenBeat : aBte := "11";
 
-	type aWbState is (idle);
-
 	-- Control inputs for a wishbone slave
 	-- Unfortunately unconstrained types in records are only supported in
 	-- VHDL2008, therefore signals with a range dependend on generics can not be
 	-- put inside the record (iSel, iAdr, iDat).
 	type aWbSlaveCtrlInput is record
 		-- Control signals
-		iCyc  :  std_ulogic; -- Indicates a bus cycle
-		iLock :  std_ulogic; -- Indicates that the current cycle is not interruptable
-		iStb  :  std_ulogic; -- Indicates the selection of the slave
-		iWe   :  std_ulogic; -- Write enable, indicates whether the cycle is a read or write cycle
-		iCti  :  aCti; -- used for synchronous cycle termination
-		iBte  :  aBte; -- Burst type extension
+		Cyc  :  std_ulogic; -- Indicates a bus cycle
+		Lock :  std_ulogic; -- Indicates that the current cycle is not interruptable
+		Stb  :  std_ulogic; -- Indicates the selection of the slave
+		We   :  std_ulogic; -- Write enable, indicates whether the cycle is a read or write cycle
+		Cti  :  aCti; -- used for synchronous cycle termination
+		Bte  :  aBte; -- Burst type extension
 	end record;
 
 	-- Control output signals of a wishbone slave
 	-- See aWbSlaveCtrlInput for a explanation why oDat is not in the record.
 	type aWbSlaveCtrlOutput is record
 		-- Control signals
-		oAck : std_ulogic; -- Indicates the end of a normal bus cycle
-		oErr : std_ulogic; -- Indicates an error
-		oRty : std_ulogic; -- Indicates that the request should be retried
+		Ack : std_ulogic; -- Indicates the end of a normal bus cycle
+		Err : std_ulogic; -- Indicates an error
+		Rty : std_ulogic; -- Indicates that the request should be retried
 	end record;
+
+constant cDefaultWbSlaveCtrlOutput : aWbSlaveCtrlOutput := ('0','0','0');
+constant cActivated : std_ulogic := '1';
+constant cInactivated : std_ulogic := '0';
 
 end package Wishbone;
 

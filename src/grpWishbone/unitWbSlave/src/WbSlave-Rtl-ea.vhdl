@@ -58,7 +58,29 @@ end entity;
 
 architecture Rtl of WbSlave is
 
-begin
+	type aWbState is (idle);
 
+	signal State, NextState : aWbState := idle;
+
+begin
+ 
+	WbStateReg  : process (iClk, iRstSync)
+	begin
+		if (iClk'event and iClk = cActivated) then
+			if (iRstSync = cActivated) then -- sync. reset
+				State <= idle;
+			else
+				State <= NextState;
+			end if;
+		end if;
+	end process WbStateReg ;
+
+	WbNextStateAndOutputs : process (iWbSlave, iSel, iDat, iAdr)
+	begin
+		-- Default Assignments
+		oDat <= (others => cInactivated);
+		oWbSlave <= cDefaultWbSlaveCtrlOutput;
+
+	end process WbNextStateAndOutputs;
 end architecture Rtl;
 
