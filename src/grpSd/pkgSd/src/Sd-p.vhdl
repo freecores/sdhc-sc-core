@@ -103,24 +103,28 @@ package Sd is
 	subtype aSdRCA is std_ulogic_vector(15 downto 0);
 	constant cDefaultRCA : aSdRCA := (others => '0');
 
+	-- Data types
+	constant cBlocklen : natural := 512 * 8; -- 512 bytes
+	subtype aSdDataBlock is std_ulogic_vector(cBlocklen - 1 downto 0);
+
+	type aSdDataBusMode is (standard, wide);
+
 	-- Types for entities
+	-- between SdController and SdCmd
 	type aSdCmdFromController is record
-		Content   : aSdCmdContent;
-		Valid     : std_ulogic;
+		Content   : aSdCmdContent; -- id and arg to sent to card
+		Valid     : std_ulogic; -- gets asserted when Content is valid and can be sent to card
 		ExpectCID : std_ulogic; -- gets asserted when next response is R2
-		CheckCrc  : std_ulogic;
+		CheckCrc  : std_ulogic; -- gets asserted when CRC has to be checked (exceptions is R3)
 	end record aSdCmdFromController;
 
 	type aSdCmdToController is record
-		Ack : std_ulogic; -- Gets asserted when crc was sent, but endbit was
-		-- not. This way we can minimize the wait time between sending 2 cmds.
-		Receiving : std_ulogic;
-		Content : aSdCmdContent;
-		Valid : std_ulogic; -- gets asserted when CmdContent is valid (therefore
-		-- a cmd was received)
-		Err : std_ulogic; -- gets asserted when an error occurred during
-		-- receiving a cmd
-		Cid : aSdRegCID;
+		Ack       : std_ulogic; -- Gets asserted when crc was sent, but endbit was not. This way we can minimize the wait time between sending 2 cmds.
+		Receiving : std_ulogic; -- gets asserted when a response is received currently
+		Content   : aSdCmdContent; -- received id and arg, see valid
+		Valid     : std_ulogic; -- gets asserted when CmdContent is valid (therefore  a cmd was received and can be saved)
+		Err       : std_ulogic; -- gets asserted when an error occurred during receiving a cmd, for example the crc check does not hold
+		Cid       : aSdRegCID; -- received CID register of the card, see valid
 	end record aSdCmdToController;
 
 	constant cDefaultSdCmdToController : aSdCmdToController := (
@@ -131,11 +135,36 @@ package Sd is
 	Err       => cInactivated,
 	Cid       => cDefaultSdRegCID);
 
+	-- between SdController and SdData
+	type aSdDataFromController is record
+		Mode      : aSdDataBusMode; -- select 1 bit or 4 bit mode
+		DataBlock : aSdDataBlock; -- DataBlock to send to card
+		Valid     : std_ulogic; -- valid, when the datablock is valid and has to be sent
+	end record aSdDataFromController;
+
+	type aSdDataToController is record
+		Ack       : std_ulogic; -- gets asserted when a datablock was sent to the card
+		Receiving : std_ulogic; -- gets asserted when a datablock is currently received
+		DataBlock : aSdDataBlock;
+		Valid     : std_ulogic; -- gets asserted when DataBlock is valid and therefore it was received correctly
+		Busy      : std_ulogic; -- gets asserted when the card returns busy
+		Err       : std_ulogic; -- gets asserted when an error occurred during receiving a data block (CRC)
+	end record aSdDataToController;
+
+	constant cDefaultSdDataToController : aSdDataToController := (
+	Ack       => cInactivated,
+	Receiving => cInactivated,
+	DataBlock => (others        => '0'),
+	Valid     => cInactivated,
+	Busy      => cInactivated,
+	Err       => cInactivated);
+
+	-- between SdController and wishbone interface
 	type aSdRegisters is record
 		CardStatus : aSdCardStatus;
 	end record aSdRegisters;
 
-	-- constants for Controller
+	-- constants for SdController
 	subtype aRCA is std_ulogic_vector(15 downto 0);
 	constant cSdDefaultRCA : aRCA := (others => '0');
 

@@ -1,8 +1,8 @@
 # Recursive makefile for simulations
 
-SIMS = grpCrc/unitCrc grpWishbone/unitWbSlave grpSd/unitSdCmd grpSd/unitSdCardModel grpStrobesClocks/unitTimeoutGenerator grpRs232/unitRs232Tx
+SIMS = grpCrc/unitCrc grpWishbone/unitWbSlave grpSd/unitSdCmd grpSd/unitSdCardModel grpStrobesClocks/unitTimeoutGenerator grpRs232/unitRs232Tx grpSd/unitSdData
 SYSVSIMS = grpSd/unitSdVerificationTestbench
-SYNS = grpCrc/unitCrc grpSd/unitSdCmd grpSd/unitSdTop grpSd/unitTbdSd
+SYNS = grpCrc/unitCrc grpSd/unitSdCmd grpSd/unitSdTop grpSd/unitTbdSd grpSd/unitSdData
 
 sim:
 	for i in $(SIMS); do make -C src/$$i/sim; done

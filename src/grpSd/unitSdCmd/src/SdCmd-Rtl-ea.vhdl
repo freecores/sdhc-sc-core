@@ -1,10 +1,13 @@
--------------------------------------------------
--- file: SdCmd-ea.vhdl
--- author: Rainer Kastl
 --
--- Low level sending commands and receiving responses
+-- Title: SdCmd
+-- File: SdCmd-Rtl-ea.vhdl
+-- Author: Copyright 2010: Rainer Kastl
+-- Standard: VHDL'93
+-- 
+-- Description: Low level sending commands and receiving responses
 -- SD Spec 2.00
--------------------------------------------------
+--
+
 
 library ieee;
 use ieee.std_logic_1164.all;
