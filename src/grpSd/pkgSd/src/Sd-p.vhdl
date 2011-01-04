@@ -107,12 +107,19 @@ package Sd is
 	constant cSdWideModeBit : natural := 31-(63-50); -- first word
 
 	-- Data types
+	subtype aSdData is std_ulogic_vector(3 downto 0);
+	constant cSdStartBits : aSdData := (others => cSdStartBit);
+	constant cSdEndBits   : aSdData := (others => cSdEndBit);
+
 	constant cBlocklen : natural := 512 * 8; -- 512 bytes
 	subtype aSdDataBlock is std_ulogic_vector(cBlocklen - 1 downto 0);
 
 	type aSdDataBusMode is (standard, wide);
 	type aSdDataMode is (usual, widewidth);
 	type aSdDataBits is (ScrBits, SwitchFunctionBits);
+	
+	constant cScrBitsCount            : integer := 64/32 - 1; -- expressed in words
+	constant cSwitchFunctionBitsCount : integer := 512/32 - 1; -- expressed in words
 
 	-- Types for entities
 	-- between SdController and SdCmd
@@ -308,14 +315,19 @@ package Sd is
 		En : std_ulogic;
 	end record aoSdCmd;
 
+
 	type aiSdData is record
-		Data : std_ulogic_vector(3 downto 0);
+		Data : aSdData;
 	end record aiSdData;
 
 	type aoSdData is record
-		Data : std_ulogic_vector(3 downto 0);
-		En : std_ulogic_vector(3 downto 0);
+		Data : aSdData;
+		En   : aSdData;
 	end record aoSdData;
+
+	constant cDefaultSdData : aoSdData := (
+	Data => (others => '0'),
+	En   => (others => '0'));
 	
 end package Sd;
 

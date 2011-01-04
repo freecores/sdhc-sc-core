@@ -18,8 +18,10 @@ use work.CRCs.all;
 
 entity SdData is
 	port (
+		-- clock
 		iClk         : in std_ulogic;
 		inResetAsync : in std_ulogic;
+		
 		iStrobe      : in std_ulogic;
 
 		-- Controller
@@ -27,8 +29,8 @@ entity SdData is
 		oSdDataToController   : out aSdDataToController;
 
 		-- Card
-		iData : in aiSdData;
-		oData : out aoSdData;
+		iData : in aiSdData; -- data from card
+		oData : out aoSdData; -- data with enables to card
 		
 		-- Fifos
 		iReadWriteFifo : in aiReadFifo;

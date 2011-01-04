@@ -12,6 +12,7 @@ use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 use work.Global.all;
 use work.Sd.all;
+use work.SdWb.all;
 
 entity tbSdData is
 	end entity tbSdData;
@@ -29,12 +30,22 @@ architecture Bhv of tbSdData is
 	signal FromController : aSdDataFromController;
 	signal ToController : aSdDataToController;
 
-	signal Data : std_logic_vector(3 downto 0);
+	signal iData : aiSdData;
+	signal oData : aoSdData;
+	signal iReadWriteFifo : aiReadFifo;
+	signal oReadWriteFifo : aoReadFifo;
+	signal iWriteReadFifo : aiWriteFifo;
+	signal oWriteReadFifo : aoWriteFifo;
+	signal DisableSdClk : std_ulogic;
 
 begin
 
 	Clk         <= not Clk after cClkPeriod when Finished = cInactivated;
 	nResetAsync <= cnInactivated after cResetTime;
+
+	iWriteReadFifo.wrfull <= cInactivated;
+	iReadWriteFifo.q <= (others => '0');
+	iReadWriteFifo.rdempty <= cInactivated;
 
 	Stimuli : process
 	begin
@@ -43,7 +54,7 @@ begin
 		wait for cResetTime + 2 * cClkPeriod;
 
 		for i in 0 to 31 loop
-			FromController.DataBlock(128*i+127 downto 128 * i) <= X"FF00AA55884422110011223344556677";
+			--FromController.DataBlock(128*i+127 downto 128 * i) <= X"FF00AA55884422110011223344556677";
 		end loop;
 		FromController.Valid <= cActivated;
 		FromController.Mode  <= wide;
@@ -57,7 +68,7 @@ begin
 
 		wait until Clk = '1' and ToController.Ack = '1';
 
-		FromController.DataBlock <= (others => '1');
+		--FromController.DataBlock <= (others => '1');
 		
 		wait until Clk = '1';
 		wait until Clk = '1';
@@ -72,12 +83,18 @@ begin
 
 	SdData_inst: entity work.SdData
 	port map (
-		iClk         => Clk,
-		inResetAsync => nResetAsync,
-		iStrobe => cActivated,
+		iClk                  => Clk,
+		inResetAsync          => nResetAsync,
+		iStrobe               => cActivated,
 		iSdDataFromController => FromController,
 		oSdDataToController   => ToController,
-		ioData => Data);
+		iData                 => iData,
+		oData                 => oData,
+		iReadWriteFifo        => iReadWriteFifo,
+		oReadWriteFifo        => oReadWriteFifo,
+		iWriteReadFifo        => iWriteReadFifo,
+		oWriteReadFifo        => oWriteReadFifo,
+		oDisableSdClk         => DisableSdClk);
 
 end architecture Bhv;	
 
