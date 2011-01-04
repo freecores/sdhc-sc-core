@@ -13,6 +13,7 @@
 
 library ieee;
 use ieee.std_logic_1164.all;
+use ieee.numeric_std.all;
 use work.CRCs.all;
 
 entity crc is
@@ -26,6 +27,7 @@ entity crc is
 		iDataIn      : in std_ulogic; -- Signal that currently data is shifted in.
 		                              -- Otherwise the current remainder is shifted out.
 		iData     : in std_ulogic; -- Data input
+		oIsCorrect : out std_ulogic; -- Active, if crc is currently 0
 		oSerial   : out std_ulogic; -- Serial data output
 		oParallel : out std_ulogic_vector(gPolynom'high - 1 downto gPolynom'low)
 		-- parallel data output
@@ -80,5 +82,7 @@ begin
 
 	oParallel <= regs;
 	oSerial   <= regs(regs'high);
+	oIsCorrect <= '1' when regs = std_ulogic_vector(to_unsigned(0,
+				  regs'length)) else '0';
 
 end architecture rtl;
