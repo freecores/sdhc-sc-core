@@ -4,12 +4,13 @@ vunit vSdClockMaster(SdClockMaster) {
   default clock is (iClk'event and iClk='1');
 
   -- strobe at least one clock cycle before falling edge
-  assert always ({oSdStrobe} |=> {(not oSdStrobe) ; (not oSdStrobe and oSdCardClk)[*] ; not oSdCardClk});
+  assert always ({oSdStrobe} |=> {not oSdStrobe; (not oSdStrobe and oSdCardClk)[*]; not oSdCardClk}) abort iRstSync;
 
-  -- check speed
-  assert always ({iHighSpeed and oSdCardClk} |=> {not oSdCardClk; oSdCardClk});
+  -- check oSdCardClk
+  -- assert always (not oSdCardClk -> eventually! oSdCardClk) abort iDisable;
+  assert always (not oSdCardClk -> { (not oSdCardClk)[*]; oSdCardClk}) abort iDisable;
 
   -- check disable
-  assert always ({iDisable} |=> not oSdCardClk and not oSdStrobe);
+  assert always ({iDisable} |=> not oSdStrobe);
 }
 

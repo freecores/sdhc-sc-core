@@ -50,47 +50,61 @@ begin
 
 		-- defaults
 
-		NxR         <= R;
-		NxR.Counter <= R.Counter + 1;
+		NxR <= R;
 
-		-- generate clock and strobe
-		case R.HighSpeed is
-			when cInactivated => -- default mode
-				NxR.Clk <= R.Counter(1);
+		case iDisable is
+			when cInactivated => 
+				NxR.Counter <= R.Counter + 1;
 
-				case R.Counter is
-					when "00" | "01" | "11" => 
-						NxR.Strobe <= cInactivated;
+				-- generate clock and strobe
+				case R.HighSpeed is
+					when cInactivated => -- default mode
+						NxR.Clk <= R.Counter(1);
 
-					when "10" => 
-						NxR.Strobe <= cActivated;
+						case R.Counter is
+							when "00" | "01" | "11" => 
+								NxR.Strobe <= cInactivated;
+
+							when "10" => 
+								NxR.Strobe <= cActivated;
+
+							when others => 
+								NxR.Strobe <= 'X';
+						end case;
+
+					when cActivated => -- High-Speed mode
+						NxR.Clk <= R.Counter(0);
+						NxR.Strobe  <= not R.Counter(0);
 
 					when others => 
-						NxR.Strobe <= 'X';
+						NxR.Clk <= 'X';
 				end case;
 
-			when cActivated => -- High-Speed mode
-				NxR.Clk <= R.Counter(0);
-				NxR.Strobe  <= not R.Counter(0);
+				-- switch speeds and increment counter
+				case R.HighSpeed is
+					when cInactivated => 
+						if (R.Counter = 3) then
+							NxR.HighSpeed <= iHighSpeed;
+						end if;
 
-			when others => 
-				NxR.Clk <= 'X';
-		end case;
+					when cActivated => 
+						if (R.Counter(0) = '1') then
+							NxR.HighSpeed <= iHighSpeed;
+							NxR.Counter <= "00";
+						end if;
 
-		-- switch speeds
-		case R.HighSpeed is
-			when cInactivated => 
-				if (R.Counter = 3) then
-					NxR.HighSpeed <= iHighSpeed;
-				end if;
+					when others => 
+						NxR.HighSpeed <= 'X';
+				end case;
 
 			when cActivated => 
-				if (R.Counter(0) = '1') then
-					NxR.HighSpeed <= iHighSpeed;
-				end if;
+				-- disable strobes and do not increment the counter 
+				NxR.Strobe <= cInactivated;
 
 			when others => 
-				NxR.HighSpeed <= 'X';
+				NxR.Clk    <= 'X';
+				NxR.Strobe <= 'X';
+
 		end case;
 
 	end process Comb;

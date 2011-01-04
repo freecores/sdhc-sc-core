@@ -40,12 +40,14 @@ begin
 
 	stimuli : process 
 	begin
-		iHighSpeed <= cActivated after 1000 ns,
-					  cInactivated after 1025 ns,
-					  cActivated after 1305 ns;
+		iHighSpeed <= cActivated after 1001 ns,
+					  cInactivated after 1026 ns,
+					  cActivated after 1306 ns;
 
-		iDisable   <= cActivated after 2345 ns;
-		Finished   <= true after 5000 ns;
+		iDisable   <= cActivated after 2346 ns,
+					  cInactivated after 3001 ns,
+					  cActivated after 3423 ns;
+		Finished   <= true after 5001 ns;
 		wait;
 	end process stimuli;
 
