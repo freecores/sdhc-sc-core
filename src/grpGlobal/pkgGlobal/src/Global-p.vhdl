@@ -25,7 +25,6 @@ end package Global;
 
 package body Global is
 
-	
 	function LogDualis(cNumber : natural) return natural is
 		variable vClimbUp : natural;
 		variable vResult  : natural;

@@ -72,7 +72,11 @@ if [info exists svunits] {
 }
 
 if ([info exists top]) {
-	vsim $top
+	if ([info exists vsimargs]) {
+		vsim $vsimargs $top
+	} else {
+		vsim $top
+	}
 
 	if [file isfile wave.do] {
 		do wave.do

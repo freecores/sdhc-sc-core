@@ -18,13 +18,14 @@ use work.Sd.all;
 
 entity SdController is
 	generic (
-		gClkFrequency : natural := 25E6
+		gClkFrequency   : natural := 25E6;
+		gStartupTimeout : time    := 10 ms;-- 1 sec / 25E6 * 8;
+		gReadTimeout    : time    := 100 ms
 	);
 	port (
-		iClk : in std_ulogic; -- rising edge
+		iClk         : in std_ulogic; -- rising edge
 		inResetAsync : in std_ulogic;
-		
-		oHighSpeed : out std_ulogic;
+		oHighSpeed   : out std_ulogic;
 
 		-- SdCmd
 		iSdCmd : in aSdCmdToController;
@@ -37,5 +38,10 @@ entity SdController is
 		-- Status
 		oSdRegisters : out aSdRegisters;
 		oLedBank     : out aLedBank
-		);
+	);
+	begin
+		assert (gStartupTimeout < gReadTimeout)
+		report "gStartupTimeout has to be smaller than the read timeout"
+		severity error;
+
 end entity SdController;

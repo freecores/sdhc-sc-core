@@ -22,42 +22,54 @@ architecture Rtl of SdController is
 	CheckCrc  => cActivated);
 
 	type aSdControllerReg is record
-		State      : aSdControllerState;
-		CmdRegion  : aCmdRegion;
-		Region     : aRegion;
-		SendCMD55  : std_ulogic;
-		SentCMD55  : std_ulogic;
-		HCS        : std_ulogic;
-		CCS        : std_ulogic;
-		RCA        : aSdRCA;
-		CardStatus : aSdCardStatus;
-		ToSdCmd    : aSdCmdFromController;
-		ToSdData   : aSdDataFromController;
-		HighSpeed  : std_ulogic;
+		State       : aSdControllerState;
+		CmdRegion   : aCmdRegion;
+		Region      : aRegion;
+		SendCMD55   : std_ulogic;
+		SentCMD55   : std_ulogic;
+		HCS         : std_ulogic;
+		CCS         : std_ulogic;
+		RCA         : aSdRCA;
+		CardStatus  : aSdCardStatus;
+		ToSdCmd     : aSdCmdFromController;
+		ToSdData    : aSdDataFromController;
+		HighSpeed   : std_ulogic;
 	end record aSdControllerReg;
 
 	constant cDefaultSdControllerReg : aSdControllerReg := (
-	State      => startup,
-	CmdRegion  => CMD0,
-	Region     => idle,
-	SendCMD55  => cInactivated,
-	SentCMD55  => cInactivated,
-	HCS        => cActivated,
-	CCS        => cInactivated,
-	RCA        => cDefaultRCA,
-	CardStatus => cDefaultSdCardStatus,
-	ToSdCmd    => cDefaultToSdCmd,
-	ToSdData   => cDefaultSdDataFromController,
-	HighSpeed  => cInactivated);
+	State       => startup,
+	CmdRegion   => CMD0,
+	Region      => idle,
+	SendCMD55   => cInactivated,
+	SentCMD55   => cInactivated,
+	HCS         => cActivated,
+	CCS         => cInactivated,
+	RCA         => cDefaultRCA,
+	CardStatus  => cDefaultSdCardStatus,
+	ToSdCmd     => cDefaultToSdCmd,
+	ToSdData    => cDefaultSdDataFromController,
+	HighSpeed   => cInactivated);
 
 	signal R, NextR       : aSdControllerReg;
+
+	constant cReadTimeoutNat    : natural := gClkFrequency / (1 sec / gReadTimeout) - 1;
+	constant cNcrTimeoutNatLow  : natural := gClkFrequency / (1 sec / (1 sec / 25E6 * 8)) - 1;
+	constant cNcrTimeoutNatHigh : natural := gClkFrequency / (1 sec / (1 sec / 50E6 * 8)) - 1;
+	constant cStartupTimeoutNat : natural := gClkFrequency / (1 sec / gStartupTimeout) - 1;
+
+	constant cMaxTimeoutBitWidth : natural := LogDualis(cReadTimeoutNat);
+	subtype aTimeoutValue is unsigned(cMaxTimeoutBitWidth - 1 downto 0);
+
+	constant cNcrTimeoutLow  : aTimeoutValue := to_unsigned(cNcrTimeoutNatLow, aTimeoutValue'length);
+	constant cNcrTimeoutHigh : aTimeoutValue := to_unsigned(cNcrTimeoutNatHigh, aTimeoutValue'length);
+	constant cStartupTimeout : aTimeoutValue := to_unsigned(cStartupTimeoutNat, aTimeoutValue'length);
+	constant cReadTimeout    : aTimeoutValue := to_unsigned(cReadTimeoutNat, aTimeoutValue'length);
+
 	signal TimeoutEnable  : std_ulogic;
 	signal TimeoutDisable : std_ulogic;
 	signal Timeout        : std_ulogic;
-
-	signal NextCmdTimeout       : std_ulogic;
-	signal NextCmdTimeoutEnable : std_ulogic;
-
+	signal TimeoutMax     : unsigned(cMaxTimeoutBitWidth - 1 downto 0);
+	
 begin
 
 	oSdRegisters.CardStatus <= R.CardStatus;
@@ -74,22 +86,33 @@ begin
 		end if;
 	end process Regs;
 
-	Comb : process (iSdCmd, iSdData, Timeout, NextCmdTimeout, R)
+	Comb : process (iSdCmd, iSdData, Timeout, R)
 		variable ocr           : aSdRegOCR;
 		variable arg           : aSdCmdArg;
 		variable NextRegion    : aRegion;
 		variable NextCmdRegion : aCmdRegion;
 		variable NextState     : aSdControllerState;
+
+		procedure EnableNcrTimeout is
+		begin
+			TimeoutEnable <= cActivated;
+
+			if (R.HighSpeed = cInactivated) then
+				TimeoutMax <= cNcrTimeoutLow;
+			else
+				TimeoutMax <= cNcrTimeoutHigh;
+			end if;
+		end procedure EnableNcrTimeout;
 	begin
 		-- default assignments
-		NextR                <= R;
-		NextR.ToSdCmd        <= cDefaultToSdCmd;
-		TimeoutEnable        <= cInactivated;
-		TimeoutDisable       <= cInactivated;
-		NextCmdTimeoutEnable <= cInactivated;
-		NextRegion           := R.Region;
-		NextCmdRegion        := R.CmdRegion;
-		NextState            := R.State;
+		NextR          <= R;
+		NextR.ToSdCmd  <= cDefaultToSdCmd;
+		TimeoutEnable  <= cInactivated;
+		TimeoutDisable <= cInactivated;
+		TimeoutMax     <= to_unsigned(0, TimeoutMax'length);
+		NextRegion     := R.Region;
+		NextCmdRegion  := R.CmdRegion;
+		NextState      := R.State;
 
 		-- Status
 		oLedBank    <= (others => cInactivated);
@@ -98,15 +121,22 @@ begin
 		else
 			oLedBank(5) <= cInactivated;
 		end if;
+		if (R.HighSpeed = cActivated) then
+			oLedBank(4) <= cActivated;
+		else
+			oLedBank(4) <= cInactivated;
+		end if;
 
 		case R.State is
-			when startup => 
+			when startup =>
 				TimeoutEnable <= cActivated;
+				TimeoutMax    <= cStartupTimeout;
 
 				if (Timeout = cActivated) then
-					TimeoutEnable <= cInactivated;
-					NextR.State   <= init;
-					NextR.Region  <= send;
+					TimeoutDisable  <= cActivated;
+					NextR.State     <= init;
+					NextR.CmdRegion <= CMD0;
+					NextR.Region    <= send;
 				end if;
 
 			when init => 
@@ -217,7 +247,7 @@ begin
 								NextR.ToSdCmd.ExpectCID <= cActivated;
 
 								if (iSdCmd.Valid = cActivated) then
-									NextR.State <= invalidCard;
+									NextR.State    <= invalidCard;
 
 									if (iSdCmd.Content.id = cSdR2Id) then 
 										NextR.State     <= init;
@@ -338,7 +368,7 @@ begin
 								when waitstatedata => 
 									NextRegion := send;
 
-									if (NextCmdTimeout = cActivated) then
+									if (Timeout = cActivated) then
 										if (iSdData.DataBlock(cSdWideModeBit) = cActivated) then
 											NextCmdRegion   := SetBusWidth;
 											NextR.SendCMD55 <= cActivated;
@@ -402,7 +432,7 @@ begin
 										NextR.Region     <= receivedata;
 
 									else
-										NextR.State <= invalidCard;
+										NextR.State <= idle;
 									end if;
 								elsif (Timeout = cActivated) then
 									NextR.State <= invalidCard;
@@ -414,7 +444,7 @@ begin
 							when waitstatedata => 
 								NextRegion := send;
 
-								if (NextCmdTimeout = cActivated) then
+								if (Timeout = cActivated) then
 									if (iSdData.DataBlock(cSdHighSpeedFunctionSupportBit) = cActivated and
 									iSdData.DataBlock(cSdHighSpeedFunctionGroupLow+3 downto cSdHighSpeedFunctionGroupLow) = X"1") then
 										NextCmdRegion := ChangeSpeed;
@@ -455,7 +485,7 @@ begin
 							when waitstatedata => 
 								NextRegion := send;
 
-								if (NextCmdTimeout = cActivated) then
+								if (Timeout = cActivated) then
 									if (iSdData.DataBlock(cSdHighSpeedFunctionSupportBit) = cActivated and
 									iSdData.DataBlock(cSdHighSpeedFunctionGroupLow+3 downto cSdHighSpeedFunctionGroupLow) = X"1") then
 										NextR.HighSpeed <= cActivated;
@@ -475,9 +505,9 @@ begin
 					when GetStatus => 
 						case R.Region is
 							when idle => 
-								NextCmdTimeoutEnable <= cActivated;
+								EnableNcrTimeout;
 
-								if (NextCmdTimeout = cActivated) then
+								if (Timeout = cActivated) then
 									NextR.Region <= send;
 								end if;
 
@@ -543,6 +573,11 @@ begin
 			when response => 
 				oLedBank(0)   <= cActivated;
 				TimeoutEnable <= cActivated;
+				TimeoutMax    <= cReadTimeout;
+
+				if (iSdCmd.Valid = cActivated) then
+					TimeoutDisable <= cActivated;
+				end if;
 
 				if (R.SendCMD55 = cActivated) then
 					if (iSdCmd.Valid = cActivated) then
@@ -557,24 +592,27 @@ begin
 							NextR.State <= invalidCard;
 						end if;
 					elsif (Timeout = cActivated) then
-						NextR.State <= invalidCard;
+						NextR.State     <= startup;
+						NextR.CmdRegion <= CMD0;
+						NextR.Region    <= idle;
 					end if;
 				end if;
 
-			when waitstate => 
-				NextCmdTimeoutEnable <= cActivated;
 
-				if (NextCmdTimeout = cActivated) then
+			when waitstate => 
+				EnableNcrTimeout;
+
+				if (Timeout = cActivated) then
 					if (R.SentCMD55 = cActivated) then
 						NextR.SentCMD55 <= cInactivated;
 						NextR.SendCMD55 <= cInactivated;
 						NextRegion := send;
 					end if;
 
-					NextCmdTimeoutEnable <= cInactivated;
-					NextR.Region         <= NextRegion;
-					NextR.CmdRegion      <= NextCmdRegion;
-					NextR.State			 <= NextState;
+					TimeoutDisable  <= cActivated;
+					NextR.Region    <= NextRegion;
+					NextR.CmdRegion <= NextCmdRegion;
+					NextR.State     <= NextState;
 				end if;
 
 			when checkbusy => 
@@ -582,12 +620,15 @@ begin
 
 			when receivedata => 
 				TimeoutEnable <= cActivated;
+				TimeoutMax    <= cReadTimeout;
 
 				if (iSdData.Err = cActivated) then
-					NextR.State <= init;
+					NextR.State    <= init;
+					TimeoutDisable <= cActivated;
 
 				elsif (iSdData.Valid = cActivated) then
-					NextR.Region <= waitstatedata;
+					NextR.Region   <= waitstatedata;
+					TimeoutDisable <= cActivated;
 
 				elsif (Timeout = cActivated) then
 					NextR.State <= invalidCard;
@@ -595,13 +636,13 @@ begin
 
 
 			when waitstatedata => 
-				NextCmdTimeoutEnable <= cActivated;
+				EnableNcrTimeout;
 
-				if (NextCmdTimeout = cActivated) then
-					NextCmdTimeoutEnable <= cInactivated;
-					NextR.Region         <= NextRegion;
-					NextR.CmdRegion      <= NextCmdRegion;
-					NextR.State			 <= NextState;
+				if (Timeout = cActivated) then
+					TimeoutDisable  <= cActivated;
+					NextR.Region    <= NextRegion;
+					NextR.CmdRegion <= NextCmdRegion;
+					NextR.State     <= NextState;
 				end if;
 
 			when others => 
@@ -609,29 +650,17 @@ begin
 		end case;
 	end process Comb;
 
-	TimeoutGenerator_inst: entity work.TimeoutGenerator
+	TimeoutCounter_inst : entity work.Counter
 	generic map (
-		gClkFrequency => gClkFrequency,
-		gTimeoutTime  => 100 ms
+		gBitWidth => cMaxTimeoutBitWidth
 	)
 	port map (
-		iClk => iClk,
+		iClk         => iClk,
 		inResetAsync => inResetAsync,
-		iEnable => TimeoutEnable,
-		iDisable => TimeoutDisable,
-		oTimeout => Timeout);
-
-	NextCmdTimeoutGenerator_inst: entity work.TimeoutGenerator
-	generic map (
-		gClkFrequency => gClkFrequency,
-		gTimeoutTime  => 1 sec / 25E6 * (8)
-	)
-	port map (
-		iClk => iClk,
-		inResetAsync => inResetAsync,
-		iEnable => NextCmdTimeoutEnable,
-		iDisable => cInactivated,
-		oTimeout => NextCmdTimeout);
+		iEnable      => TimeoutEnable,
+		iDisable     => TimeoutDisable,
+		iMax         => TimeoutMax,
+		oStrobe      => Timeout);
 
 end architecture Rtl;
 

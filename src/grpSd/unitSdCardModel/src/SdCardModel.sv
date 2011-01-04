@@ -259,3 +259,13 @@ class SDCard;
 
 endclass
 
+class NoSDCard extends SDCard;
+
+	function new(virtual ISdCmd CmdInterface, event CmdReceived, event InitDone);
+		super.new(CmdInterface, CmdReceived, InitDone);
+	endfunction
+
+	task automatic init();
+	endtask
+
+endclass

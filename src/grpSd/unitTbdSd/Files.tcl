@@ -6,7 +6,7 @@ set pkgs {Global Global
 
 set units {Crc Crc {Rtl}
 	Sd SdCmd {Rtl}
-	StrobesClocks TimeoutGenerator {Rtl}
+	StrobesClocks Counter {Rtl}
 	Sd SdController {Rtl}
 	Sd SdData {Rtl}
 	Sd SdTop {Rtl}

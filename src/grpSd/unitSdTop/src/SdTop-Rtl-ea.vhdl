@@ -46,6 +46,7 @@ architecture Rtl of SdTop is
 	signal HighSpeed		    : std_ulogic;
 
 begin
+	
 	oSclk                 <= SdStrobe25MHz when HighSpeed = cInactivated else iClk;
 	oReceivedContent      <= SdCmdToController.Content;
 	oReceivedContentValid <= SdCmdToController.Valid;
