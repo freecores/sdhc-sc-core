@@ -116,6 +116,36 @@ begin
 			return (to_integer(word) * 8) + to_integer(byte);
 		end function CalcBitAddrInWord;
 
+		procedure NextCounterAndSaveToRam(constant byteend : natural; constant bytedec : natural) is
+		begin
+			if (R.ByteCounter = byteend) then
+				NextByteCounter := to_unsigned(7, aByteCounter'length);
+
+				if (R.WordCounter = 0) then
+					NextWordCounter := to_unsigned(3, aWordCounter'length);
+					NextR.FirstSend <= cInactivated;
+
+					-- save word to ram
+					NextR.Ram.We <= cActivated;
+					NextR.Ram.En <= cActivated;
+
+					if (R.BlockCounter = 0) then
+						NextRegion := crc;
+					else 
+						NextBlockCounter := R.BlockCounter - 1;
+					end if;
+				else
+					if (R.WordCounter = 3 and R.FirstSend = cInactivated) then
+						NextRamAddr  := R.Ram.Addr + 1;
+					end if;
+
+					NextWordCounter := R.WordCounter - 1;
+				end if;
+			else
+				NextByteCounter := R.ByteCounter - bytedec;
+			end if;
+	end procedure NextCounterAndSaveToRam;
+
 		variable temp : std_ulogic_vector(3 downto 0);
 
 	begin
@@ -251,62 +281,14 @@ begin
 								when standard => 
 									NextR.Ram.Data(CalcBitAddrInWord(R.WordCounter, R.ByteCounter)) <= ioData(0);
 									ShiftIntoCrc("000" & ioData(0));
-
-									if (R.ByteCounter = 0) then
-										NextByteCounter := to_unsigned(7, aByteCounter'length);
-
-										if (R.WordCounter = 0) then
-											NextWordCounter := to_unsigned(3, aWordCounter'length);
-											NextR.FirstSend <= cInactivated;
-
-											-- save word to ram
-											NextR.Ram.We <= cActivated;
-											NextR.Ram.En <= cActivated;
-
-											if (R.BlockCounter = 0) then
-												NextRegion := crc;
-											else 
-												NextBlockCounter := R.BlockCounter - 1;
-											end if;
-										else
-											if (R.WordCounter = 3 and R.FirstSend = cInactivated) then
-												NextRamAddr  := R.Ram.Addr + 1;
-											end if;
-
-											NextWordCounter := R.WordCounter - 1;
-										end if;
-									else
-										NextByteCounter := R.ByteCounter - 1;
-									end if;
+									NextCounterAndSaveToRam(0, 1);
 
 								when wide => 
 									for idx in 0 to 3 loop
 										NextR.Ram.Data(CalcBitAddrInWord(R.WordCounter, R.ByteCounter - idx)) <= ioData(3 - idx);
 									end loop;
 									ShiftIntoCrc(std_ulogic_vector(ioData));
-									
-									if (R.ByteCounter = 3) then
-										NextByteCounter := to_unsigned(7, aByteCounter'length);
-
-										if (R.WordCounter = 0) then
-											NextWordCounter := to_unsigned(3, aWordCounter'length);
-
-											-- save word to ram
-											NextR.Ram.We <= cActivated;
-											NextR.Ram.En <= cActivated;
-											NextRamAddr  := R.Ram.Addr + 1;
-
-											if (R.BlockCounter = 0) then
-												NextRegion := crc;
-											else 
-												NextBlockCounter := R.BlockCounter - 1;
-											end if;
-										else
-											NextWordCounter := R.WordCounter - 1;
-										end if;
-									else
-										NextByteCounter := R.ByteCounter - 4;
-									end if;
+									NextCounterAndSaveToRam(3, 4);
 
 								when others => 
 									report "Unhandled mode" severity error;

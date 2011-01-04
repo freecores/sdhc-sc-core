@@ -14,7 +14,7 @@ use work.Sd.all;
 entity SdTop is
 	generic (
 		gClkFrequency  : natural := 25E6;
-		gHighSpeedMode : boolean := false
+		gHighSpeedMode : boolean := true
 	);
 	port (
 		iClk         : in std_ulogic;

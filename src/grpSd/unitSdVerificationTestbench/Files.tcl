@@ -12,10 +12,10 @@ set units {Crc Crc {Rtl}
 	Sd SdData {Rtl}
 	Memory SimpleDualPortedRam {Rtl}
 	Memory SinglePortedRam {Rtl}
+	StrobesClocks StrobeGen {Rtl}
 	Sd SdTop {Rtl}
 	Rs232 Rs232Tx {Rtl}
 	Components Ics307Configurator {Rtl}
-	StrobesClocks StrobeGen {Rtl}
 	Sd TbdSd {Rtl}}
 
 set svunits {Sd SdCardModel

@@ -9,7 +9,6 @@
 -- Sd Spec 2.00
 --
 
-
 library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
@@ -19,7 +18,7 @@ use work.Sd.all;
 entity SdController is
 	generic (
 		gClkFrequency   : natural := 25E6;
-		gHighSpeedMode  : boolean := false;
+		gHighSpeedMode  : boolean := true;
 		gStartupTimeout : time    := 10 ms;
 		gReadTimeout    : time    := 100 ms
 	);
