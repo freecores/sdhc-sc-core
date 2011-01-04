@@ -167,7 +167,7 @@ begin
 					NxR.startAddr <= R.startAddr + 1;
 				end if;
 
-				if (R.StartAddr = 4) then
+				if (R.StartAddr = 22) then
 					NxR.State <= done;
 					NxR.WbState <= idle;
 				end if;
