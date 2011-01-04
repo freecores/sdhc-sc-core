@@ -61,6 +61,7 @@ set units {Crc Crc {Rtl}
 	Rs232 Rs232Tx {Rtl}
 	Components Ics307Configurator {Rtl}
 	Sd SdClkDomain {Rtl}
+	Sd WbClkDomain {Rtl}
 	Sd SdTop {Rtl}
 	Sd TbdSd {Rtl}}
 
