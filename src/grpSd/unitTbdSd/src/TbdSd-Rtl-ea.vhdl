@@ -49,12 +49,9 @@ architecture Rtl of TbdSd is
 	signal iRs232Tx : aiRs232Tx;
 	signal oRs232Tx : aoRs232Tx;
 
-	signal SdCardStatus : std_ulogic_vector(31 downto 0);
-
 	type aState is (id, arg, waitforchange);
 	type aReg is record
 		State : aState;
-		SdCardStatus : std_ulogic_vector(31 downto 0);
 		Counter : natural;
 		ReceivedContent : aSdCmdContent;
 		ValidContent : aSdCmdContent;
@@ -80,7 +77,6 @@ begin
 	begin
 		if (inResetAsync = cnActivated) then
 			R.State <= id;
-			R.SdCardStatus <= (others => '0');
 			R.Counter <= 3;
 			R.ReceivedContent <= cDefaultSdCmdContent;
 			R.ValidContent <= cDefaultSdCmdContent;
@@ -141,15 +137,14 @@ begin
 		
 	SDTop_inst : entity work.SdTop(Rtl)
 	port map (
-		iClk             => iClk,
-		inResetAsync     => inResetAsync,
-		ioCmd            => ioCmd,
-		oSclk            => oSclk,
-		ioData           => ioData,
-		oSdCardStatus    => SdCardStatus,
-		oReceivedContent => ReceivedContent,
+		iClk                  => iClk,
+		inResetAsync          => inResetAsync,
+		ioCmd                 => ioCmd,
+		oSclk                 => oSclk,
+		ioData                => ioData,
+		oReceivedContent      => ReceivedContent,
 		oReceivedContentValid => oReceivedContentValid,
-		oLedBank         => oLedBank
+		oLedBank              => oLedBank
 	);
 
 	Rs232Tx_inst : entity work.Rs232Tx

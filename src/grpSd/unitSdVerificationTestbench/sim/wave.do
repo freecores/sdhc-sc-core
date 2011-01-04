@@ -14,7 +14,6 @@ add wave -noupdate -format Literal /Testbed/top/oledbank
 add wave -noupdate -format Literal /Testbed/top/odigitadr
 add wave -noupdate -format Literal /Testbed/top/irs232tx
 add wave -noupdate -format Literal /Testbed/top/ors232tx
-add wave -noupdate -format Literal /Testbed/top/sdcardstatus
 add wave -noupdate -format Literal /Testbed/top/r
 add wave -noupdate -format Literal /Testbed/top/nextr
 add wave -noupdate -format Literal /Testbed/top/receivedcontent
@@ -28,6 +27,8 @@ add wave -noupdate -format Literal /Testbed/top/sdtop_inst/sdcontroller_inst/r
 add wave -noupdate -format Literal /Testbed/top/sdtop_inst/sdcontroller_inst/nextr
 add wave -noupdate -format Logic /Testbed/top/sdtop_inst/sdcontroller_inst/timeoutenable
 add wave -noupdate -format Logic /Testbed/top/sdtop_inst/sdcontroller_inst/timeout
+add wave -noupdate -format Logic /Testbed/top/sdtop_inst/sdcontroller_inst/nextcmdtimeout
+add wave -noupdate -format Logic /Testbed/top/sdtop_inst/sdcontroller_inst/nextcmdtimeoutenable
 add wave -noupdate -divider cmd
 add wave -noupdate -format Literal /Testbed/top/sdtop_inst/sdcmd_inst/ifromcontroller
 add wave -noupdate -format Literal -expand /Testbed/top/sdtop_inst/sdcmd_inst/otocontroller
@@ -45,7 +46,7 @@ add wave -noupdate -format Literal /Testbed/top/rs232tx_inst/nextr
 add wave -noupdate -format Literal /Testbed/top/rs232tx_inst/ors232tx
 add wave -noupdate -format Literal /Testbed/top/rs232tx_inst/irs232tx
 TreeUpdate [SetDefaultTree]
-WaveRestoreCursors {{Cursor 1} {1006060 ns} 0}
+WaveRestoreCursors {{Cursor 1} {0 ns} 0}
 configure wave -namecolwidth 150
 configure wave -valuecolwidth 100
 configure wave -justifyvalue left
@@ -60,4 +61,4 @@ configure wave -griddelta 40
 configure wave -timeline 0
 configure wave -timelineunits ns
 update
-WaveRestoreZoom {0 ns} {2649759 ns}
+WaveRestoreZoom {0 ns} {632624601 ns}

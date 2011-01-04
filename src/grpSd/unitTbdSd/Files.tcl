@@ -8,6 +8,7 @@ set units {Crc Crc {Rtl}
 	Sd SdCmd {Rtl}
 	StrobesClocks TimeoutGenerator {Rtl}
 	Sd SdController {Rtl}
+	Sd SdData {Rtl}
 	Sd SdTop {Rtl}
 	Rs232 Rs232Tx {Rtl}
 	Components Ics307Configurator {Rtl}

@@ -13,16 +13,15 @@ use work.Sd.all;
 
 entity SdTop is
 	port (
-		iClk : in std_ulogic; 
-		inResetAsync : in std_ulogic; 
+		iClk         : in std_ulogic;
+		inResetAsync : in std_ulogic;
 
 		-- SD Card
-		ioCmd : inout std_logic; -- Cmd line to and from card
-		oSclk : out std_ulogic;
+		ioCmd  : inout std_logic;
+		oSclk  : out std_ulogic;
 		ioData : inout std_logic_vector(3 downto 0);
 
 		-- Status
-		oSdCardStatus         : out aSdCardStatus;
 		oReceivedContent      : out aSdCmdContent;
 		oReceivedContentValid : out std_ulogic;
 		oLedBank              : out aLedBank
@@ -31,35 +30,43 @@ end entity SdTop;
 
 architecture Rtl of SdTop is
 
-	signal ToController   : aSdCmdToController;
-	signal FromController : aSdCmdFromController;
-	signal SdRegisters    : aSdRegisters;
+	signal SdCmdToController    : aSdCmdToController;
+	signal SdCmdFromController  : aSdCmdFromController;
+	signal SdRegisters          : aSdRegisters;
+	signal SdDataToController   : aSdDataToController;
+	signal SdDataFromController : aSdDataFromController;
 
 begin
-	ioData                <= "ZZZZ";
 	oSclk                 <= iClk;
-	oSdCardStatus         <= SdRegisters.CardStatus;
-	oReceivedContent      <= ToController.Content;
-	oReceivedContentValid <= ToController.Valid;
+	oReceivedContent      <= SdCmdToController.Content;
+	oReceivedContentValid <= SdCmdToController.Valid;
 
 	SdController_inst: entity work.SdController(Rtl)
 	port map (
 		iClk         => iClk,
 		inResetAsync => inResetAsync,
-		iSdCmd       => ToController,
-		oSdCmd       => FromController,
+		iSdCmd       => SdCmdToController,
+		oSdCmd       => SdCmdFromController,
 		oSdRegisters => SdRegisters,
 		oLedBank     => oLedBank
 	);
-
 
 	SdCmd_inst: entity work.SdCmd(Rtl)
 	port map (
 		iClk            => iClk,
 		inResetAsync    => inResetAsync,
-		iFromController => FromController,
-		oToController   => ToController,
+		iFromController => SdCmdFromController,
+		oToController   => SdCmdToController,
 		ioCmd           => ioCmd
+	);
+
+	SdData_inst: entity work.SdData 
+	port map (
+		iClk                  => iClk,
+		inResetAsync          => inResetAsync,
+		iSdDataFromController => SdDataFromController,
+		oSdDataToController   => SdDataToController,
+		ioData                => ioData
 	);
 
 end architecture Rtl;

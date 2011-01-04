@@ -63,6 +63,9 @@ architecture Rtl of SdController is
 	signal TimeoutEnable : std_ulogic;
 	signal Timeout       : std_ulogic;
 
+	signal NextCmdTimeout       : std_ulogic;
+	signal NextCmdTimeoutEnable : std_ulogic;
+
 begin
 
 	oSdRegisters.CardStatus <= R.CardStatus;
@@ -76,14 +79,15 @@ begin
 		end if;
 	end process Regs;
 
-	Comb : process (iSdCmd, Timeout, R)
+	Comb : process (iSdCmd, Timeout, NextCmdTimeout, R)
 		variable ocr : aSdRegOCR;
 		variable arg : aSdCmdArg;
 	begin
 		-- default assignments
-		oSdCmd        <= cDefaultoSdCmd;
-		NextR         <= R;
-		TimeoutEnable <= cInactivated;
+		oSdCmd               <= cDefaultoSdCmd;
+		NextR                <= R;
+		TimeoutEnable        <= cInactivated;
+		NextCmdTimeoutEnable <= cInactivated;
 
 		-- Status
 		oLedBank <= (others => cInactivated);
@@ -112,10 +116,10 @@ begin
 								end if;
 
 							when waitstate => 
-								TimeoutEnable <= cActivated;
+								NextCmdTimeoutEnable <= cActivated;
 
-								if (Timeout = cActivated) then
-									TimeoutEnable <= cInactivated;
+								if (NextCmdTimeout = cActivated) then
+									NextCmdTimeoutEnable <= cInactivated;
 									NextR.Region    <= send;
 									NextR.CmdRegion <= CMD8;
 								end if;
@@ -154,12 +158,12 @@ begin
 								end if;
 
 							when waitstate => 
-								TimeoutEnable <= cActivated;
+								NextCmdTimeoutEnable <= cActivated;
 
-								if (Timeout = cActivated) then
-									TimeoutEnable <= cInactivated;
-									NextR.CmdRegion <= CMD55;
-									NextR.Region    <= send;
+								if (NextCmdTimeout = cActivated) then
+									NextCmdTimeoutEnable <= cInactivated;
+									NextR.CmdRegion      <= CMD55;
+									NextR.Region         <= send;
 								end if;
 
 							when others => 
@@ -201,9 +205,9 @@ begin
 								end if;
 
 							when waitstate => 
-								TimeoutEnable <= cActivated;
+								NextCmdTimeoutEnable <= cActivated;
 
-								if (Timeout = cActivated) then
+								if (NextCmdTimeout = cActivated) then
 									NextR.CmdRegion <= ACMD41;
 									NextR.Region    <= send;
 								end if;
@@ -255,9 +259,9 @@ begin
 								end if;
 							
 							when waitstate => 
-								TimeoutEnable <= cActivated;
+								NextCmdTimeoutEnable <= cActivated;
 
-								if (Timeout = cActivated) then
+								if (NextCmdTimeout = cActivated) then
 									NextR.CmdRegion <= CMD2;
 									NextR.Region    <= send;
 								end if;
@@ -296,9 +300,9 @@ begin
 								end if;
 							
 							when waitstate => 
-								TimeoutEnable <= cActivated;
+								NextCmdTimeoutEnable <= cActivated;
 
-								if (Timeout = cActivated) then
+								if (NextCmdTimeout = cActivated) then
 									NextR.CmdRegion <= CMD3;
 									NextR.Region    <= send;
 								end if;
@@ -354,13 +358,24 @@ begin
 	TimeoutGenerator_inst: entity work.TimeoutGenerator
 	generic map (
 		gClkFrequency => 25E6,
-		gTimeoutTime  => 1 ms
+		gTimeoutTime  => 100 ms
 	)
 	port map (
 		iClk => iClk,
 		inResetAsync => inResetAsync,
 		iEnable => TimeoutEnable,
 		oTimeout => Timeout);
+
+	NextCmdTimeoutGenerator_inst: entity work.TimeoutGenerator
+	generic map (
+		gClkFrequency => 25E6,
+		gTimeoutTime  => 320 ns
+	)
+	port map (
+		iClk => iClk,
+		inResetAsync => inResetAsync,
+		iEnable => NextCmdTimeoutEnable,
+		oTimeout => NextCmdTimeout);
 
 end architecture Rtl;
 
