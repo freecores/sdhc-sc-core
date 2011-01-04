@@ -109,6 +109,7 @@ package Sd is
 	subtype aSdDataBlock is std_ulogic_vector(cBlocklen - 1 downto 0);
 
 	type aSdDataBusMode is (standard, wide);
+	type aSdDataMode is (usual, widewidth);
 
 	-- Types for entities
 	-- between SdController and SdCmd
@@ -139,6 +140,7 @@ package Sd is
 	-- between SdController and SdData
 	type aSdDataFromController is record
 		Mode      : aSdDataBusMode; -- select 1 bit or 4 bit mode
+		DataMode  : aSdDataMode; -- select usual or wide width data
 		DataBlock : aSdDataBlock; -- DataBlock to send to card
 		Valid     : std_ulogic; -- valid, when the datablock is valid and has to be sent
 		CheckBusy : std_ulogic; -- check for busy signaling
@@ -146,6 +148,7 @@ package Sd is
 
 	constant cDefaultSdDataFromController : aSdDataFromController := (
 	Mode => standard,
+	DataMode => usual,
 	DataBlock => (others => '0'),
 	Valid => cInactivated,
 	CheckBusy => cInactivated);

@@ -9,9 +9,12 @@ interface ISdCmd;
 	logic Clk;
 	logic nResetAsync;
 	wire Cmd;
+	logic SClk;
+	wire[3:0] Data;
 
 	clocking cb @(posedge Clk);
 		inout Cmd;
+		inout Data;
 	endclocking
 
 	modport Testbench (

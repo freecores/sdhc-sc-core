@@ -25,6 +25,7 @@ entity TimeoutGenerator is
 		iClk         : in std_ulogic;
 		inResetAsync : in std_ulogic;
 		iEnable      : in std_ulogic;
+		iDisable     : in std_ulogic;
 		oTimeout     : out std_ulogic
 	);
 

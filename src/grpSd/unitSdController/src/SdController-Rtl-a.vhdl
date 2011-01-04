@@ -48,9 +48,10 @@ architecture Rtl of SdController is
 	ToSdCmd    => cDefaultToSdCmd,
 	ToSdData   => cDefaultSdDataFromController);
 
-	signal R, NextR      : aSdControllerReg;
-	signal TimeoutEnable : std_ulogic;
-	signal Timeout       : std_ulogic;
+	signal R, NextR       : aSdControllerReg;
+	signal TimeoutEnable  : std_ulogic;
+	signal TimeoutDisable : std_ulogic;
+	signal Timeout        : std_ulogic;
 
 	signal NextCmdTimeout       : std_ulogic;
 	signal NextCmdTimeoutEnable : std_ulogic;
@@ -70,7 +71,7 @@ begin
 		end if;
 	end process Regs;
 
-	Comb : process (iSdCmd, Timeout, NextCmdTimeout, R)
+	Comb : process (iSdCmd, iSdData, Timeout, NextCmdTimeout, R)
 		variable ocr           : aSdRegOCR;
 		variable arg           : aSdCmdArg;
 		variable NextRegion    : aRegion;
@@ -81,6 +82,7 @@ begin
 		NextR                <= R;
 		NextR.ToSdCmd        <= cDefaultToSdCmd;
 		TimeoutEnable        <= cInactivated;
+		TimeoutDisable       <= cInactivated;
 		NextCmdTimeoutEnable <= cInactivated;
 		NextRegion           := R.Region;
 		NextCmdRegion        := R.CmdRegion;
@@ -303,6 +305,8 @@ begin
 
 					when CheckBusWidth => 
 						if (R.SendCMD55 = cInactivated) then
+							NextR.ToSdData.DataMode <= widewidth;
+
 							case R.Region is
 								when send => 
 									NextR.ToSdCmd.Content.id  <= cSdCmdSendSCR;
@@ -313,7 +317,8 @@ begin
 									if (iSdCmd.Valid = cActivated) then
 										if (iSdCmd.Content.id = cSdCmdSendSCR) then
 											NextR.CardStatus <= iSdCmd.Content.arg;
-											NextR.Region     <= waitstate;
+											NextR.Region     <= receivedata;
+											TimeoutDisable   <= cActivated;
 
 										else
 											NextR.State <= invalidCard;
@@ -322,8 +327,15 @@ begin
 										NextR.State <= invalidCard;
 									end if;
 
-								when waitstate => 
-									NextState := idle;
+								when receivedata => 
+									if (iSdData.Err = cActivated) then
+										NextR.State <= init;
+									elsif (iSdData.Valid = cActivated) then
+										-- check for 4 bit mode
+										NextR.State <= idle;
+									elsif (Timeout = cActivated) then
+										NextR.State <= invalidCard;
+									end if;
 
 								when others => 
 									report "Unhandled region" severity error;
@@ -400,7 +412,10 @@ begin
 				end if;
 
 			when checkbusy => 
+				null;
 
+			when receivedata => 
+				TimeoutEnable <= cActivated;
 
 			when waitstatedata => 
 				NextCmdTimeoutEnable <= cActivated;
@@ -420,12 +435,13 @@ begin
 	TimeoutGenerator_inst: entity work.TimeoutGenerator
 	generic map (
 		gClkFrequency => 25E6,
-		gTimeoutTime  => 1 ms
+		gTimeoutTime  => 100 ms
 	)
 	port map (
 		iClk => iClk,
 		inResetAsync => inResetAsync,
 		iEnable => TimeoutEnable,
+		iDisable => TimeoutDisable,
 		oTimeout => Timeout);
 
 	NextCmdTimeoutGenerator_inst: entity work.TimeoutGenerator
@@ -437,6 +453,7 @@ begin
 		iClk => iClk,
 		inResetAsync => inResetAsync,
 		iEnable => NextCmdTimeoutEnable,
+		iDisable => cInactivated,
 		oTimeout => NextCmdTimeout);
 
 end architecture Rtl;

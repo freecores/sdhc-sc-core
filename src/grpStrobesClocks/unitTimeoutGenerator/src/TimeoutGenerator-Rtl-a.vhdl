@@ -27,8 +27,12 @@ begin
 
 		elsif (iClk'event and iClk = cActivated) then
 			oTimeout <= cInactivated; -- Default
+			
+			if (iDisable = cActivated) then
+				Enabled <= cInactivated;
+				Counter <= (others => '0');
 
-			if (iEnable = cActivated or Enabled = cActivated) then
+			elsif (iEnable = cActivated or Enabled = cActivated) then
 				Counter <= Counter + 1;
 				Enabled <= cActivated;
 				

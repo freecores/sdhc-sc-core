@@ -8,7 +8,9 @@
 const logic cActivated = 1;
 const logic cInactivated = 0;
 
+include "../../unitSdCardModel/src/Crc.sv";
 include "../../unitSdCardModel/src/SdCommand.sv";
+include "../../unitSdCardModel/src/SdData.sv";
 
 class SDCard;
 	local virtual ISdCmd.Card ICmd;
@@ -17,6 +19,8 @@ class SDCard;
 	local RCA_t rca;
 	local SDCommandToken recvcmd;
 	local logic CCS;
+	local Mode_t mode;
+	local DataMode_t datamode;
 
 	local event CmdReceived, InitDone;
 
@@ -27,6 +31,8 @@ class SDCard;
 		this.InitDone = InitDone;
 		this.CCS = 1;
 		rca = 0;
+		mode = standard;
+		ICmd.cb.Data <= 'z;
 	endfunction
 
 	task reset();
@@ -81,6 +87,8 @@ class SDCard;
 		SDCommandR2 cidresponse;
 		SDOCR ocr;
 		SDCommandR6 rcaresponse;
+		logic data[$];
+		SdData sddata;
 		
 		// expect CMD0 so that state is clear
 		recv();
@@ -180,6 +188,18 @@ class SDCard;
 		// respond with R1
 		response = new(cSdCmdSendSCR, state);
 		response.send(ICmd);
+
+		repeat(2) @ICmd.cb;
+
+		// send dummy SCR
+		for (int i = 0; i < 512; i++)
+			data.push_back(0);
+		
+		data[511-50] = 1;
+		data[511-48] = 1;
+
+		sddata = new(standard, widewidth);
+		sddata.send(ICmd, data);
 
 		-> InitDone;
 

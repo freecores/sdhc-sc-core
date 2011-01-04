@@ -5,8 +5,6 @@
 // Register CID
 //
 
-include "../../unitSdCardModel/src/Crc.sv"; 
-
 typedef logic[7:0] manufacturer_id_t;
 typedef logic[15:0] app_id_t;
 typedef logic[39:0] pname_t;
@@ -26,13 +24,13 @@ class SDCID;
 	function new();
 	endfunction
 
-	function automatic aCrc getCrc(cidreg_t cid);
+	function automatic aCrc7 getCrc(cidreg_t cid);
 		logic data[$];
 		
 		for (int i = 127; i >= 8; i--) begin
 			data.push_back(cid[i]);
 		end
-		return calcCrc(data);
+		return calcCrc7(data);
 	endfunction
 
 	function automatic cidreg_t get();

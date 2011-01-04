@@ -83,11 +83,16 @@ begin
 
 	Comb : process (ioData, iSdDataFromController, CrcIn, R)
 
-		procedure SendBitAndShiftIntoCrc (constant data : in std_ulogic_vector(3 downto 0)) is
+		procedure ShiftIntoCrc (constant data : in std_ulogic_vector(3 downto 0)) is
 		begin
 			CrcOut.Data   <= data;
 			CrcOut.DataIn <= cActivated;
-			NextR.Data    <= data;
+		end procedure ShiftIntoCrc;
+
+		procedure SendBitAndShiftIntoCrc (constant data : in std_ulogic_vector(3 downto 0)) is
+		begin
+			ShiftIntoCrc(data);
+			NextR.Data <= data;
 		end procedure SendBitAndShiftIntoCrc;
 
 		variable temp : std_ulogic_vector(3 downto 0);
@@ -108,8 +113,14 @@ begin
 					NextR.Controller.Busy <= cActivated;
 
 				elsif (R.Mode = wide and ioData = std_logic_vector(cSdStartBits)) or
-			   		  (R.Mode = standard and ioData(0) = cSdStartBit) then
-					NextR.State <= receive;
+				(R.Mode = standard and ioData(0) = cSdStartBit) then
+					NextR.Region <= data;
+					NextR.State      <= receive;
+					NextR.BitCounter <= to_unsigned(7,aBitCounter'length);
+
+					if (iSdDataFromController.DataMode = widewidth) then
+						NextR.ByteCounter <= to_unsigned(511,aByteCounter'length);
+					end if;
 
 				elsif (iSdDataFromController.Valid = cActivated) then
 					NextR.State  <= send;
@@ -192,6 +203,82 @@ begin
 					when others => 
 						report "Region not handled" severity error;
 				end case;	
+
+			when receive => 
+				case R.Region is
+					when data => 
+						case iSdDataFromController.DataMode is
+							when usual => 
+								report "usual mode is not implemented" severity error;
+
+							when widewidth => 
+								case R.Mode is
+									when standard => 
+										NextR.Controller.DataBlock(to_integer(R.ByteCounter)) <= ioData(0);
+										ShiftIntoCrc("000" & ioData(0));
+
+										if (R.ByteCounter = 0) then
+											NextR.Region <= crc;
+										else 
+											NextR.ByteCounter <= R.ByteCounter - 1;
+										end if;
+
+									when wide => 
+										for idx in 0 to 3 loop
+											NextR.Controller.DataBlock(to_integer(R.ByteCounter - idx)) <= ioData(3 - idx);
+										end loop;
+										ShiftIntoCrc(std_ulogic_vector(ioData));
+
+										if (R.ByteCounter = 3) then
+											NextR.ByteCounter <= to_unsigned(0, aByteCounter'length);
+											NextR.Region <= crc;
+										else
+											NextR.ByteCounter <= R.ByteCounter - 4;
+										end if;
+
+									when others => 
+										report "Unhandled mode" severity error;
+								end case;
+
+							when others => 
+								report "Unhandled DataMode" severity error;
+						end case;
+
+					when crc =>
+						case R.Mode is
+							when standard => 
+								ShiftIntoCrc("000" & ioData(0));
+
+							when wide => 
+								ShiftIntoCrc(std_ulogic_vector(ioData));
+
+							when others => 
+								report "Unhandled mode" severity error;
+						end case;
+
+						if (R.ByteCounter = 15) then
+							NextR.Region <= endbit;
+						else
+							NextR.ByteCounter <= R.ByteCounter + 1;
+						end if;
+
+					when endbit => 
+--						if (CrcIn.Correct = "1111" and R.Mode = wide) or
+--						(CrcIn.Correct(0) = cActivated and R.Mode = standard) then
+							NextR.Controller.Valid <= cActivated;
+--
+--						else
+--							NextR.Controller.Err <= cActivated;
+--
+--						end if;
+
+						NextR.ByteCounter <= to_unsigned(0, aByteCounter'length);
+						NextR.Region      <= startbit;
+						NextR.State       <= idle;
+
+					when others => 
+						report "Region not handled" severity error;
+				end case;
 
 			when others => 
 				report "State not handled" severity error;

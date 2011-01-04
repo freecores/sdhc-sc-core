@@ -7,7 +7,6 @@
 `define cSDArgWith 32
 typedef logic[`cSDArgWith-1:0] SDCommandArg;
 typedef logic[15:0] RCA_t;
-typedef logic[6:0] aCrc;
 
 typedef enum {
 	 cSdCmdGoIdleState = 0,
@@ -37,7 +36,7 @@ class SDCommandToken;
 	logic transbit;
 	rand logic[5:0] id;
 	rand SDCommandArg arg;
-	aCrc crc7;
+	aCrc7 crc7;
 	logic endbit;
 
 	function void display();
@@ -64,7 +63,7 @@ class SDCommandToken;
 		assert(crc7 == calcCrcOfToken());
 	endfunction
 
-	function automatic aCrc calcCrcOfToken();
+	function automatic aCrc7 calcCrcOfToken();
 		logic temp[$];
 
 		temp.push_back(startbit);
@@ -74,7 +73,7 @@ class SDCommandToken;
 		for (int i = 31; i >= 0; i--)
 			temp.push_back(arg[i]);
 
-		return calcCrc(temp);
+		return calcCrc7(temp);
 	endfunction
 
 	function automatic bit equals(SDCommandToken rhs);
@@ -91,7 +90,7 @@ class SDCommandResponse;
 	protected logic transbit;
 	protected logic[5:0] id;
 	protected SDCommandArg arg;
-	protected aCrc crc;
+	protected aCrc7 crc;
 	protected logic endbit;
 	protected logic data[$];
 
@@ -108,7 +107,7 @@ class SDCommandResponse;
 
 
 	task automatic send(virtual ISdCmd.Card ICmd);
-		aCrc crc = 0;
+		aCrc7 crc = 0;
 		
 		data.push_back(startbit);
 		data.push_back(transbit);
@@ -118,7 +117,7 @@ class SDCommandResponse;
 		for (int i = 31; i>= 0; i--)
 			data.push_back(arg[i]);
 
-		crc = calcCrc(data);
+		crc = calcCrc7(data);
 		for (int i = 6; i >= 0; i--)
 			data.push_back(crc[i]);
 
@@ -163,8 +162,6 @@ class SDCommandR3 extends SDCommandResponse;
 	endfunction
 	
 	task automatic send(virtual ISdCmd.Card ICmd);
-		aCrc crc = 0;
-		
 		data.push_back(startbit);
 		data.push_back(transbit);
 		for(int i = 5; i >= 0; i--)
