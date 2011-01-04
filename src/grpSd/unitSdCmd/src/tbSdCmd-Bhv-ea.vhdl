@@ -18,12 +18,14 @@ end entity tbSdCmd;
 architecture Bhv of tbSdCmd is
 
 	constant cClkPeriod : time := 1 sec / gClkFrequency;
-	signal Clk : std_ulogic := cInactivated;
-	signal Finished : std_ulogic := cInactivated;
-	signal nResetAsync : std_ulogic := cnActivated;
-	signal ToCmd : aSdCmdFromController;
-	signal FromCmd : aSdCmdToController;
-	signal Cmd : std_logic;
+	signal Clk          : std_ulogic := cInactivated;
+	signal Finished     : std_ulogic := cInactivated;
+	signal nResetAsync  : std_ulogic := cnActivated;
+
+
+	signal ToCmd        : aSdCmdFromController;
+	signal FromCmd      : aSdCmdToController;
+	signal Cmd          : std_ulogic;
 
 	signal sentCmd : std_ulogic_vector(47 downto 0) := (others => 'U');
 	signal counter : integer := 0;
@@ -73,7 +75,7 @@ begin
 		iStrobe         => Strobe,
 		iFromController => ToCmd,
 		oToController   => FromCmd,
-		ioCmd           => Cmd
+		iCmd            => Cmd
 	);
 
 	Strobe_inst: entity work.StrobeGen(Rtl)

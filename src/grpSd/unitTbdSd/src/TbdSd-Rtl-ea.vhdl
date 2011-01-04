@@ -61,6 +61,8 @@ architecture Rtl of TbdSd is
 	signal oErr  : std_ulogic;
 	signal oRty  : std_ulogic;
 
+	signal ErrorLed, DoneLed : std_ulogic;
+
 begin
 
 	Reg : process (iClk) is
@@ -124,6 +126,26 @@ begin
 		oSclk        => oSclk,
 		ioData       => ioData,
 		oLedBank     => oLedBank
+	);
+
+	TestWbMaster_inst : entity work.TestWbMaster
+	port map (
+		CLK_I => iClk,
+		RST_I => RstSync(1),
+		ERR_I => oErr,
+		RTY_I => oRty,
+		ACK_I => oAck,
+		DAT_I => oDat,
+		CYC_O => iCyc,
+		STB_O => iStb,
+		WE_O => iWe,
+		CTI_O => iCti,
+		BTE_O => iBte,
+		ADR_O => iAdr,
+		DAT_O => iDat,
+		SEL_O => iSel,
+		ERR_O => ErrorLed,
+		DON_O => DoneLed
 	);
 
 end architecture Rtl;

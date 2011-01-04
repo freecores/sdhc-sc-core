@@ -9,7 +9,7 @@
 
 architecture Rtl of SimpleDualPortedRam is
 
-	signal tempq : std_logic_vector(31 downto 0);
+	signal tempq          : std_logic_vector(31 downto 0);
 	signal rdaddr, wraddr : unsigned(6 downto 0);
 
 begin
@@ -17,12 +17,12 @@ begin
 	Ram_inst: ENTITY work.CycSimpleDualPortedRam
 	PORT map
 	(
-		clock => iClk,
-		data => std_logic_vector(iDataRw),
+		clock     => iClk,
+		data      => std_logic_vector(iDataRw),
 		rdaddress => std_logic_vector(rdaddr),
 		wraddress => std_logic_vector(wraddr),
-		wren => iWeRW,
-		q => tempq
+		wren      => iWeRW,
+		q         => tempq
 	);
 
 	oDataR <= std_ulogic_vector(tempq);

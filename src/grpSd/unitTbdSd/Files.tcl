@@ -24,6 +24,7 @@ set units {Crc Crc {Rtl}
 	Rs232 Rs232Tx {Rtl}
 	Components Ics307Configurator {Rtl}
 	StrobesClocks StrobeGen {Rtl}
+	Sd TestWbMaster {Rtl}
 	Sd TbdSd {Rtl}}
 
 

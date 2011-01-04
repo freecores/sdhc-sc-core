@@ -21,6 +21,7 @@ entity SdCmd is
 	port (
 		iClk         : in std_ulogic; -- Clk, rising edge
 		inResetAsync : in std_ulogic; -- Reset, asynchronous active low
+
 		iStrobe      : in std_ulogic; -- Strobe to send data
 
 		iFromController : in aSdCmdFromController;
@@ -36,6 +37,7 @@ architecture Rtl of SdCmd is
 
 	type aSdCmdState is (idle, sending, receiving);
 	type aRegion is (startbit, transbit, cmdid, arg, cid, crc, endbit, waitstate);
+	
 	subtype aCounter is unsigned(integer(log2(real(128))) - 1 downto 0);
 
 	type aRegSet is record
@@ -54,8 +56,8 @@ architecture Rtl of SdCmd is
 	Cid           => cDefaultSdRegCID);
 
 	type aOutputRegSet is record
-		Controller    : aSdCmdToController;
-		Cmd : aoSdCmd;
+		Controller : aSdCmdToController;
+		Cmd        : aoSdCmd;
 	end record aOutputRegSet;
 
 	constant cDefaultOutputRegSet : aOutputRegSet := (
@@ -149,14 +151,18 @@ begin
 			when idle => 
 					-- Start receiving or start transmitting
 				if (iCmd.Cmd = cSdStartBit) then
+					-- Start receiving
 					ShiftIntoCrc(iCmd.Cmd);
+
 					NextR.ReceivedToken.startbit <= iCmd.Cmd;
-					NextR.State <= receiving;
-					NextR.Region <= transbit;
+					NextR.State                  <= receiving;
+					NextR.Region                 <= transbit;
 
 				elsif (iFromController.Valid = cActivated) then
-					NextR.State <= sending;
+					-- Start sending
+					NextR.State  <= sending;
 					NextR.Region <= startbit;
+
 				end if;
 
 			when sending => 
@@ -187,17 +193,17 @@ begin
 							NextR.Counter <= R.Counter - 1;
 
 						else
-							NextR.Region <= endbit;
+							NextR.Region         <= endbit;
 							NextO.Controller.Ack <= cActivated;
 						end if;
 
 					when endbit => 
-						NextO.Cmd.Cmd  <= cSdEndBit;
-						NextR.Region <= waitstate;
+						NextO.Cmd.Cmd <= cSdEndBit;
+						NextR.Region  <= waitstate;
 
 					when waitstate => 
 						NextO.Cmd.En <= cInactivated;
-						NextR.State <= idle;
+						NextR.State  <= idle;
 						NextR.Region <= startbit;
 
 					when others => 

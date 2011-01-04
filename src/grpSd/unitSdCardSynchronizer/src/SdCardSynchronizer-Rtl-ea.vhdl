@@ -71,3 +71,4 @@ begin
 	oDataSync <= DataSync(gSyncCount - 1);
 
 end architecture Rtl;
+

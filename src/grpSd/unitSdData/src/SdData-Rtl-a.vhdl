@@ -15,8 +15,6 @@ architecture Rtl of SdData is
 
 	-- all registers
 	type aReg is record
-		-- state, region and counters
-
 		State   : aState;
 		Region  : aRegion;
 		Counter : aCounter;
@@ -24,7 +22,7 @@ architecture Rtl of SdData is
 		Mode : aSdDataBusMode; -- standard or wide SD mode
 
 		Word        : aWord; -- temporary save for data to write to the read fifo
-		WordInvalid : std_ulogic; -- after starting receiving we have to wait for word to be valid before it can be written to the read fifo
+		WordInvalid : std_ulogic; -- after starting receiving we have to wait for the word to be valid before it can be written to the read fifo
 
 		-- outputs
 		Data          : aoSdData;
@@ -73,6 +71,7 @@ architecture Rtl of SdData is
 	alias RBitC is R.Counter(LogDualis(8)-1 downto 0);
 	alias RByteC is R.Counter(LogDualis(4)+LogDualis(8)-1 downto LogDualis(8));
 	alias RWordC is R.Counter(R.Counter'high downto LogDualis(4)+LogDualis(8));
+	alias RBitInWordC is R.Counter(LogDualis(32)-1 downto 0);
 
 begin
 
@@ -108,7 +107,7 @@ begin
 	end process Regs;
 
 	-- Calculate the next state and output
-	Comb : process (iData.Data, iSdDataFromController, CrcIn, iReadWriteFifo, iWriteReadFifo, R)
+	Comb : process (iData, iSdDataFromController, CrcIn, iReadWriteFifo, iWriteReadFifo, R)
 
 		--------------------------------------------------------------------------------
 		-- Handle accessing the fifo
@@ -123,6 +122,7 @@ begin
 				NextR.Counter      <= R.Counter;
 				req                <= cInactivated;
 			else
+				-- enable request and continue transfer with the sd card
 				NextR.DisableSdClk <= cInactivated;
 				req                <= cActivated;
 			end if;
@@ -147,7 +147,7 @@ begin
 		end procedure SendBitsAndShiftIntoCrc;
 
 		--------------------------------------------------------------------------------
-		-- Calculate the next counters and region
+		-- Calculate the next counter and region
 		-- Handles loading next data from fifo or writing data to fifo as well
 		--------------------------------------------------------------------------------
 		procedure CalcNextAndHandleData (constant send : boolean) is
@@ -163,12 +163,12 @@ begin
 			end if;
 
 			if (RBitC = BitEnd) then
-				-- Byte finished
+				-- Byte finished, switch to next byte starting with MSBit
 				NextR.Counter <= R.Counter + (16 - BitDec);
 
 				if (RByteC = 3) then
 					-- Word finished
-					NextR.WordInvalid  <= cInactivated;
+					NextR.WordInvalid  <= cInactivated; -- received words are no longer invalid
 
 					if (RWordC = 127) then
 						-- whole block finished, send crc next
@@ -177,24 +177,24 @@ begin
 
 					else
 						if (send = true) then
-							-- save next word from fifo
+							-- save next word to send from fifo
 							NextR.Word <= iReadWriteFifo.q;
 						end if;
 					end if;
 				end if;
 			else
-				NextR.Counter <= R.Counter - BitDec;
+				NextR.Counter <= R.Counter - BitDec; -- switch to next bits (MSBit to LSBit)
 			end if;
 
 			if (send = true) then
 				if ((RBitC = BitEnd + BitDec and RByteC = 3 and RWordC < 127)) then
-					-- request next word from fifo
+					-- current word almost sent, request next word to send from fifo
 					HandleFifoAccess(iReadWriteFifo.rdempty, NextR.ReadWriteFifo.rdreq);
 
 				end if;
 			else
 				if (RByteC = 0 and RBitC = 7 and R.WordInvalid = cInactivated) then
-					-- save word to ram
+					-- received word is valid, save it to ram
 					NextR.WriteReadFifo.data <= R.Word;
 					HandleFifoAccess(iWriteReadFifo.wrfull, NextR.WriteReadFifo.wrreq);
 				end if;
@@ -209,6 +209,8 @@ begin
 			variable curHighAddr : integer;
 		begin
 			-- calculate current address (of the high bit in case of wide mode)
+			-- widewidth receiving counts from an offset to 4096
+			-- and the bit counter is reversed
 			curHighAddr := (127 - to_integer(RWordC)) * 32 + (3 - to_integer(RByteC)) * 8 + to_integer(RBitC);
 
 			if (R.Mode = standard) then
@@ -248,21 +250,18 @@ begin
 
 		case R.State is
 			when idle => 
-				-- check if card signals that it is busy
+				-- check if card signals that it is busy (the controller has to enable this check)
 				if (iSdDataFromController.CheckBusy = cActivated and iData.Data(0) = cInactivated) then
 					NextR.Controller.Busy <= cActivated;
 
-				elsif (R.Mode = wide and iData.Data = cSdStartBits) or
-				(R.Mode = standard and iData.Data(0) = cSdStartBit) then
-
+				elsif (R.Mode = wide and iData.Data = cSdStartBits) or (R.Mode = standard and iData.Data(0) = cSdStartBit) then
 					-- start receiving
-
 					NextR.Region      <= data;
 					NextR.State       <= receive;
 					NextR.Counter     <= to_unsigned(7,aCounter'length);
 					NextR.WordInvalid <= cActivated;
 
-					-- which response is expected?
+					-- which kind of response is expected?
 					if (iSdDataFromController.DataMode = widewidth) then
 						if (iSdDataFromController.ExpectBits = ScrBits) then
 							NextR.Counter <= to_unsigned(cScrBitsCount, aCounter'length);
@@ -272,15 +271,16 @@ begin
 					end if;
 
 				elsif (iSdDataFromController.Valid = cActivated) then
+					-- sending requested by controller
 
 					case iReadWriteFifo.rdempty is
 						when cActivated => 
+							-- no data is available to send -> stall
 							report "Fifo empty, waiting for data" severity note;
 							NextR.DisableSdClk <= cActivated;
 
 						when cInactivated => 
-						-- start sending
-
+							-- data is available, start sending
 							NextR.State               <= send;
 							NextR.Region              <= startbit;
 							NextR.ReadWriteFifo.rdreq <= cActivated;
@@ -291,7 +291,7 @@ begin
 							report "rdempty invalid" severity error;
 					end case;
 				else
-				-- switch between standard and wide mode	
+					-- switch between standard and wide mode only if nothing else is going on
 					NextR.Mode <= iSdDataFromController.Mode; 
 				end if;
 
@@ -315,18 +315,18 @@ begin
 						SendBitsAndShiftIntoCrc(cSdStartBits);
 						NextR.Region <= data;
 
-						-- save data from fifo
+						-- save data to send from fifo
 						NextR.Word <= iReadWriteFifo.q;
 
 					when data => 
 						case R.Mode is
 							when wide => 
 								for i in 0 to 3 loop
-									temp(i) := R.Word(to_integer(R.Counter(4 downto 0)) - i);
+									temp(i) := R.Word(to_integer(RBitInWordC) - i);
 								end loop;
 
 							when standard => 
-								temp := "---" & R.Word(to_integer(R.Counter(4 downto 0)));
+								temp := "---" & R.Word(to_integer(RBitInWordC));
 
 							when others => 
 								temp := "XXXX";
@@ -362,11 +362,11 @@ begin
 						-- save received data to temporary word register
 						case R.Mode is
 							when standard => 
-								NextR.Word(to_integer(R.Counter(4 downto 0))) <= iData.Data(0);
+								NextR.Word(to_integer(RBitInWordC)) <= iData.Data(0);
 
 							when wide => 
 								for i in 0 to 3 loop
-									NextR.Word(to_integer(R.Counter(4 downto 0)) - i) <= iData.Data(3 - i);
+									NextR.Word(to_integer(RBitInWordC) - i) <= iData.Data(3 - i);
 								end loop;
 
 							when others => 
@@ -376,7 +376,7 @@ begin
 						ShiftIntoCrc(std_ulogic_vector(iData.Data));
 						CalcNextAndHandleData(false);
 
-					-- check responses 
+						-- check responses 
 						if (iSdDataFromController.DataMode = widewidth) then
 							if (iSdDataFromController.ExpectBits = ScrBits) then
 								if (IsBitAddrInRangeWideWidth(cWideModeBitAddr)) then
@@ -394,7 +394,7 @@ begin
 						end if;
 
 					when crc =>
-					-- save last word to ram
+						-- save last word to ram
 						HandleFifoAccess(iWriteReadFifo.wrfull, NextR.WriteReadFifo.wrreq);
 						NextR.WriteReadFifo.data <= R.Word;
 
@@ -408,7 +408,7 @@ begin
 						end if;
 
 					when endbit => 
-					-- in standard mode all unused crcs have to be correct, because no data was shifted in
+						-- in standard mode all unused crcs are correct, because no data was shifted in
 						if (CrcIn.Correct = "1111") then 
 							NextR.Controller.Valid <= cActivated;
 						else
@@ -428,8 +428,7 @@ begin
 
 	end process Comb;
 
-	CrcDataIn <= (others => CrcOut.DataIn) when R.Mode = wide else
-				 "000" & CrcOut.DataIn;
+	CrcDataIn <= (others => CrcOut.DataIn) when R.Mode = wide else "000" & CrcOut.DataIn;
 
 	crcs: for idx in 3 downto 0 generate
 
