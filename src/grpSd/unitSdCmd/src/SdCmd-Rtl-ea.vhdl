@@ -68,12 +68,12 @@ begin
 	end process CmdStateReg;
 
 	-- Comb. process
-	NextStateAndOutput : process (iFromController, ioCmd, State, Counter)
+	NextStateAndOutput : process (iFromController, State, Counter)
 
 		procedure NextStateWhenAllSent (constant length : in natural; constant toState : in aSdCmdState) is
 		begin
 			if (NextCounter < length-1) then
-				NextCounter <= NextCounter + 1;
+				NextCounter <= Counter + 1;
 			else
 				NextCounter <= to_unsigned(0, NextCounter'length);
 				NextState <= toState;
@@ -111,24 +111,24 @@ begin
 
 			when cmdid => 
 				Output.Cmd <= iFromController.Content.id(to_integer(NextCounter));
-				if (NextCounter < iFromController.Content.id'length-2) then
+				if (NextCounter < aSdCmdId'length-2) then
 					Output.Crc.Data <= iFromController.Content.id(to_integer(NextCounter)+1);
 				else 
 					Output.Crc.Data <= iFromController.Content.arg(0);
 				end if;
 				Output.Crc.DataIn <= cActivated;
-				NextStateWhenAllSent(iFromController.Content.id'length, arg);
+				NextStateWhenAllSent(aSdCmdId'length, arg);
 
 
 			when arg => 
 				Output.Cmd <= iFromController.Content.arg(to_integer(NextCounter));
-				if (NextCounter < iFromController.Content.arg'length-2) then
+				if (NextCounter < aSdCmdArg'length-2) then
 					Output.Crc.Data <= iFromController.Content.arg(to_integer(NextCounter)+1);
 					Output.Crc.DataIn <= cActivated;
 				else 
 					Output.Crc.DataIn <= cInactivated;
 				end if;
-				NextStateWhenAllSent(iFromController.Content.arg'length, crc);
+				NextStateWhenAllSent(aSdCmdArg'length, crc);
 
 			when crc => 
 				Output.Cmd <= SerialCrc;
