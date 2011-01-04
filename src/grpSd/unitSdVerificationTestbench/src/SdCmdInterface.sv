@@ -9,29 +9,16 @@
 `define SDCMDINTERFACE
 
 interface ISdCard;
-	logic Clk = 0;
-	logic nResetAsync;
 	wire Cmd;
 	logic SClk;
 	wire[3:0] Data;
 
-	clocking cb @(posedge Clk);
+	clocking cb @(posedge SClk);
 		inout Cmd;
 		inout Data;
 	endclocking
 
-	modport Testbench (
-		input Clk, nResetAsync, clocking cb
-	);
-
-	clocking cbcard @(posedge SClk);
-		inout Cmd;
-		inout Data;
-	endclocking
-
-	modport Card (
-		clocking cbcard
-	);
+	modport card (clocking cb);
 
 endinterface
 

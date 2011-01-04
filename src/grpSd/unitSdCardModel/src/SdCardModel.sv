@@ -14,16 +14,18 @@ const logic cInactivated = 0;
 `include "Crc.sv";
 `include "SdCommand.sv";
 `include "SdData.sv";
+`include "SdBFM.sv";
+`include "Logger.sv";
 
 class SDCard;
-	local virtual ISdCard.Card ICard;
-
+	local SdBFM bfm;
+	local virtual ISdCard.card ICard;
 	local SDCardState state;
 	local RCA_t rca;
-	local SDCommandToken recvcmd;
 	local logic CCS;
 	local Mode_t mode;
 	local DataMode_t datamode;
+	local Logger log;
 
 	local event CmdReceived, InitDone;
 
@@ -31,61 +33,24 @@ class SDCard;
 	constraint cdatasize {datasize > 1; datasize <= 32;}
 
 	local logic[512*8-1:0] ram[];
+	
+	function void post_randomize() ;
+		this.ram = new[2^(datasize-1)];
+	endfunction
 
 	function new(virtual ISdCard CardInterface, event CmdReceived, event InitDone);
 		ICard = CardInterface;
+		bfm = new(CardInterface);
 		state = new();
 		this.CmdReceived = CmdReceived;
 		this.InitDone = InitDone;
 		this.CCS = 1;
 		rca = 0;
 		mode = standard;
-		ICard.cbcard.Data <= 'z;
+		log = new();
 	endfunction
 
 	task reset();
-	endtask
-
-	// Receive a command token and handle it
-	task recv();
-		ICard.cbcard.Cmd <= 'z;
-
-		repeat(8) @ICard.cbcard;
-
-		recvcmd = new();
-
-		wait(ICard.cbcard.Cmd == 0);
-		// Startbit
-		recvcmd.startbit = ICard.cbcard.Cmd;
-
-		@ICard.cbcard;
-		// Transbit
-		recvcmd.transbit = ICard.cbcard.Cmd;
-
-		// CmdID
-		for (int i = 5; i >= 0; i--) begin
-			@ICard.cbcard;
-			recvcmd.id[i] = ICard.cbcard.Cmd;
-		end
-
-		// Arg
-		for (int i = 31; i >= 0; i--) begin
-			@ICard.cbcard;
-			recvcmd.arg[i] = ICard.cbcard.Cmd;
-		end
-
-		// CRC
-		for (int i = 6; i >= 0; i--) begin
-			@ICard.cbcard;
-			recvcmd.crc7[i] = ICard.cbcard.Cmd;
-		end
-
-		// Endbit
-		@ICard.cbcard;
-		recvcmd.endbit = ICard.cbcard.Cmd;
-
-		recvcmd.checkFromHost();
-		-> CmdReceived;
 	endtask
 
 	task automatic init();
@@ -97,85 +62,105 @@ class SDCard;
 		SDCommandR6 rcaresponse;
 		logic data[$];
 		SdData sddata;
+		SdBusTransToken token;
 
-		// create ram
-		ram = new[2^(datasize-1)];
-		
+		log.note("Expecting CMD0");
 		// expect CMD0 so that state is clear
-		recv();
-		assert(recvcmd.id == cSdCmdGoIdleState);
+		this.bfm.receive(token);
+		assert(token.id == cSdCmdGoIdleState) else log.error("Received invalid token.");
 		
 		// expect CMD8: voltage and SD 2.00 compatible
-		recv();
-		assert(recvcmd.id == cSdCmdSendIfCond);	
-		assert(recvcmd.arg[12:8] == 'b0001); // Standard voltage
+		log.note("Expecting CMD8");
+		this.bfm.receive(token);
+		assert(token.id == cSdCmdSendIfCond) else log.error("Received invalid token.");	
+		assert(token.arg[12:8] == 'b0001) else
+		begin
+			string msg;
+			$swrite(msg, "Received invalid arg: %b", token.arg);
+			log.error(msg); // Standard voltage
+		end;
 
 		// respond with R7: we are SD 2.00 compatible and compatible to the
 		// voltage
-		voltageresponse = new(recvcmd.arg);
-		voltageresponse.send(ICard);
+		voltageresponse = new(token.arg);
+		this.bfm.send(voltageresponse);
 
 		recvCMD55(0);
 
 		// expect ACMD41 with HCS = 1
-		recv();
-		assert(recvcmd.id == cSdCmdACMD41);
-		assert(recvcmd.arg == cSdArgACMD41HCS);
+		log.note("Expect ACMD41 (with HCS = 1)");
+		this.bfm.receive(token);
+		assert(token.id == cSdCmdACMD41) else log.error("Received invalid token.\n");
+		assert(token.arg == cSdArgACMD41HCS) else begin
+			string msg;
+			$swrite(msg, "Received invalid arg: %b, Expected: %b", token.arg, cSdArgACMD41HCS);
+			log.error(msg);
+		end;
+		state.AppCmd = 0;
 
-		// respond with R3
+		// respond with R3, not done
 		ocr = new(CCS, cSdVoltageWindow);
 		acmd41response = new(ocr);
-		acmd41response.send(ICard);		
+		this.bfm.send(acmd41response);
 		
 		recvCMD55(0);
 
 		// expect ACMD41 with HCS = 1
-		recv();
-		assert(recvcmd.id == cSdCmdACMD41);
-		assert(recvcmd.arg == cSdArgACMD41HCS);
+		log.note("Expect ACMD41 (with HCS = 1)");
+		this.bfm.receive(token);
+		assert(token.id == cSdCmdACMD41) else log.error("Received invalid token.\n");
+		assert(token.arg == cSdArgACMD41HCS) else begin
+			string msg;
+			$swrite(msg, "Received invalid arg: %b, Expected: %b", token.arg, cSdArgACMD41HCS);
+			log.error(msg);
+		end;
 		state.AppCmd = 0;
 
 		// respond with R3
 		ocr.setBusy(cOCRDone);
 		acmd41response = new(ocr);
-		acmd41response.send(ICard);		
+		this.bfm.send(acmd41response);
 
 		// expect CMD2
-		recv();
-		assert(recvcmd.id == cSdCmdAllSendCID);
+		log.note("Expect CMD2");
+		this.bfm.receive(token);
+		assert(token.id == cSdCmdAllSendCID) else log.error("Received invalid token.\n");
 
 		// respond with R2
 		cidresponse = new();
-		cidresponse.send(ICard);	
+		this.bfm.send(cidresponse);
 
 		// expect CMD3
-		recv();
-		assert(recvcmd.id == cSdCmdSendRelAdr);
+		log.note("Expect CMD3");
+		this.bfm.receive(token);
+		assert(token.id == cSdCmdSendRelAdr) else log.error("Received invalid token.\n");
 
 		// respond with R3
 		rcaresponse = new(rca, state);
-		rcaresponse.send(ICard);
+		this.bfm.send(rcaresponse);
 
 		// expect CMD7
-		recv();
-		assert(recvcmd.id == cSdCmdSelCard);
-		assert(recvcmd.arg[31:16] == rca);
+		log.note("Expect CMD7");
+		this.bfm.receive(token);
+		assert(token.id == cSdCmdSelCard);
+		assert(token.arg[31:16] == rca);
 
 		// respond with R1, no busy
 		state.ReadyForData = 1;
 		response = new(cSdCmdSelCard, state);
-		response.send(ICard);
+		this.bfm.send(response);
 
 		// expect ACMD51
 		recvCMD55(rca);
-		recv();
-		assert(recvcmd.id == cSdCmdSendSCR);
+		log.note("Expect ACMD51");
+		this.bfm.receive(token);
+		assert(token.id == cSdCmdSendSCR);
 
 		// respond with R1
 		response = new(cSdCmdSendSCR, state);
-		response.send(ICard);
+		this.bfm.send(response);
 
-		repeat(2) @ICard.cbcard;
+		repeat(2) @ICard.cb;
 
 		// send dummy SCR
 		for (int i = 0; i < 64; i++)
@@ -189,21 +174,23 @@ class SDCard;
 
 		// expect ACMD6
 		recvCMD55(rca);
-		recv();
-		assert(recvcmd.id == cSdCmdSetBusWidth);
-		assert(recvcmd.arg == 'h00000002);
+		log.note("Expect ACMD6");
+		this.bfm.receive(token);
+		assert(token.id == cSdCmdSetBusWidth);
+		assert(token.arg == 'h00000002);
 
 		response = new(cSdCmdSetBusWidth, state);
-		response.send(ICard);
+		this.bfm.send(response);
 
 		sddata.mode = wide;
 		mode = wide;
 
 		// expect CMD6
-		recv();
-		assert(recvcmd.id == cSdCmdSwitchFuntion);
-		assert(recvcmd.arg == 'h00FFFFF1);
-		response.send(ICard);
+		log.note("Expect CMD6");
+		this.bfm.receive(token);
+		assert(token.id == cSdCmdSwitchFuntion);
+		assert(token.arg == 'h00FFFFF1);
+		this.bfm.send(response);
 
 		// send status data structure
 		data = {};
@@ -216,10 +203,11 @@ class SDCard;
 		sddata.send(ICard, data);
 
 		// expect CMD6 with set
-		recv();
-		assert(recvcmd.id == cSdCmdSwitchFuntion);
-		assert(recvcmd.arg == 'h80FFFFF1);
-		response.send(ICard);
+		log.note("Expect CMD6 with set");
+		this.bfm.receive(token);
+		assert(token.id == cSdCmdSwitchFuntion);
+		assert(token.arg == 'h80FFFFF1);
+		this.bfm.send(response);
 
 		// send status data structure
 		data = {};
@@ -233,11 +221,12 @@ class SDCard;
 
 		// switch to 50MHz
 		// expect CMD13
-		recv();
-		assert(recvcmd.id == cSdCmdSendStatus);
-		assert(recvcmd.arg == rca);
+		log.note("Expect CMD13");
+		this.bfm.receive(token);
+		assert(token.id == cSdCmdSendStatus);
+		assert(token.arg == rca);
 		response = new(cSdCmdSendStatus, state);
-		response.send(ICard);
+		this.bfm.send(response);
 
 		-> InitDone;
 
@@ -248,14 +237,15 @@ class SDCard;
 		logic data[$];
 		logic[31:0] addr;
 		SdData sddata = new(mode, usual);
+		SdBusTransToken token;
 
 		// expect Read
-		recv();
-		assert(recvcmd.id == cSdCmdReadSingleBlock);
-		addr = recvcmd.arg;
+		this.bfm.receive(token);
+		assert(token.id == cSdCmdReadSingleBlock);
+		addr = token.arg[0];
 		assert(addr < ram.size());
 		response = new(cSdCmdReadSingleBlock, state);
-		response.send(ICard);
+		this.bfm.send(response);
 
 		data = {};
 		for (int i = 0; i < 512; i++) begin
@@ -272,14 +262,15 @@ class SDCard;
 		SdData sddata = new(this.mode, widewidth);
 		logic rddata[$];
 		logic[31:0] addr;
+		SdBusTransToken token;
 
 		// expect Write
-		recv();
-		assert(recvcmd.id == cSdCmdWriteSingleBlock);
-		addr = recvcmd.arg;
+		this.bfm.receive(token);
+		assert(token.id == cSdCmdWriteSingleBlock);
+		addr = token.arg[0];
 		assert(addr < ram.size());
 		response = new(cSdCmdWriteSingleBlock, state);
-		response.send(ICard);
+		this.bfm.send(response);
 
 		// recv data
 		sddata.recv(ICard, rddata);
@@ -301,22 +292,19 @@ class SDCard;
 
 	task recvCMD55(RCA_t rca);
 		SDCommandR1 response;
+		SdBusTransToken token;
 		
 		// expect CMD55
-		recv();
-		assert(recvcmd.id == cSdCmdNextIsACMD);
-		assert(recvcmd.arg[31:16] == rca);
+		this.bfm.receive(token);
+		assert(token.id == cSdCmdNextIsACMD);
+		assert(token.arg[31:16] == rca);
 		state.recvCMD55();
 
 		// respond with R1
 		response = new(cSdCmdNextIsACMD, state);
-		response.send(ICard);	
+		this.bfm.send(response);	
 	endtask
 	
-	function automatic SDCommandToken getCmd();
-		return recvcmd;
-	endfunction
-
 endclass
 
 class NoSDCard extends SDCard;

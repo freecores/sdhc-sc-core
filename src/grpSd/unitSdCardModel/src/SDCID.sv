@@ -14,7 +14,7 @@ typedef logic[39:0] pname_t;
 typedef logic[7:0] prev_t;
 typedef logic[31:0] pserialnumber_t;
 typedef logic[11:0] manufacturing_date_t;
-typedef logic[127:0] cidreg_t;
+typedef logic[127:1] cidreg_t; // 1 reserved to endbit
 
 class SDCID;
 	local rand manufacturer_id_t mid;
@@ -46,7 +46,6 @@ class SDCID;
 		temp[23:20] = 0; // reserved
 		temp[19:8] = date;
 		temp[7:1] = getCrc(temp); // CRC7
-		temp[0] = 1;
 		return temp;
 	endfunction
 

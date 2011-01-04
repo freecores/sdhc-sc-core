@@ -12,6 +12,7 @@
 `include "SdCardState.sv";
 `include "SDCID.sv";
 `include "SDOCR.sv";
+`include "SdBFM.sv";
 
 typedef logic[15:0] RCA_t;
 
@@ -40,203 +41,89 @@ typedef enum {
 
 const SDCommandArg cSdArgACMD41HCS = 'b01000000111111111000000000000000;
 
-class SDCommandToken;
-	logic startbit;
-	logic transbit;
-	rand logic[5:0] id;
-	rand SDCommandArg arg;
-	aCrc7 crc7;
-	logic endbit;
+typedef logic[5:0] SdCommandId;
+const logic cSdTransbitToHost = 0;
 
-	function void display();
-		$display("Startbit: %b", startbit);
-		$display("Transbit: %b", transbit);
-		$display("ID: %b", id);
-		$display("Arg: %h", arg);
-		$display("CRC: %b", crc7);
-		$display("Endbit: %b" , endbit);
-	endfunction
+class DefaultSdResponse extends SdBusTransToken;
 
-	function void checkStartEnd();
-		assert(startbit == 0);
-		assert(endbit == 1);
-	endfunction
-	
-	function void checkFromHost();
-		checkStartEnd();	
-		checkCrc();
-		assert(transbit == 1);
-	endfunction
-
-	function void checkCrc();
-		assert(crc7 == calcCrcOfToken());
-	endfunction
-
-	function automatic aCrc7 calcCrcOfToken();
-		logic temp[$];
-
-		temp.push_back(startbit);
-		temp.push_back(transbit);
-		for (int i = 5; i >= 0; i--)
-			temp.push_back(id[i]);
-		for (int i = 31; i >= 0; i--)
-			temp.push_back(arg[i]);
-
-		return calcCrc7(temp);
-	endfunction
-
-	function automatic bit equals(SDCommandToken rhs);
-		if(id == rhs.id && arg == rhs.arg) begin
-			return 1;
-		end
-		return 0;
+	function new(SdCommandId id, SDCommandArg arg);
+		this.transbit = cSdTransbitToHost;
+		this.id = id;
+		this.arg = arg;
+		this.crc = calcCrcOfToken();
 	endfunction
 
 endclass
 
-class SDCommandResponse;
-	protected logic startbit;
-	protected logic transbit;
-	protected logic[5:0] id;
-	protected SDCommandArg arg;
-	protected aCrc7 crc;
-	protected logic endbit;
-	protected logic data[$];
-
-	task sendData(virtual ISdCard.Card ICmd);
-		foreach(data[i]) begin
-			@ICmd.cbcard
-			ICmd.cbcard.Cmd <= data[i];
-		end
-		
-		data = {};
-		@ICmd.cbcard
-		ICmd.cbcard.Cmd <= 'z;
-	endtask
-
-
-	task automatic send(virtual ISdCard.Card ICmd);
-		aCrc7 crc = 0;
-		
-		data.push_back(startbit);
-		data.push_back(transbit);
-		for(int i = 5; i >= 0; i--)
-			data.push_back(id[i]);
-
-		for (int i = 31; i>= 0; i--)
-			data.push_back(arg[i]);
-
-		crc = calcCrc7(data);
-		for (int i = 6; i >= 0; i--)
-			data.push_back(crc[i]);
-
-		data.push_back(endbit);
-		sendData(ICmd);
-	endtask
-endclass
-
-class SDCommandR7 extends SDCommandResponse;
+class SDCommandR7 extends DefaultSdResponse;
 
 	function new(SDCommandArg arg);
-		startbit = 0;
-		transbit = 0;
-		id = cSdCmdSendIfCond;
-		this.arg = arg; 
-		endbit = 1;
+		super.new(cSdCmdSendIfCond, arg);
 	endfunction
 
 endclass
 
-class SDCommandR1 extends SDCommandResponse;
+class SDCommandR1 extends DefaultSdResponse;
 
 	function new(int id, SDCardState state);
-		startbit = 0;
-		transbit = 0;
-		this.id = id;
-		this.arg = state.get(); 
-		endbit = 1;
+		super.new(id, state.get());
 	endfunction
 	
 endclass
 
-class SDCommandR3 extends SDCommandResponse;
+class SDCommandR3 extends DefaultSdResponse;
 
 	function new(SDOCR ocr);
-		startbit = 0;
-		transbit = 0;
-		this.id = 'b111111;
-		this.arg = ocr.get(); 
-		endbit = 1;
+		super.new('b111111, ocr.get());
+		this.crc = 'b111111;
 	endfunction
 	
-	task automatic send(virtual ISdCard.Card ICmd);
-		data.push_back(startbit);
-		data.push_back(transbit);
-		for(int i = 5; i >= 0; i--)
-			data.push_back(id[i]);
-
-		for (int i = 31; i>= 0; i--)
-			data.push_back(arg[i]);
-
-		for (int i = 6; i >= 0; i--)
-			data.push_back(1);
-
-		data.push_back(endbit);
-		sendData(ICmd);
-	endtask
-
 endclass
 
-class SDCommandR2 extends SDCommandResponse;
+class SDCommandR2 extends SdBusTrans;
 	local SDCID cid;
 	
 	function new();
-		startbit = 0;
-		transbit = 0;
-		this.id = 'b111111;
 		this.cid = new();
 		this.cid.randomize();
-		endbit = 1;
 	endfunction
 
-	task automatic send(virtual ISdCard.Card ICmd);
-		cidreg_t cidreg;
+	virtual function SdBusTransData packToData();
+		SdBusTransData data;
+		SdCommandId id = 'b111111;
+		cidreg_t creg = cid.get();
 
-		// fill queue
-		data.push_back(startbit);
-		data.push_back(transbit);
-		for (int i = 5; i >= 0; i--)
-			data.push_back(id[i]);
+		data = { >> {cSdTransbitToHost, id, creg}};
+		return data;
+	endfunction
 
-		cidreg = cid.get();
-		for (int i = 127; i >= 1; i--)
-			data.push_back(cidreg[i]);
-
-		data.push_back(endbit);
-		
-		sendData(ICmd);
-	endtask
+	virtual function void unpackFromData(ref SdBusTransData data);
+		Logger log = new();
+		log.error("SDCommandR2::unpackFromData not implemented");
+	endfunction
 	
 endclass
 
-class SDCommandR6 extends SDCommandResponse;
+function SDCommandArg getArgFromRcaAndState(RCA_t rca, SDCardState state);
+	SDCommandArg arg;
+	arg[31:16] = rca; 
+	arg[15] = state.ComCrcError;
+	arg[14] = state.IllegalCommand;
+	arg[13] = state.Error;
+	arg[12:9] = state.state;
+	arg[8] = state.ReadyForData;
+	arg[7:6] = 0;
+	arg[5] = state.AppCmd;
+	arg[4] = 0;
+	arg[3] = state.AkeSeqError;
+	arg[2:0] = 0;
+	return arg;
+endfunction
+
+class SDCommandR6 extends DefaultSdResponse;
 
 	function new(RCA_t rca, SDCardState state);
-		startbit = 0;
-		transbit = 0;
-		id = cSdCmdSendRelAdr;
-		this.arg[31:16] = rca; 
-		this.arg[15] = state.ComCrcError;
-		this.arg[14] = state.IllegalCommand;
-		this.arg[13] = state.Error;
-		this.arg[12:9] = state.state;
-		this.arg[8] = state.ReadyForData;
-		this.arg[7:6] = 0;
-		this.arg[5] = state.AppCmd;
-		this.arg[4] = 0;
-		this.arg[3] = state.AkeSeqError;
-		this.arg[2:0] = 0;
-		endbit = 1;
+		super.new(cSdCmdSendRelAdr, getArgFromRcaAndState(rca, state));
 	endfunction
 
 endclass

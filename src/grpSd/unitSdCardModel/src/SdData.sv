@@ -36,44 +36,42 @@ class SdData;
 			data.push_back(crc[i]);
 	endfunction
 
-	task automatic recv(virtual ISdCard.Card ICard, ref logic rddata[$]);
+	task automatic recv(virtual ISdCard.card ICard, ref logic rddata[$]);
 		aCrc16 crc[4];
-		ICard.cbcard.Data <= 'bzzzz;
+		ICard.cb.Data <= 'bzzzz;
 
 		if (mode == wide) begin
 
 			// startbits
-			wait(ICard.cbcard.Data == 'b0000);
+			wait(ICard.cb.Data == 'b0000);
 			
 			$display("Startbits: %t", $time);
 			for (int j = 0; j < 512*2; j++) begin
-				@ICard.cbcard;
+				@ICard.cb;
 				for(int i = 0; i < 4; i++) begin
-					rddata.push_back(ICard.cbcard.Data[i]);
+					rddata.push_back(ICard.cb.Data[i]);
 				end
 			end
 
 			// crc
 			
 			for (int j = 0; j < 16; j++) begin
-				@ICard.cbcard;
+				@ICard.cb;
 				for(int i = 0; i < 4; i++) begin
-					crc[i] = ICard.cbcard.Data[i];
+					crc[i] = ICard.cb.Data[i];
 				end
 			end
 
 			// end bits
-			@ICard.cbcard;
-			$display("Endbits: %h, %t", ICard.cbcard.Data, $time);
-			assert(ICard.cbcard.Data == 'b1111);
-
-			$display("%b", ICard.cbcard.Data);
+			@ICard.cb;
+			$display("Endbits: %h, %t", ICard.cb.Data, $time);
+			assert(ICard.cb.Data == 'b1111);
 
 		end
 
 	endtask
 
-	task automatic send(virtual ISdCard.Card ICmd, logic data[$]);
+	task automatic send(virtual ISdCard.card ICmd, logic data[$]);
 		aCrc16 crc = 0;		
 
 		this.data = data;
@@ -84,13 +82,13 @@ class SdData;
 			data.push_back(1); // endbit
 			
 			foreach(data[i]) begin
-				@ICmd.cbcard;
-				ICmd.cbcard.Data[0] <= data[i];
+				@ICmd.cb;
+				ICmd.cb.Data[0] <= data[i];
 			end
 
 			data = {};
-			@ICmd.cbcard;
-			ICmd.cbcard.Data <= 'z; 
+			@ICmd.cb;
+			ICmd.cb.Data <= 'z; 
 		end
 		else begin
 			logic dat0[$];
@@ -109,19 +107,19 @@ class SdData;
 			CrcOnContainer(dat2);
 			CrcOnContainer(dat3);
 
-			@ICmd.cbcard;
-			ICmd.cbcard.Data = 0;
+			@ICmd.cb;
+			ICmd.cb.Data <= 0;
 
 			for(int i = 0; i < dat0.size(); i++) begin
-				@ICmd.cbcard;
-				ICmd.cbcard.Data <= (dat3[i]<<3) + (dat2[i] <<2) + (dat1[i] <<1) + dat0[i];
+				@ICmd.cb;
+				ICmd.cb.Data <= (dat3[i]<<3) + (dat2[i] <<2) + (dat1[i] <<1) + dat0[i];
 			end
 			
-			@ICmd.cbcard;
-			ICmd.cbcard.Data = 0;
+			@ICmd.cb;
+			ICmd.cb.Data <= 0;
 
-			@ICmd.cbcard;
-			ICmd.cbcard.Data <= 'z;			
+			@ICmd.cb;
+			ICmd.cb.Data <= 'z;			
 		end
 	endtask
 

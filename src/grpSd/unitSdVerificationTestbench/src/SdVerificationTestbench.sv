@@ -31,14 +31,11 @@ program Test(ISdCard ICmd, WishboneInterface BusInterface);
 	logic[31:0] rd;
 	Wishbone Bus = new(BusInterface.Master);
 	SDCard card = new(ICmd, $root.Testbed.CmdReceived, $root.Testbed.InitDone);
-	SDCommandToken recvCmd, sendCmd;
 	int c = 0;
 
 	assert(card.randomize());
-	ICmd.nResetAsync <= 0;
 	BusInterface.RST_I <= 1;
 	#10;
-	ICmd.nResetAsync <= 1;
 	BusInterface.RST_I <= 0;
 	
 	repeat (2) @ICmd.cb;
@@ -113,6 +110,9 @@ program Test(ISdCard ICmd, WishboneInterface BusInterface);
 endprogram
 
 module Testbed();
+	logic Clk = 0;
+	logic nResetAsync = 0;
+
 	ISdCard CardInterface();
 	WishboneInterface BusInterface();	
 
@@ -132,14 +132,18 @@ module Testbed();
 			BusInterface.ACK_I,
 			BusInterface.ERR_I,
 			BusInterface.RTY_I,
-			CardInterface.Clk,
-			CardInterface.nResetAsync,
+			Clk,
+			nResetAsync,
 			CardInterface.Cmd,
 			CardInterface.SClk,
 			CardInterface.Data);
 
-	always #5 CardInterface.Clk <= ~CardInterface.Clk;
+	always #5 Clk <= ~Clk;
 	always #5 BusInterface.CLK_I <= ~BusInterface.CLK_I;
+
+	initial begin
+		#10 nResetAsync <= 1;
+	end
 
 	Test tb(CardInterface, BusInterface);
 
