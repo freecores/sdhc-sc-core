@@ -82,23 +82,8 @@ end entity SdTop;
 
 architecture Rtl of SdTop is
 
-	signal SdCmdToController            : aSdCmdToController;
-	signal SdCmdFromController          : aSdCmdFromController;
-	signal SdDataToController           : aSdDataToController;
-	signal SdDataFromController         : aSdDataFromController;
-	signal SdDataFromRam                : aSdDataFromRam;
-	signal SdDataToRam                  : aSdDataToRam;
-	signal SdControllerToDataRam        : aSdControllerToRam;
-	signal SdControllerFromDataRam      : aSdControllerFromRam;
 	signal iSdWbSync, oSdControllerSync : aSdWbSlaveToSdController;
 	signal iSdControllerSync, oSdWbSync : aSdControllerToSdWbSlave;
-	signal SdStrobe                     : std_ulogic;
-	signal SdInStrobe                   : std_ulogic;
-	signal HighSpeed                    : std_ulogic;
-	signal iCmd                         : aiSdCmd;
-	signal oCmd                         : aoSdCmd;
-	signal iData                        : aiSdData;
-	signal oData                        : aoSdData;
 	signal iWbCtrl                      : aWbSlaveCtrlInput;
 	signal oWbCtrl                      : aWbSlaveCtrlOutput;
 	signal iWbDat                       : aSdWbSlaveDataInput;
@@ -107,20 +92,35 @@ architecture Rtl of SdTop is
 	signal SdWbSlaveToReadFifo          : aoReadFifo;
 	signal WriteFifoToSdWbSlave         : aiWriteFifo;
 	signal SdWbSlaveFromReadFifo        : aiReadFifo;
+	signal ReadFifoQTemp                : std_logic_vector(31 downto 0);
+	signal WriteFifoQTemp               : std_logic_vector(31 downto 0);
 	signal iReadWriteFifo               : aiReadFifo;
 	signal oReadWriteFifo               : aoReadFifo;
 	signal iWriteReadFifo               : aiWriteFifo;
 	signal oWriteReadFifo               : aoWriteFifo;
-	signal ReadFifoQTemp                : std_logic_vector(31 downto 0);
-	signal WriteFifoQTemp               : std_logic_vector(31 downto 0);
-	signal DisableSdClk                 : std_ulogic;
+
 
 begin
 
-	ioCmd <= oCmd.Cmd when oCmd.En = cActivated else 'Z';
-	Gen_data : for i in 0 to 3 generate
-		ioData(i) <= oData.Data(i) when oData.En(i) = cActivated else 'Z';
-	end generate;
+	SdClkDomain_inst: entity work.SdClkDomain
+	generic map (
+		gClkFrequency  => gClkFrequency,
+		gHighSpeedMode => gHighSpeedMode
+	)
+	port map (
+		iSdClk       => iSdClk,
+		iSdRstSync   => iSdRstSync,
+		ioCmd        => ioCmd,
+		oSclk        => oSclk,
+		ioData       => ioData,
+		oLedBank     => oLedBank,
+		oSdCtrl      => iSdControllerSync,
+		iSdCtrl      => oSdControllerSync,
+		iSdWriteFifo => iReadWriteFifo,
+		oSdWriteFifo => oReadWriteFifo,
+		iSdReadFifo  => iWriteReadFifo,
+		oSdReadFifo  => oWriteReadFifo
+	);
 
 	-- map wishbone signals to internal signals
 	iWbCtrl <= (
@@ -180,78 +180,6 @@ begin
 		-- To read fifo
 		oReadFifo           => SdWbSlaveToReadFifo,
 		iReadFifo           => SdWbSlaveFromReadFifo
-	);
-
-	SdController_inst: entity work.SdController(Rtl)
-	generic map (
-		gClkFrequency  => gClkFrequency,
-		gHighSpeedMode => gHighSpeedMode
-	)
-	port map (
-		iClk         => iSdClk,
-		iRstSync     => iSdRstSync,
-		oHighSpeed   => HighSpeed,
-		iSdCmd       => SdCmdToController,
-		oSdCmd       => SdCmdFromController,
-		iSdData      => SdDataToController,
-		oSdData		 => SdDataFromController,
-		oSdWbSlave   => iSdControllerSync,
-		iSdWbSlave   => oSdControllerSync,
-		oLedBank     => oLedBank
-	);
-
-	SdCmd_inst: entity work.SdCmd(Rtl)
-	port map (
-		iClk            => iSdClk,
-		iRstSync        => iSdRstSync,
-		iStrobe         => SdStrobe,
-		iFromController => SdCmdFromController,
-		oToController   => SdCmdToController,
-		iCmd            => iCmd,
-		oCmd            => oCmd
-	);
-
-	SdData_inst: entity work.SdData 
-	port map (
-		iClk                  => iSdClk,
-		iRstSync			  => iSdRstSync,
-		iStrobe               => SdStrobe,
-		iSdDataFromController => SdDataFromController,
-		oSdDataToController   => SdDataToController,
-		iData                 => iData,
-		oData                 => oData,
-		oReadWriteFifo        => oReadWriteFifo,
-		iReadWriteFifo        => iReadWriteFifo,
-		oWriteReadFifo        => oWriteReadFifo,
-		iWriteReadFifo        => iWriteReadFifo,
-		oDisableSdClk         => DisableSdClk
-	);
-
-	SdClockMaster_inst: entity work.SdClockMaster
-	generic map (
-		gClkFrequency => gClkFrequency
-	)
-	port map (
-		iClk       => iSdClk,
-		iRstSync   => iSdRstSync,
-		iHighSpeed => HighSpeed,
-		iDisable   => DisableSdClk,
-		oSdStrobe  => SdStrobe,
-		oSdInStrobe => SdInStrobe,
-		oSdCardClk => oSClk
-	);
-
-	SdCardSynchronizer_inst : entity work.SdCardSynchronizer
-	port map (
-
-		iClk       => iSdClk,
-		iRstSync   => iSdRstSync,
-		iStrobe    => SdInStrobe,
-		iCmd       => ioCmd,
-		iData      => ioData,
-		oCmdSync   => iCmd.Cmd,
-		oDataSync  => iData.Data
-
 	);
 
 	WriteDataFifo_inst: entity work.WriteDataFifo

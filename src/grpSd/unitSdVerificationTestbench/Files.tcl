@@ -59,6 +59,7 @@ set units {Crc Crc {Rtl}
 	StrobesClocks EdgeDetector {Rtl}
 	Sd SdWbSdControllerSync {Rtl}
 	Cyclone2 WriteDataFifo {Syn}
+	Sd SdClkDomain {Rtl}
 	Sd SdTop {Rtl}}
 
 set svunits {Sd SdCardModel

@@ -56,6 +56,7 @@ set units {Crc Crc {Rtl}
 	Synchronization Synchronizer {Rtl}
 	StrobesClocks EdgeDetector {Rtl}
 	Sd SdWbSdControllerSync {Rtl}
+	Sd SdClkDomain {Rtl}
 	Cyclone2 WriteDataFifo {Syn}
 	Sd SdTop {Rtl}}
 
