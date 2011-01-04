@@ -75,7 +75,10 @@ if [info exists units] {
 
 if [info exists tbunits] {
 	foreach {grp en arch} $tbunits {
-		compileUnit $grp $en $arch
+		if ![info exists psl] {
+			array set psl [list]
+		}
+		compileUnit $grp $en $arch psl
 	}
 }
 
