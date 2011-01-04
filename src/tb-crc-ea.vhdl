@@ -2,7 +2,9 @@
 -- tb-crc-ea.vhdl
 -- author: Rainer Kastl
 --
--- Testbench for the generic crc implementation
+-- Testbench for the generic crc implementation.
+-- Uses both crc7 as well as crc16 from the package
+-- pcrc.
 -------------------------------------------------
 
 library ieee;
@@ -21,9 +23,10 @@ architecture bhv of tb_crc is
     signal CRCDataIn_16,CRCClear_16 : std_ulogic;
     signal SerialCRC_7, SerialCRC_16 : std_ulogic;
 
-    signal EndOfSim : boolean := false;
+    signal EndOfSim : boolean := false; -- stop clock generation when true
 
-    -- setup data in front of clk -> use the negative clock edge
+    -- Use the negative clock edge to setup the signals in front of the positive
+    -- edge. Therefore no extra clock cycle is needed.
     procedure Test (
         Data : in std_ulogic_vector;
         Valid : in std_ulogic_vector;
@@ -37,6 +40,7 @@ architecture bhv of tb_crc is
 
     begin
         wait until Clk = '0';
+        -- shift data in
         CRCClear <= '0';
         CRCDataIn <= '1';
 
@@ -46,11 +50,12 @@ architecture bhv of tb_crc is
             wait until Clk = '0';
         end loop;
 
-        DataToCrc <= '0';
+        -- compare parallel output
         CRCDataIn <= '0';
 
         assert (Valid = CRC) report "CRC error." severity error;
 
+        -- compare serial output
         counter := 0;
         while (counter <= CRC'high) loop
             assert (Valid(counter) = SerialCRC) report "Serial CRC error"
@@ -59,6 +64,7 @@ architecture bhv of tb_crc is
             wait until clk = '0';
         end loop;
 
+        -- clear the registers, not needed after shifting the serial data out
         CRCClear <= '1';
         wait until Clk = '0';
 
@@ -88,9 +94,6 @@ begin
         end procedure;
 
         variable data : std_ulogic_vector(0 to (512*8)-1) := (others => '1');
-        variable DataWithCRC : std_ulogic_vector(0 to (516*8)-1) := (
-            512*8 to 516*8-1 => std_ulogic_vector(X"7FA1"),
-            others => '1');
     begin
         wait until (nResetAsync = '1');
 
@@ -101,6 +104,10 @@ begin
         Test7("0001000100000000000000000000100100000000","0110011");
         Test7("00010001000000000000000000001001000000000110011","0000000");
         Test16(data, X"7FA1");
+        Test16(X"1234567890ABCDEF", X"2FBC");
+        Test16(X"1234567890ABCDEF2FBC", X"0000");
+        Test16(X"F0F0F0F0F0F0F0F0F0F0", X"63E2");
+        Test16(X"F0F0F0F0F0F0F0F0F0F063E2", X"0000");
 
         EndOfSim <= true;
         report "Simulation finished." severity note;
