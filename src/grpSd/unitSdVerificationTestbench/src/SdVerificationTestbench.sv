@@ -68,7 +68,7 @@ endprogram
 module Testbed();
 	ISdCmd CmdInterface();
 
-	SdTop top(CmdInterface.Clk, CmdInterface.nResetAsync, CmdInterface.Cmd);
+	TbdSd top(CmdInterface.Clk, CmdInterface.nResetAsync, CmdInterface.Cmd);
 
 	always #20 CmdInterface.Clk <= ~CmdInterface.Clk;
 

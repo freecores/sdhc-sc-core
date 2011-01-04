@@ -22,18 +22,21 @@ entity SdTop is
 		ioData : inout std_logic_vector(3 downto 0);
 
 		-- Status
-		oLedBank : out aLedBank
+		oSdCardStatus : out aSdCardStatus;
+		oLedBank      : out aLedBank
 	);
 end entity SdTop;
 
 architecture Rtl of SdTop is
 
-	signal ToController : aSdCmdToController;
+	signal ToController   : aSdCmdToController;
 	signal FromController : aSdCmdFromController;
+	signal SdRegisters    : aSdRegisters;
 
 begin
-	ioData <= "ZZZZ";
-	oSclk <= iClk;
+	ioData        <= "ZZZZ";
+	oSclk         <= iClk;
+	oSdCardStatus <= SdRegisters.CardStatus;
 
 	SdController_inst: entity work.SdController(Rtl)
 	port map (
@@ -41,16 +44,19 @@ begin
 		inResetAsync => inResetAsync,
 		iSdCmd       => ToController,
 		oSdCmd       => FromController,
+		oSdRegisters => SdRegisters,
 		oLedBank     => oLedBank
 	);
 
 
 	SdCmd_inst: entity work.SdCmd(Rtl)
-	port map (iClk => iClk,
-			  inResetAsync => inResetAsync,
-			  iFromController => FromController,
-			  oToController => ToController,
-			  ioCmd => ioCmd);
+	port map (
+		iClk            => iClk,
+		inResetAsync    => inResetAsync,
+		iFromController => FromController,
+		oToController   => ToController,
+		ioCmd           => ioCmd
+	);
 
 end architecture Rtl;
 

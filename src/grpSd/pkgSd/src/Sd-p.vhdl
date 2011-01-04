@@ -14,9 +14,9 @@ use work.Global.all;
 package Sd is
 
 	-- CMD transfer: constants
-	constant cSdStartBit : std_ulogic := '0';
-	constant cSdEndBit : std_ulogic := '1';
-	constant cSdTransBitHost : std_ulogic := '1';
+	constant cSdStartBit      : std_ulogic := '0';
+	constant cSdEndBit        : std_ulogic := '1';
+	constant cSdTransBitHost  : std_ulogic := '1';
 	constant cSdTransBitSlave : std_ulogic := '0';
 
 	-- CMD transfer: types
@@ -25,20 +25,20 @@ package Sd is
 	subtype aSdCmdArg is std_ulogic_vector(31 downto 0);
 
 	type aSdCmdContent is record
-		id : aSdCmdId;
+		id  : aSdCmdId;
 		arg : aSdCmdArg;
 	end record aSdCmdContent;
 
 	constant cDefaultSdCmdContent : aSdCmdContent := (
-	id => (others => '0'),
+	id  => (others => '0'),
 	arg => (others => '0'));
 
 	type aSdCmdToken is record
 		startbit : std_ulogic; -- cSdStartBit
 		transbit : std_ulogic;
-		content : aSdCmdContent;		
-		crc7 : std_ulogic_vector(6 downto 0); -- CRC of content
-		endbit : std_ulogic; --cSdEndBit
+		content  : aSdCmdContent;
+		crc7     : std_ulogic_vector(6 downto 0); -- CRC of content
+		endbit   : std_ulogic; --cSdEndBit
 	end record aSdCmdToken;
 
 	constant cDefaultSdCmdToken : aSdCmdToken := (
@@ -51,19 +51,22 @@ package Sd is
 	-- SD Card Regs
 	subtype aVoltageWindow is std_ulogic_vector(23 downto 15);
 	constant cVoltageWindow : aVoltageWindow := (others => '1');
-	constant cSdR3Id : aSdCmdId := (others => '1');
-	constant cSdR2Id : aSdCmdId := (others => '1');
+	constant cSdR3Id        : aSdCmdId       := (others => '1');
+	constant cSdR2Id        : aSdCmdId       := (others => '1');
 
 	type aSdRegOCR is record
 		voltagewindow : aVoltageWindow;
-		ccs : std_ulogic;
-		nBusy : std_ulogic;
+		ccs           : std_ulogic;
+		nBusy         : std_ulogic;
 	end record aSdRegOCR;
+
+	subtype aSdCardStatus is std_ulogic_vector(31 downto 0);
+	constant cDefaultSdCardStatus : aSdCardStatus := (others => '0');
 	
 	constant cSdOCRQuery : aSdRegOCR := (
 	voltagewindow => (others => '0'),
-	ccs => '0',
-	nBusy => '0');
+	ccs           => '0',
+	nBusy         => '0');
 
 	function OCRToArg (ocr : in aSdRegOCR) return aSdCmdArg;
 	function ArgToOcr (arg : in aSdCmdArg) return aSdRegOCR;
@@ -76,12 +79,12 @@ package Sd is
 	subtype aSdCIDMDT is std_ulogic_vector(11 downto 0);
 
 	type aSdRegCID is record
-		mid : aSdCIDMID;
-		oid : aSdCIDOID;
-		name : aSdCIDPNM;
-		revision : aSdCIDPRV;
+		mid          : aSdCIDMID;
+		oid          : aSdCIDOID;
+		name         : aSdCIDPNM;
+		revision     : aSdCIDPRV;
 		serialnumber : aSdCIDPSN;
-		date : aSdCIDMDT;
+		date         : aSdCIDMDT;
 	end record;
 
 	constant cCIDLength : natural := 127;
@@ -120,12 +123,16 @@ package Sd is
 	end record aSdCmdToController;
 
 	constant cDefaultSdCmdToController : aSdCmdToController := (
-	Ack => cInactivated,
+	Ack       => cInactivated,
 	Receiving => cInactivated,
-	Valid => cInactivated,
-	Content => cDefaultSdCmdContent,
-	Err => cInactivated,
-	Cid => cDefaultSdRegCID);
+	Valid     => cInactivated,
+	Content   => cDefaultSdCmdContent,
+	Err       => cInactivated,
+	Cid       => cDefaultSdRegCID);
+
+	type aSdRegisters is record
+		CardStatus : aSdCardStatus;
+	end record aSdRegisters;
 
 	-- constants for Controller
 	subtype aRCA is std_ulogic_vector(15 downto 0);

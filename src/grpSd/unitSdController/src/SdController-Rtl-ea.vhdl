@@ -22,7 +22,8 @@ entity SdController is
 		oSdCmd : out aSdCmdFromController;
 
 		-- Status
-		oLedBank : out aLedBank
+		oSdRegisters : out aSdRegisters;
+		oLedBank     : out aLedBank
 		);
 end entity SdController;
 
@@ -39,28 +40,31 @@ architecture Rtl of SdController is
 	ExpectCID => cInactivated);
 
 	type aSdControllerReg is record
-		State     : aSdControllerState;
-		CmdRegion : aCmdRegion;
-		Region    : aRegion;
-		HCS       : std_ulogic;
-		CCS       : std_ulogic;
-		RCA       : aSdRCA;
+		State      : aSdControllerState;
+		CmdRegion  : aCmdRegion;
+		Region     : aRegion;
+		HCS        : std_ulogic;
+		CCS        : std_ulogic;
+		RCA        : aSdRCA;
+		CardStatus : aSdCardStatus;
 	end record aSdControllerReg;
 
 	constant cDefaultSdControllerReg : aSdControllerReg := (
-	State     => startup,
-	CmdRegion => CMD0,
-	Region    => send,
-	HCS       => cActivated,
-	CCS       => cInactivated,
-	RCA       => cDefaultRCA);
-
+	State      => startup,
+	CmdRegion  => CMD0,
+	Region     => send,
+	HCS        => cActivated,
+	CCS        => cInactivated,
+	RCA        => cDefaultRCA,
+	CardStatus => cDefaultSdCardStatus);
 
 	signal R, NextR      : aSdControllerReg;
 	signal TimeoutEnable : std_ulogic;
 	signal Timeout       : std_ulogic;
 
 begin
+
+	oSdRegisters.CardStatus <= R.CardStatus;
 
 	Regs : process (iClk, inResetAsync)
 	begin
@@ -82,14 +86,16 @@ begin
 
 		-- Status
 		oLedBank <= (others => cInactivated);
+		oLedBank(5)   <= R.HCS;
 
 		case R.State is
 			when startup => 
 				TimeoutEnable <= cActivated;
 				
 				if (Timeout = cActivated) then
+					TimeoutEnable <= cInactivated;
 					NextR.State <= init;
-			end if;
+				end if;
 
 			when init => 
 				case R.CmdRegion is
@@ -100,13 +106,15 @@ begin
 								oSdCmd.Valid      <= cActivated;
 
 								if (iSdCmd.Ack = cActivated) then
-									NextR.Region <= waitstate;
+									NextR.Region     <= waitstate;
+									NextR.CardStatus <= cDefaultSdCardStatus;
 								end if;
 
 							when waitstate => 
 								TimeoutEnable <= cActivated;
 
 								if (Timeout = cActivated) then
+									TimeoutEnable <= cInactivated;
 									NextR.Region    <= send;
 									NextR.CmdRegion <= CMD8;
 								end if;
@@ -148,6 +156,7 @@ begin
 								TimeoutEnable <= cActivated;
 
 								if (Timeout = cActivated) then
+									TimeoutEnable <= cInactivated;
 									NextR.CmdRegion <= CMD55;
 									NextR.Region    <= send;
 								end if;
@@ -174,10 +183,13 @@ begin
 
 								if (iSdCmd.Valid = cActivated) then
 									if (iSdCmd.Content.id = cSdNextIsACMD) then
-										NextR.CmdRegion <= CMD55;
+										NextR.CardStatus <= iSdCmd.Content.arg;
+										NextR.CmdRegion  <= CMD55;
 
 										if (iSdCmd.Content.arg(cSdArgAppCmdPos) = cActivated) then
-											NextR.Region    <= waitstate;
+											NextR.Region <= waitstate;
+										else 
+											NextR.Region <= send;
 										end if;
 									else 
 										NextR.State <= invalidCard;
@@ -190,7 +202,7 @@ begin
 
 								if (Timeout = cActivated) then
 									NextR.CmdRegion <= ACMD41;
-									NextR.Region <= send;
+									NextR.Region    <= send;
 								end if;
 
 							when others => 
@@ -202,7 +214,7 @@ begin
 						
 						case R.Region is
 							when send => 
-								ocr.nBusy         := cnActivated;
+								ocr.nBusy         := '0';
 								ocr.ccs           := R.HCS;
 								ocr.voltagewindow := cVoltageWindow;
 								
