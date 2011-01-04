@@ -24,16 +24,42 @@ architecture Bhv of tbWbSlave is
 	signal Adr : std_ulogic_vector(7 downto 2);
 	signal DataToSlave, DataFromSlave : std_ulogic_vector(7 downto 0);
 
+	signal Finished : std_ulogic := cInactivated;
+
+	constant cValid : std_ulogic_vector(7 downto 0) := (others =>
+		'1');
+
 begin
 
 	-- Clock generator
-	Clk <= not Clk after gClkPeriod/2;
+	Clk <= not Clk after gClkPeriod/2 when (Finished = cInactivated);
 	RstSync <= cActivated after 2*gClkPeriod,
 			   cInactivated after 3*gClkPeriod;
 
 	Stimulus : process
 	begin
-		wait;			
+		wait for 6*gClkPeriod;
+	    -- Classic Reads
+		wait until Clk = cActivated;
+		iWbSlave.Cyc <= cActivated;
+		iWbSlave.Stb <= cActivated;
+		iWbSlave.We <= cInactivated;
+		iWbSlave.Cti <= cCtiClassicCycle;
+		Adr <= "000001";
+		Sel <= "1";
+
+		wait until Clk = cActivated;
+		wait until Clk = cActivated;
+		
+		assert (oWbSlave.Ack = cActivated) report 
+		"Read not acknowledged. Waitstate?" severity error;
+		assert (DataFromSlave = cValid) report
+		"Invalid data after read" severity error;
+
+		wait until Clk = cActivated;
+
+		Finished <= cActivated;
+		wait;	
 	end process Stimulus;
 	
 	duv : entity work.WbSlave(Rtl)

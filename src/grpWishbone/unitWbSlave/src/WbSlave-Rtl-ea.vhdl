@@ -81,10 +81,10 @@ begin
 		end if;
 	end process WbStateReg ;
 
-	WbNextStateAndOutputs : process (iWbSlave, iSel, iDat, iAdr)
+	WbNextStateAndOutputs : process (iWbSlave, iSel, iDat, iAdr, State)
 	begin
 		-- Default Assignments
-		oDat <= (others => cInactivated);
+		oDat <= (others => 'X');
 		oWbSlave <= cDefaultWbSlaveCtrlOutput;
 		NextState <= State;
 
