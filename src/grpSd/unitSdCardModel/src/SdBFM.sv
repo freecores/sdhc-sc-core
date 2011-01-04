@@ -48,6 +48,7 @@ class SdBFM;
 	extern local task recv(output SdBusTransToken token);
 	extern local task receiveOrSend();
 	extern local task run();
+	extern local function void compareCrc16(aCrc16 actual, aCrc16 expected);
 
 	local semaphore Sem;
 	local Logger Log;

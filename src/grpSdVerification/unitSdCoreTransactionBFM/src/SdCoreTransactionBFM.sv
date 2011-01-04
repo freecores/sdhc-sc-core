@@ -33,14 +33,11 @@ class SdCoreTransactionBFM;
 				SdCoreTransaction::readSingleBlock:
 					begin
 						int j = 0;
-						string msg;
 						WbTransactionSequenceReadSingleBlock tmp = new(trans.startAddr, trans.endAddr);
 						assert (tmp.randomize()) else Log.error("Randomizing WbTransactionSequence seq failed.");
 						seq = tmp;
 
 						trans.data = new[1];
-
-						Log.note(msg);
 
 						foreach(seq.transactions[i]) begin
 							WbTransaction tr;

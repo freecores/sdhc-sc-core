@@ -178,12 +178,29 @@ task SdBFM::recvStandardDataBlock(output SdDataBlock block);
 	Log.error("recvStandardDataBlock not implemented");
 endtask
 
+function void SdBFM::compareCrc16(aCrc16 actual, aCrc16 expected);
+	assert(actual == expected) else begin
+		string msg;
+		$swrite(msg, "Data CRC error: %h %h", actual, expected);
+		Log.error(msg);
+	end
+endfunction
+
 task SdBFM::recvWideDataBlock(output SdDataBlock block);
 	aCrc16 crc[4];
+	logic dat0[$];
+	logic dat1[$];
+	logic dat2[$];
+	logic dat3[$];
+
 	block = new();
 
 	for (int j = 0; j < 512*2; j++) begin
 		@ICard.cb;
+		dat0.push_back(ICard.cb.Data[0]);
+		dat1.push_back(ICard.cb.Data[1]);
+		dat2.push_back(ICard.cb.Data[2]);
+		dat3.push_back(ICard.cb.Data[3]);
 		for(int i = 3; i >= 0; i--) begin
 			block.data.push_back(ICard.cb.Data[i]);
 		end
@@ -193,11 +210,14 @@ task SdBFM::recvWideDataBlock(output SdDataBlock block);
 	for (int j = 0; j < 16; j++) begin
 		@ICard.cb;
 		for(int i = 3; i >= 0; i--) begin
-			crc[i] = ICard.cb.Data[i];
+			crc[i][15-j] = ICard.cb.Data[i];
 		end
 	end
 
-	Log.warning("TODO: Check crc in recvWideDataBlock");
+	compareCrc16(crc[0], calcCrc16(dat0));
+	compareCrc16(crc[1], calcCrc16(dat1));
+	compareCrc16(crc[2], calcCrc16(dat2));
+	compareCrc16(crc[3], calcCrc16(dat3));
 
 	// end bits
 	@ICard.cb;
