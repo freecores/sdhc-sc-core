@@ -27,11 +27,11 @@ begin  -- architecture Rtl
          oStrobe <= cInactivated;
       elsif iClk'event and iClk = cActivated then  -- rising clock edge
          Counter <= Counter + 1;
-         if Counter < max then
+         if Counter < max - 1 then
             oStrobe <= cInactivated;
          else
             oStrobe <= cActivated;
-            Counter <= TO_UNSIGNED(1, cBitWidth);
+            Counter <= TO_UNSIGNED(0, cBitWidth);
          end if;
       end if;
    end process StateReg;

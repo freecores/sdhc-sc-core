@@ -19,6 +19,7 @@ entity SdData is
 	port (
 		iClk         : in std_ulogic;
 		inResetAsync : in std_ulogic;
+		iStrobe      : in std_ulogic;
 
 		-- Controller
 		iSdDataFromController : in aSdDataFromController;

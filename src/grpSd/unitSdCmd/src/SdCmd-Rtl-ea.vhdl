@@ -19,11 +19,12 @@ use work.CRCs.all;
 
 entity SdCmd is
 	port (
-		iClk : in std_ulogic; -- Clk, rising edge
+		iClk         : in std_ulogic; -- Clk, rising edge
 		inResetAsync : in std_ulogic; -- Reset, asynchronous active low
+		iStrobe      : in std_ulogic; -- Strobe to send data
 
 		iFromController : in aSdCmdFromController;
-		oToController : out aSdCmdToController;	
+		oToController   : out aSdCmdToController;
 
 		-- SDCard
 		ioCmd : inout std_logic -- Cmd line to and from card
@@ -99,16 +100,18 @@ begin
 	end process CmdStateReg;
 
 	-- Comb. process
-	NextStateAndOutput : process (iFromController, ioCmd, SerialCrc, CrcCorrect,
-		R)
+	NextStateAndOutput : process (iFromController, ioCmd, SerialCrc, CrcCorrect, iStrobe, R)
+		variable NextState   : aSdCmdState;
+		variable NextRegion  : aRegion;
+		variable NextCounter : aCounter;
 
 		procedure NextStateWhenAllSent (constant nextlength : in natural; constant toRegion : in aRegion) is
 		begin
 			if (R.Counter > 0) then
-				NextR.Counter <= R.Counter - 1;
+				NextCounter := R.Counter - 1;
 			else
-				NextR.Counter <= to_unsigned(nextlength, NextR.Counter'length);
-				NextR.Region  <= toRegion;
+				NextCounter := to_unsigned(nextlength, NextR.Counter'length);
+				NextRegion  := toRegion;
 			end if;
 		end procedure NextStateWhenAllSent;
 
@@ -134,7 +137,6 @@ begin
 			NextStateWhenAllSent(nextlength, toRegion);
 		end procedure RecvBitsAndCalcCrc;
 
-
 	begin
 		-- defaults
 		NextR                    <= R;
@@ -142,18 +144,22 @@ begin
 		NextO.Controller.Content <= R.ReceivedToken.content;
 		NextO.Controller.Cid     <= R.Cid;
 		CrcOut                   <= cDefaultCrcOut;
+		NextState                := R.State;
+		NextRegion               := R.Region;
+		NextCounter              := R.Counter;
 
 		case R.State is
 			when idle => 
-				-- Start receiving or start transmitting
+					-- Start receiving or start transmitting
 				if (ioCmd = cSdStartBit) then
 					ShiftIntoCrc(ioCmd);
 					NextR.ReceivedToken.startbit <= ioCmd;
-					NextR.State <= receiving;
-					NextR.Region <= transbit;
+					NextState                    := receiving;
+					NextRegion                   := transbit;
+
 				elsif (iFromController.Valid = cActivated) then
-					NextR.State <= sending;
-					NextR.Region <= startbit;
+					NextState  := sending;
+					NextRegion := startbit;
 				end if;
 
 			when sending => 
@@ -161,19 +167,18 @@ begin
 
 				case R.Region is
 					when startbit =>
-						NextO.Cmd    <= cSdStartBit;
-						NextR.Region <= transbit;
+						NextO.Cmd  <= cSdStartBit;
+						NextRegion := transbit;
 						ShiftIntoCrc(cSdStartBit);
 
 					when transbit => 
-						NextO.Cmd     <= cSdTransBitHost;
-						NextR.Counter <= to_unsigned(iFromController.Content.id'high, aCounter'length);
-						NextR.Region  <= cmdid;
+						NextO.Cmd   <= cSdTransBitHost;
+						NextCounter := to_unsigned(iFromController.Content.id'high, aCounter'length);
+						NextRegion  := cmdid;
 						ShiftIntoCrc(cSdTransBitHost);
 
 					when cmdid => 
-						SendBitsAndCalcCrc(iFromController.Content.id, arg,
-						iFromController.Content.arg'high);
+						SendBitsAndCalcCrc(iFromController.Content.id, arg,	iFromController.Content.arg'high);
 
 					when arg => 
 						SendBitsAndCalcCrc(iFromController.Content.arg, crc, crc7'high-1);
@@ -182,17 +187,17 @@ begin
 						NextO.Cmd <= SerialCrc;
 
 						if (R.Counter > 0) then
-							NextR.Counter <= R.Counter - 1;
+							NextCounter := R.Counter - 1;
 
 						else
-							NextR.Region         <= endbit;
+							NextRegion           := endbit;
 							NextO.Controller.Ack <= cActivated;
 						end if;
 
 					when endbit => 
-						NextO.Cmd    <= cSdEndBit;
-						NextR.State  <= idle;
-						NextR.Region <= startbit;
+						NextO.Cmd  <= cSdEndBit;
+						NextState  := idle;
+						NextRegion := startbit;
 
 					when others => 
 						report "SdCmd: Region not handled" severity error;
@@ -205,8 +210,8 @@ begin
 				case R.Region is
 					when transbit => 
 						NextR.ReceivedToken.transbit <= ioCmd;
-						NextR.Counter                <= to_unsigned(NextR.ReceivedToken.Content.id'high, NextR.Counter'length);
-						NextR.Region                 <= cmdid;
+						NextCounter                := to_unsigned(NextR.ReceivedToken.Content.id'high, NextR.Counter'length);
+						NextRegion                 := cmdid;
 						ShiftIntoCrc(ioCmd);
 
 					when cmdid => 
@@ -232,15 +237,15 @@ begin
 						ShiftIntoCrc(ioCmd);
 
 						if (R.Counter > 0) then
-							NextR.Counter <= R.Counter - 1;
+							NextCounter := R.Counter - 1;
 						else
-							NextR.Region <= endbit;
+							NextRegion := endbit;
 						end if;
 
 					when endbit => 
 						NextR.ReceivedToken.endbit <= ioCmd;
 
-						-- check 
+							-- check 
 						if (iFromController.CheckCrc = cActivated) then
 							if (CrcCorrect = cActivated and R.ReceivedToken.transbit = cSdTransBitSlave) then
 								NextO.Controller.Valid <= cActivated;
@@ -252,9 +257,9 @@ begin
 						else 
 							NextO.Controller.Valid <= cActivated;
 						end if;
-						
-						NextR.State <= idle;
-						NextR.Region <= startbit;
+
+						NextState := idle;
+						NextRegion := startbit;
 
 					when others => 
 						report "SdCmd : Region not handled" severity error;
@@ -266,6 +271,12 @@ begin
 
 		end case;
 
+		if (iStrobe = cActivated) then
+			NextR.State   <= NextState;
+			NextR.Region  <= NextRegion;
+			NextR.Counter <= NextCounter;
+		end if;
+
 	end process NextStateAndOutput;
 
 	CRC7_inst: entity work.Crc
@@ -275,6 +286,7 @@ begin
 		iClk         => iClk,
 		inResetAsync => inResetAsync,
 		iClear       => CrcOut.Clear,
+		iStrobe      => iStrobe,
 		iDataIn      => CrcOut.DataIn,
 		iData        => CrcOut.Data,
 		oIsCorrect   => CrcCorrect,

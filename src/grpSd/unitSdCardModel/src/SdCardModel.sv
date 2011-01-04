@@ -32,7 +32,7 @@ class SDCard;
 		this.CCS = 1;
 		rca = 0;
 		mode = standard;
-		ICmd.cb.Data <= 'z;
+		ICmd.cbcard.Data <= 'z;
 	endfunction
 
 	task reset();
@@ -40,41 +40,41 @@ class SDCard;
 
 	// Receive a command token and handle it
 	task recv();
-		ICmd.cb.Cmd <= 'z;
+		ICmd.cbcard.Cmd <= 'z;
 
-		repeat(8) @ICmd.cb;
+		repeat(8) @ICmd.cbcard;
 
 		recvcmd = new();
 
-		wait(ICmd.cb.Cmd == 0);
+		wait(ICmd.cbcard.Cmd == 0);
 		// Startbit
-		recvcmd.startbit = ICmd.cb.Cmd;
+		recvcmd.startbit = ICmd.cbcard.Cmd;
 
-		@ICmd.cb;
+		@ICmd.cbcard;
 		// Transbit
-		recvcmd.transbit = ICmd.cb.Cmd;
+		recvcmd.transbit = ICmd.cbcard.Cmd;
 
 		// CmdID
 		for (int i = 5; i >= 0; i--) begin
-			@ICmd.cb;
-			recvcmd.id[i] = ICmd.cb.Cmd;
+			@ICmd.cbcard;
+			recvcmd.id[i] = ICmd.cbcard.Cmd;
 		end
 
 		// Arg
 		for (int i = 31; i >= 0; i--) begin
-			@ICmd.cb;
-			recvcmd.arg[i] = ICmd.cb.Cmd;
+			@ICmd.cbcard;
+			recvcmd.arg[i] = ICmd.cbcard.Cmd;
 		end
 
 		// CRC
 		for (int i = 6; i >= 0; i--) begin
-			@ICmd.cb;
-			recvcmd.crc7[i] = ICmd.cb.Cmd;
+			@ICmd.cbcard;
+			recvcmd.crc7[i] = ICmd.cbcard.Cmd;
 		end
 
 		// Endbit
-		@ICmd.cb;
-		recvcmd.endbit = ICmd.cb.Cmd;
+		@ICmd.cbcard;
+		recvcmd.endbit = ICmd.cbcard.Cmd;
 
 		recvcmd.checkFromHost();
 		-> CmdReceived;
@@ -164,7 +164,7 @@ class SDCard;
 		response = new(cSdCmdSendSCR, state);
 		response.send(ICmd);
 
-		repeat(2) @ICmd.cb;
+		repeat(2) @ICmd.cbcard;
 
 		// send dummy SCR
 		for (int i = 0; i < 64; i++)
@@ -220,6 +220,12 @@ class SDCard;
 		sddata.send(ICmd, data);
 
 		// switch to 50MHz
+		// expect CMD13
+		recv();
+		assert(recvcmd.id == cSdCmdSendStatus);
+		assert(recvcmd.arg == rca);
+		response = new(cSdCmdSendStatus, state);
+		response.send(ICmd);
 
 		-> InitDone;
 

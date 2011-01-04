@@ -41,13 +41,13 @@ class SdData;
 			data.push_back(1); // endbit
 			
 			foreach(data[i]) begin
-				@ICmd.cb;
-				ICmd.cb.Data[0] <= data[i];
+				@ICmd.cbcard;
+				ICmd.cbcard.Data[0] <= data[i];
 			end
 
 			data = {};
-			@ICmd.cb;
-			ICmd.cb.Data <= 'z; 
+			@ICmd.cbcard;
+			ICmd.cbcard.Data <= 'z; 
 		end
 		else begin
 			logic dat0[$];
@@ -66,19 +66,19 @@ class SdData;
 			CrcOnContainer(dat2);
 			CrcOnContainer(dat3);
 
-			@ICmd.cb;
-			ICmd.cb.Data = 0;
+			@ICmd.cbcard;
+			ICmd.cbcard.Data = 0;
 
 			for(int i = 0; i < dat0.size(); i++) begin
-				@ICmd.cb;
-				ICmd.cb.Data <= (dat3[i]<<3) + (dat2[i] <<2) + (dat1[i] <<1) + dat0[i];
+				@ICmd.cbcard;
+				ICmd.cbcard.Data <= (dat3[i]<<3) + (dat2[i] <<2) + (dat1[i] <<1) + dat0[i];
 			end
 			
-			@ICmd.cb;
-			ICmd.cb.Data = 0;
+			@ICmd.cbcard;
+			ICmd.cbcard.Data = 0;
 
-			@ICmd.cb;
-			ICmd.cb.Data <= 'z;			
+			@ICmd.cbcard;
+			ICmd.cbcard.Data <= 'z;			
 		end
 	endtask
 

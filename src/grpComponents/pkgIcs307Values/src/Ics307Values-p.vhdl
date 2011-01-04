@@ -25,6 +25,13 @@ package Ics307Values is
 	constant cOutputDivide_S_25MHz : std_ulogic_vector(2 downto 0) := "000";
 	constant cVcoDividerWord_VDW_25MHz : std_ulogic_vector(8 downto 0) := "000000111";
 	constant cReferenceDivider_RDW_25MHz : std_ulogic_vector(6 downto 0) := "0000001";
-end package Ics307Values;
 
+	constant cCrystalLoadCapacitance_C_50MHz : std_ulogic_vector(1 downto 0) := "00";
+	constant cOutputDutyCycleVoltage_TTL_50MHz : std_ulogic := '1';
+	constant cClkFunctionSelect_R_50MHz : std_ulogic_vector(1 downto 0) := "00";
+	constant cOutputDivide_S_50MHz : std_ulogic_vector(2 downto 0) := "010";
+	constant cVcoDividerWord_VDW_50MHz : std_ulogic_vector(8 downto 0) := "000010000";
+	constant cReferenceDivider_RDW_50MHz : std_ulogic_vector(6 downto 0) := "0000001";
+
+end package Ics307Values;
 

@@ -11,9 +11,9 @@
 architecture Rtl of SdController is
 
 	type aSdControllerState is (startup, init, config, idle, invalidCard);
-	type aCmdRegion is (CMD0, CMD8, ACMD41, CMD2, CMD3, SelectCard, CheckBusWidth, SetBusWidth, CheckSpeed, ChangeSpeed);
+	type aCmdRegion is (CMD0, CMD8, ACMD41, CMD2, CMD3, SelectCard, CheckBusWidth, SetBusWidth, CheckSpeed, ChangeSpeed, GetStatus);
 	type aRegion is (idle, send, response, waitstate, senddata, receivedata, checkbusy, waitstatedata);
-	
+
 	constant cDefaultToSdCmd : aSdCmdFromController := (
 	(id       => (others        => '0'),
 	arg       => (others        => '0')),
@@ -33,6 +33,7 @@ architecture Rtl of SdController is
 		CardStatus : aSdCardStatus;
 		ToSdCmd    : aSdCmdFromController;
 		ToSdData   : aSdDataFromController;
+		HighSpeed  : std_ulogic;
 	end record aSdControllerReg;
 
 	constant cDefaultSdControllerReg : aSdControllerReg := (
@@ -46,7 +47,8 @@ architecture Rtl of SdController is
 	RCA        => cDefaultRCA,
 	CardStatus => cDefaultSdCardStatus,
 	ToSdCmd    => cDefaultToSdCmd,
-	ToSdData   => cDefaultSdDataFromController);
+	ToSdData   => cDefaultSdDataFromController,
+	HighSpeed  => cInactivated);
 
 	signal R, NextR       : aSdControllerReg;
 	signal TimeoutEnable  : std_ulogic;
@@ -61,6 +63,7 @@ begin
 	oSdRegisters.CardStatus <= R.CardStatus;
 	oSdCmd                  <= R.ToSdCmd;
 	oSdData                 <= R.ToSdData;
+	oHighSpeed              <= R.HighSpeed;
 
 	Regs : process (iClk, inResetAsync)
 	begin
@@ -99,7 +102,7 @@ begin
 		case R.State is
 			when startup => 
 				TimeoutEnable <= cActivated;
-				
+
 				if (Timeout = cActivated) then
 					TimeoutEnable <= cInactivated;
 					NextR.State   <= init;
@@ -191,7 +194,7 @@ begin
 									elsif (Timeout = cActivated) then
 										NextR.State <= invalidCard;
 									end if;
-							
+
 								when waitstate => 
 									NextCmdRegion := CMD2;
 									NextRegion    := send;
@@ -223,7 +226,7 @@ begin
 								elsif (Timeout = cActivated) then
 									NextR.State <= invalidCard;
 								end if;
-							
+
 							when waitstate => 
 								NextCmdRegion := CMD3;
 								NextRegion    := send;
@@ -250,9 +253,9 @@ begin
 								end if;
 
 							when waitstate => 
-									NextState     := config;
-									NextCmdRegion := SelectCard;
-									NextRegion    := send;
+								NextState     := config;
+								NextCmdRegion := SelectCard;
+								NextRegion    := send;
 
 							when others => 
 								report "SdController: Unhandled region" severity error;
@@ -333,17 +336,17 @@ begin
 									null;
 
 								when waitstatedata => 
-										NextRegion := send;
-										
-										if (NextCmdTimeout = cActivated) then
-											if (iSdData.DataBlock(cSdWideModeBit) = cActivated) then
-												NextCmdRegion   := SetBusWidth;
-												NextR.SendCMD55 <= cActivated;
+									NextRegion := send;
 
-											else 
-												NextCmdRegion := CheckSpeed;
-											end if;
+									if (NextCmdTimeout = cActivated) then
+										if (iSdData.DataBlock(cSdWideModeBit) = cActivated) then
+											NextCmdRegion   := SetBusWidth;
+											NextR.SendCMD55 <= cActivated;
+
+										else 
+											NextCmdRegion := CheckSpeed;
 										end if;
+									end if;
 
 
 								when others => 
@@ -364,7 +367,7 @@ begin
 										if (iSdCmd.Content.id = cSdCmdSetBusWidth) then
 											NextR.CardStatus <= iSdCmd.Content.arg;
 											NextR.Region <= waitstate;
-											
+
 										else
 											NextR.State <= invalidCard;
 										end if;
@@ -397,7 +400,7 @@ begin
 									if (iSdCmd.Content.id = cSdCmdSwitchFunction) then
 										NextR.CardStatus <= iSdCmd.Content.arg;
 										NextR.Region     <= receivedata;
-										
+
 									else
 										NextR.State <= invalidCard;
 									end if;
@@ -407,7 +410,7 @@ begin
 
 							when receivedata => 
 								null;
-							
+
 							when waitstatedata => 
 								NextRegion := send;
 
@@ -427,8 +430,6 @@ begin
 						end case;
 
 					when ChangeSpeed => 
-						oLedBank(1) <= cActivated;
-						
 						case R.Region is
 							when send => 
 								NextR.ToSdCmd.Content.id  <= cSdCmdSwitchFunction;
@@ -440,7 +441,7 @@ begin
 									if (iSdCmd.Content.id = cSdCmdSwitchFunction) then
 										NextR.CardStatus <= iSdCmd.Content.arg;
 										NextR.Region     <= receivedata;
-										
+
 									else
 										NextR.State <= invalidCard;
 									end if;
@@ -450,21 +451,58 @@ begin
 
 							when receivedata => 
 								null;
-							
+
 							when waitstatedata => 
 								NextRegion := send;
 
 								if (NextCmdTimeout = cActivated) then
 									if (iSdData.DataBlock(cSdHighSpeedFunctionSupportBit) = cActivated and
 									iSdData.DataBlock(cSdHighSpeedFunctionGroupLow+3 downto cSdHighSpeedFunctionGroupLow) = X"1") then
-										NextState := idle;
-										NextRegion := idle;
+										NextR.HighSpeed <= cActivated;
+										NextCmdRegion   := GetStatus;
+										NextRegion      := idle;
 
 									else 
 										NextState := invalidCard;
 									end if;
 								end if;
 
+
+							when others => 
+								report "Unhandled region" severity error;
+						end case;
+
+					when GetStatus => 
+						case R.Region is
+							when idle => 
+								NextCmdTimeoutEnable <= cActivated;
+
+								if (NextCmdTimeout = cActivated) then
+									NextR.Region <= send;
+								end if;
+
+							when send => 
+								NextR.ToSdCmd.Content.id              <= cSdCmdSendStatus;
+								NextR.ToSdCmd.Content.arg(31 downto 16) <= R.RCA;
+								NextRegion                            := response;
+
+							when response => 
+								if (iSdCmd.Valid = cActivated) then
+									if (iSdCmd.Content.id = cSdCmdSendStatus) then
+										NextR.CardStatus <= iSdCmd.Content.arg;
+										NextR.Region <= waitstate;
+
+									else
+										NextR.State <= invalidCard;
+									end if;
+								elsif (Timeout = cActivated) then
+									NextR.State <= invalidCard;
+								end if;
+
+							when waitstate => 
+								NextRegion    := idle;
+								NextCmdRegion := CheckSpeed;
+								NextState     := idle;
 
 							when others => 
 								report "Unhandled region" severity error;
@@ -558,7 +596,7 @@ begin
 
 			when waitstatedata => 
 				NextCmdTimeoutEnable <= cActivated;
-				
+
 				if (NextCmdTimeout = cActivated) then
 					NextCmdTimeoutEnable <= cInactivated;
 					NextR.Region         <= NextRegion;
@@ -573,8 +611,8 @@ begin
 
 	TimeoutGenerator_inst: entity work.TimeoutGenerator
 	generic map (
-		gClkFrequency => 25E6,
-		gTimeoutTime  => 10 ms
+		gClkFrequency => gClkFrequency,
+		gTimeoutTime  => 100 ms
 	)
 	port map (
 		iClk => iClk,
@@ -585,8 +623,8 @@ begin
 
 	NextCmdTimeoutGenerator_inst: entity work.TimeoutGenerator
 	generic map (
-		gClkFrequency => 25E6,
-		gTimeoutTime  => 600 us--1 sec / 25E6 * (8)
+		gClkFrequency => gClkFrequency,
+		gTimeoutTime  => 1 sec / 25E6 * (8)
 	)
 	port map (
 		iClk => iClk,

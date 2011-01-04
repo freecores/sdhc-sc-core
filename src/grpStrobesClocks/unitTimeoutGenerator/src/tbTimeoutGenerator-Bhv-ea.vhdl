@@ -41,6 +41,7 @@ begin
 	port map (
 		iClk         => Clk,
 		inResetAsync => nResetAsync,
+		iDisable     => cInactivated,
 		iEnable      => Enable,
 		oTimeout     => Timeout
 	);

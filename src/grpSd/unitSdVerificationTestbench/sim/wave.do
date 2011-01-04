@@ -18,6 +18,7 @@ add wave -noupdate -format Logic /Testbed/top/oreceivedcontentvalid
 add wave -noupdate -format Literal /Testbed/top/receiveddata
 add wave -noupdate -format Logic /Testbed/top/receiveddatavalid
 add wave -noupdate -format Literal /Testbed/top/receivedcrc
+add wave -noupdate -format Logic /Testbed/top/sdtop_inst/sdstrobe25mhz
 add wave -noupdate -divider controller
 add wave -noupdate -format Literal /Testbed/top/sdtop_inst/sdcontroller_inst/isdcmd
 add wave -noupdate -format Literal /Testbed/top/sdtop_inst/sdcontroller_inst/osdcmd
@@ -45,7 +46,7 @@ add wave -noupdate -format Literal /Testbed/top/sdtop_inst/sddata_inst/nextr
 add wave -noupdate -divider rs232
 add wave -noupdate -format Literal /Testbed/top/rs232tx_inst/r
 TreeUpdate [SetDefaultTree]
-WaveRestoreCursors {{Cursor 1} {100845269 ns} 0}
+WaveRestoreCursors {{Cursor 1} {32005928 ns} 0}
 configure wave -namecolwidth 150
 configure wave -valuecolwidth 100
 configure wave -justifyvalue left
@@ -60,4 +61,4 @@ configure wave -griddelta 40
 configure wave -timeline 0
 configure wave -timelineunits ns
 update
-WaveRestoreZoom {100038863 ns} {107440124 ns}
+WaveRestoreZoom {0 ns} {160029639 ns}

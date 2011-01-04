@@ -43,7 +43,7 @@ end entity TbdSd;
 
 architecture Rtl of TbdSd is
 
-	constant cClkFreq  : natural := 25E6;
+	constant cClkFreq  : natural := 50E6;
 	constant cBaudRate : natural := 115200;
 
 	signal iRs232Tx : aiRs232Tx;
@@ -60,20 +60,20 @@ architecture Rtl of TbdSd is
 	end record aReg;
 
 	constant cDefaultReg : aReg := (
-		State           => waitforchange,
+		State           => id,
 		Counter         => 3,
 		ReceivedContent => cDefaultSdCmdContent,
 		ValidContent    => cDefaultSdCmdContent,
 		Data            => (others               => '0'),
 		DataAvailable   => cInactivated);
 
-	signal R                     : aReg := cDefaultReg;
+	signal R                     : aReg                             := cDefaultReg;
 	signal NextR                 : aReg;
 	signal ReceivedContent       : aSdCmdContent;
 	signal oReceivedContentValid : std_ulogic;
 	signal ReceivedData          : std_ulogic_vector(511 downto 0);
 	signal ReceivedDataValid     : std_ulogic;
-	signal ReceivedCrc                   : std_ulogic_vector(15 downto 0);
+	signal ReceivedCrc           : std_ulogic_vector(15 downto 0);
 
 begin
 
@@ -104,15 +104,15 @@ begin
 			when waitforchange => 
 				NextR.DataAvailable <= cInactivated;
 
---				if (R.ReceivedContent /= R.ValidContent) then
---					NextR.ReceivedContent <= R.ValidContent;
---					NextR.State <= id;
---				end if;
-
-				if (ReceivedDataValid = cActivated) then
-					NextR.Counter <= 63;
-					NextR.State <= data;
+				if (R.ReceivedContent /= R.ValidContent) then
+					NextR.ReceivedContent <= R.ValidContent;
+					NextR.State <= id;
 				end if;
+
+--				if (ReceivedDataValid = cActivated) then
+--					NextR.Counter <= 63;
+--					NextR.State <= data;
+--				end if;
 
 			when id => 
 				NextR.DataAvailable <= cActivated;
@@ -176,6 +176,9 @@ begin
 	end process Rs232_comb;
 		
 	SDTop_inst : entity work.SdTop(Rtl)
+	generic map (
+		gClkFrequency => cClkFreq
+	)
 	port map (
 		iClk                 => iClk,
 		inResetAsync          => inResetAsync,
@@ -210,12 +213,12 @@ begin
 	-- Configure clock to 25MHz, it could be configured differently!
 	Ics307Configurator_inst : entity work.Ics307Configurator(Rtl)
 	generic map(
-		gCrystalLoadCapacitance_C   => cCrystalLoadCapacitance_C_25MHz,
-		gReferenceDivider_RDW       => cReferenceDivider_RDW_25MHz,
-		gVcoDividerWord_VDW         => cVcoDividerWord_VDW_25MHz,
-		gOutputDivide_S             => cOutputDivide_S_25MHz,
-		gClkFunctionSelect_R        => cClkFunctionSelect_R_25MHz,
-		gOutputDutyCycleVoltage_TTL => cOutputDutyCycleVoltage_TTL_25MHz
+		gCrystalLoadCapacitance_C   => cCrystalLoadCapacitance_C_50MHz,
+		gReferenceDivider_RDW       => cReferenceDivider_RDW_50MHz,
+		gVcoDividerWord_VDW         => cVcoDividerWord_VDW_50MHz,
+		gOutputDivide_S             => cOutputDivide_S_50MHz,
+		gClkFunctionSelect_R        => cClkFunctionSelect_R_50MHz,
+		gOutputDutyCycleVoltage_TTL => cOutputDutyCycleVoltage_TTL_50MHz
 	)
 	port map(
 		iClk         => iClk,

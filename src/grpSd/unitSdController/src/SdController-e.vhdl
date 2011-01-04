@@ -17,9 +17,14 @@ use work.Global.all;
 use work.Sd.all;
 
 entity SdController is
+	generic (
+		gClkFrequency : natural := 25E6
+	);
 	port (
 		iClk : in std_ulogic; -- rising edge
 		inResetAsync : in std_ulogic;
+		
+		oHighSpeed : out std_ulogic;
 
 		-- SdCmd
 		iSdCmd : in aSdCmdToController;

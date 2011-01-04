@@ -71,7 +71,7 @@ module Testbed();
 	TbdSd top(CmdInterface.Clk, CmdInterface.nResetAsync, CmdInterface.Cmd,
 CmdInterface.SClk,CmdInterface.Data);
 
-	always #20 CmdInterface.Clk <= ~CmdInterface.Clk;
+	always #10 CmdInterface.Clk <= ~CmdInterface.Clk;
 
 	Test tb(CmdInterface);
 

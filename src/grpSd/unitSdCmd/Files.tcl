@@ -3,6 +3,7 @@ set pkgs {Global Global
 	Crc CRCs}
 
 set units {Crc Crc {Rtl}
+	StrobesClocks StrobeGen {Rtl}
 	Sd SdCmd {Rtl}}
 
 set tb {Sd SdCmd Bhv}

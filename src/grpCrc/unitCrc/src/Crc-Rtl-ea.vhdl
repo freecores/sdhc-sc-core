@@ -24,6 +24,7 @@ entity crc is
 		iClk         : in std_ulogic;
 		inResetAsync : in std_ulogic; -- Asynchronous low active reset
 		iClear       : in std_ulogic; -- Synchronous reset for the registers
+		iStrobe      : in std_ulogic; -- Strobe, only shift when it is activated
 		iDataIn      : in std_ulogic; -- Signal that currently data is shifted in.
 		                              -- Otherwise the current remainder is shifted out.
 		iData     : in std_ulogic; -- Data input
@@ -56,25 +57,27 @@ begin
 			if (iClear = '1') then
 				regs <= (others => '0');
 			elsif (iClear = '0') then
-				if (iDataIn = '1') then
+				if (iStrobe = '1') then
+					if (iDataIn = '1') then
 					-- calculate CRC
-					input := iData xor regs(regs'high);
+						input := iData xor regs(regs'high);
 
-					regs(0) <= input;
+						regs(0) <= input;
 
-					for idx in 1 to regs'high loop
-						if (gPolynom(idx) = '1') then
-							regs(idx) <= regs(idx-1) xor input;
-						else
-							regs(idx) <= regs(idx-1);
-						end if;
-					end loop;
-				else
+						for idx in 1 to regs'high loop
+							if (gPolynom(idx) = '1') then
+								regs(idx) <= regs(idx-1) xor input;
+							else
+								regs(idx) <= regs(idx-1);
+							end if;
+						end loop;
+					else
 					-- shift data out
-					regs(0) <= '0';
-					for idx in 1 to regs'high loop
-						regs(idx) <= regs(idx-1);
-					end loop;
+						regs(0) <= '0';
+						for idx in 1 to regs'high loop
+							regs(idx) <= regs(idx-1);
+						end loop;
+					end if;
 				end if;
 			end if;
 		end if;

@@ -12,6 +12,9 @@ use work.Global.all;
 use work.Sd.all;
 
 entity SdTop is
+	generic (
+		gClkFrequency : natural := 25E6
+	);
 	port (
 		iClk         : in std_ulogic;
 		inResetAsync : in std_ulogic;
@@ -38,18 +41,26 @@ architecture Rtl of SdTop is
 	signal SdRegisters          : aSdRegisters;
 	signal SdDataToController   : aSdDataToController;
 	signal SdDataFromController : aSdDataFromController;
+	signal SdStrobe				: std_ulogic;
+	signal SdStrobe25MHz        : std_ulogic;
+	signal HighSpeed		    : std_ulogic;
 
 begin
-	oSclk                 <= iClk;
+	oSclk                 <= SdStrobe25MHz when HighSpeed = cInactivated else iClk;
 	oReceivedContent      <= SdCmdToController.Content;
 	oReceivedContentValid <= SdCmdToController.Valid;
 	oReceivedData         <= SdDataToController.DataBlock(511 downto 0);
 	oReceivedDataValid    <= SdDataToController.Valid;
+	SdStrobe              <= SdStrobe25MHz when HighSpeed = cInactivated else cActivated;
 
 	SdController_inst: entity work.SdController(Rtl)
+	generic map (
+		gClkFrequency => gClkFrequency
+	)
 	port map (
 		iClk         => iClk,
 		inResetAsync => inResetAsync,
+		oHighSpeed   => HighSpeed,
 		iSdCmd       => SdCmdToController,
 		oSdCmd       => SdCmdFromController,
 		iSdData      => SdDataToController,
@@ -62,6 +73,7 @@ begin
 	port map (
 		iClk            => iClk,
 		inResetAsync    => inResetAsync,
+		iStrobe         => SdStrobe,
 		iFromController => SdCmdFromController,
 		oToController   => SdCmdToController,
 		ioCmd           => ioCmd
@@ -71,11 +83,22 @@ begin
 	port map (
 		iClk                  => iClk,
 		inResetAsync          => inResetAsync,
+		iStrobe               => SdStrobe,
 		iSdDataFromController => SdDataFromController,
 		oSdDataToController   => SdDataToController,
 		ioData                => ioData,
 		oCrc                  => oCrc
 	);
+
+	SdStrobe_inst: entity work.StrobeGen(Rtl)
+	generic map (
+		gClkFrequency    => gClkFrequency,
+		gStrobeCycleTime => 1 sec / 25E6)
+	port map (
+		iClk         => iClk,
+		inResetAsync => inResetAsync,
+		oStrobe      => SdStrobe25MHz);
+
 
 end architecture Rtl;
 

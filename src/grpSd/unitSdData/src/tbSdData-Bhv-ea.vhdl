@@ -74,6 +74,7 @@ begin
 	port map (
 		iClk         => Clk,
 		inResetAsync => nResetAsync,
+		iStrobe => cActivated,
 		iSdDataFromController => FromController,
 		oSdDataToController   => ToController,
 		ioData => Data);

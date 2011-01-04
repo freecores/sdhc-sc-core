@@ -21,8 +21,13 @@ interface ISdCmd;
 		input Clk, nResetAsync, clocking cb
 	);
 
+	clocking cbcard @(posedge SClk);
+		inout Cmd;
+		inout Data;
+	endclocking
+
 	modport Card (
-		clocking cb
+		clocking cbcard
 	);
 
 endinterface

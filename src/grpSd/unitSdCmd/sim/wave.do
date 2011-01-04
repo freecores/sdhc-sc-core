@@ -8,7 +8,7 @@ add wave -noupdate -format Logic /tbsdcmd/dut/iocmd
 add wave -noupdate -format Logic /tbsdcmd/dut/serialcrc
 add wave -noupdate -format Logic /tbsdcmd/dut/crccorrect
 add wave -noupdate -format Literal /tbsdcmd/dut/crcout
-add wave -noupdate -format Literal /tbsdcmd/dut/r
+add wave -noupdate -format Literal -expand /tbsdcmd/dut/r
 add wave -noupdate -format Literal /tbsdcmd/dut/nextr
 add wave -noupdate -format Literal /tbsdcmd/dut/o
 add wave -noupdate -format Literal /tbsdcmd/dut/nexto
@@ -24,7 +24,7 @@ add wave -noupdate -format Literal /tbsdcmd/sentcmd
 add wave -noupdate -format Literal /tbsdcmd/counter
 add wave -noupdate -format Logic /tbsdcmd/save
 TreeUpdate [SetDefaultTree]
-WaveRestoreCursors {{Cursor 1} {540 ns} 0}
+WaveRestoreCursors {{Cursor 1} {498 ns} 0}
 configure wave -namecolwidth 150
 configure wave -valuecolwidth 100
 configure wave -justifyvalue left

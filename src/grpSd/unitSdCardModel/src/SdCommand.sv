@@ -98,13 +98,13 @@ class SDCommandResponse;
 
 	task sendData(virtual ISdCmd.Card ICmd);
 		foreach(data[i]) begin
-			@ICmd.cb;
-			ICmd.cb.Cmd <= data[i];
+			@ICmd.cbcard
+			ICmd.cbcard.Cmd <= data[i];
 		end
 		
 		data = {};
-		@ICmd.cb;
-		ICmd.cb.Cmd <= 'z;
+		@ICmd.cbcard
+		ICmd.cbcard.Cmd <= 'z;
 	endtask
 
 
