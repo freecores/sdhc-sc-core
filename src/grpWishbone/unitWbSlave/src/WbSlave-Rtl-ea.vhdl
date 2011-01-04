@@ -18,6 +18,8 @@ entity WbSlave is
 		gPortSize           : natural := 8; -- in bits, only 8, 16, 32 and 64 are valid
 		gPortGranularity    : natural := 8; -- in bits, only 8, 16, 32 and 64 are valid
 		gMaximumOperandSize : natural := 8; -- in bits, only 8, 16, 32 and 64 are valid
+		gAddressWidth       : natural := 8; -- in bits, see also
+											-- gPortGranularity and iAdr
 		gEndian             : aEndian := little -- if the port size equals the granularity
 									-- this setting does not make a difference
 	);
@@ -31,7 +33,7 @@ entity WbSlave is
 		-- Data signals
 		iSel : in  std_ulogic_vector(gPortSize/gPortGranularity - 1 downto 0);
 		-- Selects which parts of iDat are valid
-		iAdr : in std_ulogic_vector(gPortSize-1 downto integer(log2(
+		iAdr : in std_ulogic_vector(gAddressWidth-1 downto integer(log2(
 		real(gPortGranularity) )) - 1); -- Address
 		iDat : in std_ulogic_vector(gPortSize-1 downto 0); -- Input data, see iSel
 

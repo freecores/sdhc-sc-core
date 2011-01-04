@@ -34,12 +34,13 @@ begin
 	Stimulus : process
 	begin
 		wait;			
-	end process Stimulus ;
+	end process Stimulus;
 	
 	duv : entity work.WbSlave(Rtl)
 	generic map (gPortSize => 8, 
 				 gPortGranularity => 8,
 				 gMaximumOperandSize => 8,
+				 gAddressWidth => 8,
 				 gEndian => little)
 	port map(iClk => Clk,
 			 iRstSync => RstSync,
