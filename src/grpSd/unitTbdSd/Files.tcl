@@ -60,6 +60,7 @@ set units {Crc Crc {Rtl}
 	Sd TestWbMaster {Rtl}
 	Rs232 Rs232Tx {Rtl}
 	Components Ics307Configurator {Rtl}
+	Sd SdClkDomain {Rtl}
 	Sd SdTop {Rtl}
 	Sd TbdSd {Rtl}}
 

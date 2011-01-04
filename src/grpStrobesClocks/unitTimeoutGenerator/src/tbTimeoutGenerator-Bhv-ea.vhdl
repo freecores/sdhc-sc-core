@@ -48,15 +48,15 @@ architecture Bhv of tbTimeoutGenerator is
 	constant cResetTime    : time        := 4 * cClkPeriod;
 	constant cTimeoutTime  : time        := 10 us;
 	signal Clk             : std_ulogic  := '1';
-	signal nResetAsync     : std_ulogic  := cnActivated;
+	signal ResetSync       : std_ulogic  := cActivated;
 	signal Done            : std_ulogic  := cInactivated;
 	signal Timeout         : std_ulogic;
 	signal Enable          : std_ulogic  := cInactivated;
 
 begin
 
-	Clk         <= not Clk after (cClkPeriod / 2) when Done = cInactivated else '0';
-	nResetAsync <= cnInactivated after cResetTime;
+	Clk       <= not Clk after (cClkPeriod / 2) when Done = cInactivated else '0';
+	ResetSync <= cInactivated after cResetTime;
 
 	DUT : entity work.TimeoutGenerator
 	generic map (
@@ -64,11 +64,11 @@ begin
 		gTimeoutTime  => cTimeoutTime
 	)
 	port map (
-		iClk         => Clk,
-		inResetAsync => nResetAsync,
-		iDisable     => cInactivated,
-		iEnable      => Enable,
-		oTimeout     => Timeout
+		iClk     => Clk,
+		iRstSync => ResetSync,
+		iDisable => cInactivated,
+		iEnable  => Enable,
+		oTimeout => Timeout
 	);
 
 	Stimuli : process

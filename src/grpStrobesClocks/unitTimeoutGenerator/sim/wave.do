@@ -1,7 +1,7 @@
 onerror {resume}
 quietly WaveActivateNextPane {} 0
 add wave -noupdate -format Logic /tbtimeoutgenerator/clk
-add wave -noupdate -format Logic /tbtimeoutgenerator/nresetasync
+add wave -noupdate -format Logic /tbtimeoutgenerator/resetsync
 add wave -noupdate -format Logic /tbtimeoutgenerator/done
 add wave -noupdate -format Logic /tbtimeoutgenerator/timeout
 add wave -noupdate -format Logic /tbtimeoutgenerator/enable

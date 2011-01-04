@@ -40,7 +40,7 @@ entity tbCrc is
 end entity tbCrc;
 
 architecture bhv of tbCrc is
-    signal Clk, nResetAsync : std_ulogic := '0';
+    signal Clk, ResetSync : std_ulogic := '1';
     signal CRC_7 : std_ulogic_vector(6 downto 0);
     signal CRC_16 : std_ulogic_vector(15 downto 0);
     signal DataToCrc_7, DataToCrc_16 : std_ulogic;
@@ -99,7 +99,7 @@ architecture bhv of tbCrc is
 begin
 
     Clk <= not Clk after 10 ns when EndOfSim = false else '0';
-    nResetAsync <= '1' after 100 ns;
+    ResetSync <= '0' after 100 ns;
 
     generate_and_test7 : process is
         procedure Test7(
@@ -120,7 +120,7 @@ begin
 
         variable data : std_ulogic_vector(0 to (512*8)-1) := (others => '1');
     begin
-        wait until (nResetAsync = '1');
+        wait until (ResetSync = '0');
 
         Test7("0100000000000000000000000000000000000000","1001010");
         Test7("01000000000000000000000000000000000000001001010","0000000");
@@ -144,7 +144,7 @@ begin
 
     duv7: entity work.crc
     port map (iClk => Clk,
-        inResetAsync => nResetAsync,
+        iRstSync => ResetSync,
         iDataIn => CRCDataIn_7,
 		iStrobe => '1',
         iClear => CRCClear_7,
@@ -155,7 +155,7 @@ begin
     duv16: entity work.crc
     generic map (gPolynom => crc16)
     port map (iClk => Clk,
-        inResetAsync => nResetAsync,
+        iRstSync => ResetSync,
         iDataIn => CRCDataIn_16,
 		iStrobe => '1',
         iClear => CRCClear_16,

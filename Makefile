@@ -4,6 +4,8 @@ SIMS = grpCrc/unitCrc grpStrobesClocks/unitTimeoutGenerator
 SYSVSIMS = grpSd/unitSdVerificationTestbench
 SYNS = grpSd/unitTbdSd 
 
+all: clean sim svsim syn
+
 sim:
 	for i in $(SIMS); do make -C src/$$i/sim; done
 
