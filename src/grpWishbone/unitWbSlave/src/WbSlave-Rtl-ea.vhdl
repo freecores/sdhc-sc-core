@@ -10,6 +10,7 @@
 library ieee;
 use ieee.std_logic_1164.all;
 use ieee.math_real.all;
+use work.Global.all;
 use work.wishbone.all;
 
 entity WbSlave is

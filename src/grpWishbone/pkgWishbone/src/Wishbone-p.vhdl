@@ -49,10 +49,7 @@ package Wishbone is
 		Rty : std_ulogic; -- Indicates that the request should be retried
 	end record;
 
-constant cDefaultWbSlaveCtrlOutput : aWbSlaveCtrlOutput := ('0','0','0');
-constant cActivated : std_ulogic := '1';
-constant cInactivated : std_ulogic := '0';
+	constant cDefaultWbSlaveCtrlOutput : aWbSlaveCtrlOutput := ('0','0','0');
 
 end package Wishbone;
-
 
