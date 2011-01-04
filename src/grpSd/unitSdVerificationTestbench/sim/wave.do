@@ -33,9 +33,11 @@ add wave -noupdate -format Literal /Testbed/top/sdwbslave_inst/oreadfifo
 add wave -noupdate -format Literal /Testbed/top/sdwbslave_inst/ireadfifo
 add wave -noupdate -format Literal /Testbed/top/sdwbslave_inst/r
 add wave -noupdate -format Literal /Testbed/top/sdwbslave_inst/nxr
+add wave -noupdate -divider topsignals
+add wave -noupdate -format Logic /Testbed/top/osclk
+add wave -noupdate -format Logic /Testbed/top/iocmd
+add wave -noupdate -format Literal /Testbed/top/iodata
 add wave -noupdate -divider sdcard
-add wave -noupdate -format Logic /Testbed/CardInterface/Clk
-add wave -noupdate -format Logic /Testbed/CardInterface/nResetAsync
 add wave -noupdate -format Logic /Testbed/CardInterface/Cmd
 add wave -noupdate -format Logic /Testbed/CardInterface/SClk
 add wave -noupdate -format Literal -radix hexadecimal /Testbed/CardInterface/Data
@@ -46,10 +48,6 @@ add wave -noupdate -format Logic /Testbed/top/sdclockmaster_inst/ihighspeed
 add wave -noupdate -format Logic /Testbed/top/sdclockmaster_inst/idisable
 add wave -noupdate -format Logic /Testbed/top/sdclockmaster_inst/osdstrobe
 add wave -noupdate -format Logic /Testbed/top/sdclockmaster_inst/osdcardclk
-add wave -noupdate -format Logic /Testbed/top/sdclockmaster_inst/sdclk
-add wave -noupdate -format Literal /Testbed/top/sdclockmaster_inst/counter
-add wave -noupdate -format Logic /Testbed/top/sdclockmaster_inst/sdstrobe25mhz
-add wave -noupdate -format Logic /Testbed/top/sdclockmaster_inst/sdstrobe50mhz
 add wave -noupdate -divider sddata
 add wave -noupdate -format Logic /Testbed/top/sddata_inst/iclk
 add wave -noupdate -format Logic /Testbed/top/sddata_inst/inresetasync
@@ -86,7 +84,7 @@ add wave -noupdate -format Logic /Testbed/top/sdcontroller_inst/timeoutdisable
 add wave -noupdate -format Logic /Testbed/top/sdcontroller_inst/timeout
 add wave -noupdate -format Literal /Testbed/top/sdcontroller_inst/timeoutmax
 TreeUpdate [SetDefaultTree]
-WaveRestoreCursors {{Cursor 1} {1150621 ns} 0} {{Cursor 2} {10084945 ns} 0} {{Cursor 3} {10085095 ns} 0}
+WaveRestoreCursors {{Cursor 1} {1132238 ns} 0} {{Cursor 2} {10084945 ns} 0} {{Cursor 3} {10085095 ns} 0}
 configure wave -namecolwidth 150
 configure wave -valuecolwidth 100
 configure wave -justifyvalue left
@@ -101,4 +99,4 @@ configure wave -griddelta 40
 configure wave -timeline 0
 configure wave -timelineunits ns
 update
-WaveRestoreZoom {1149954 ns} {1155829 ns}
+WaveRestoreZoom {1131644 ns} {1137519 ns}

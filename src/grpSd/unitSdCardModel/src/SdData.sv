@@ -123,6 +123,21 @@ class SdData;
 		end
 	endtask
 
+	task sendBusy(virtual ISdCard.card ICmd);
+		
+		@ICmd.cb;
+		
+		// 10 busy cycles
+		ICmd.cb.Data[0] <= 0;
+		
+		repeat (10) @ICmd.cb;
+		ICmd.cb.Data[0] <= 1;
+
+		@ICmd.cb;
+		ICmd.cb.Data <= 'z;
+
+	endtask
+
 endclass
 
 `endif

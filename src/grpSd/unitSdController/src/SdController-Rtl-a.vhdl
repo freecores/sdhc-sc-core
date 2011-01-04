@@ -637,8 +637,14 @@ begin
 						elsif (Timeout = cActivated) then
 							NextR.State <= invalidCard;
 						end if;
-
+					
 					when senddata => 
+						NextRegion := checkbusy;
+
+					when checkbusy => 
+						null;
+
+					when receivedata => 
 						NextRegion := waitstatedata;
 
 					when waitstatedata => 
@@ -761,7 +767,12 @@ begin
 				end if;
 
 			when checkbusy => 
-				null;
+				NextR.ToSdData.CheckBusy <= cActivated;
+
+				if (iSdData.Busy = cActivated) then
+					NextR.Region <= receivedata;
+					NextR.ToSdData.CheckBusy <= cInactivated;
+				end if;
 
 			when receivedata => 
 				TimeoutEnable <= cActivated;

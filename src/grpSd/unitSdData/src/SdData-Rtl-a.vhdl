@@ -9,7 +9,7 @@
 
 architecture Rtl of SdData is
 
-	type aState is (idle, send, receive); -- overall states
+	type aState is (idle, send, receive, checkbusy); -- overall states
 	type aRegion is (startbit, data, crc, endbit); -- regions in send and receive state
 	subtype aCounter is unsigned(LogDualis(512*8)-1 downto 0); -- bit counter
 
@@ -251,8 +251,12 @@ begin
 		case R.State is
 			when idle => 
 				-- check if card signals that it is busy (the controller has to enable this check)
-				if (iSdDataFromController.CheckBusy = cActivated and iData.Data(0) = cInactivated) then
-					NextR.Controller.Busy <= cActivated;
+				if (iSdDataFromController.CheckBusy = cActivated) then
+					if (iData.Data(0) = cInactivated) then
+						-- NextR.Controller.Busy <= cActivated;
+					end if;
+
+					NextR.State <= checkbusy;
 
 				elsif (R.Mode = wide and iData.Data = cSdStartBits) or (R.Mode = standard and iData.Data(0) = cSdStartBit) then
 					-- start receiving
@@ -293,6 +297,14 @@ begin
 				else
 					-- switch between standard and wide mode only if nothing else is going on
 					NextR.Mode <= iSdDataFromController.Mode; 
+				end if;
+
+			when checkbusy => 
+				NextR.Controller.Busy <= cActivated;
+
+				if (iData.Data(0) = cActivated) then
+					NextR.Controller.Valid <= cActivated;
+					NextR.State <= idle;
 				end if;
 
 			when send =>

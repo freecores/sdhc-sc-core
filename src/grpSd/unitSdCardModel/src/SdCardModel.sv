@@ -286,6 +286,9 @@ class SDCard;
 			end
 		end
 
+		repeat (8) @ICard.cb;
+		sddata.sendBusy(ICard);
+
 		$display("Ram at write address: %h", ram[addr]);
 
 	endtask
