@@ -23,7 +23,7 @@ class SdCardModel;
 	SdBfmMb SdTransOutMb;
 	SdBfmMb SdTransInMb;
 
-	local SdBFM bfm;
+	SdBFM bfm;
 	local SdCardModelState state;
 	local RCA_t rca;
 	local logic CCS;
@@ -50,8 +50,11 @@ class SdCardModel;
 		log = new();
 	endfunction
 
-	function void start();
-	endfunction
+	task start();
+		fork
+			run();
+		join_none
+	endtask
 
 	task reset();
 	endtask
@@ -218,6 +221,7 @@ class SdCardModel;
 		response = new(cSdCmdSendStatus, state);
 		this.bfm.send(response);
 
+		log.note("Card init done");
 	endtask
 
 	task run();

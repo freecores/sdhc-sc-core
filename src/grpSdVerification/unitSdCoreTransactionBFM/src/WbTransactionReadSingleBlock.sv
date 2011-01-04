@@ -10,7 +10,7 @@ class WbTransactionSequenceReadSingleBlock extends WbTransactionSequence;
 	WbAddr EndAddr;
 
 	function new(WbAddr StartAddr, WbAddr EndAddr);
-		size = 1 + 1 + 1; // startaddr, endaddr, operation
+		size = 1 + 1 + 1 + 512*8/32; // startaddr, endaddr, operation, read data back
 		
 		transactions = new[size];
 		foreach(transactions[i])
@@ -24,7 +24,8 @@ class WbTransactionSequenceReadSingleBlock extends WbTransactionSequence;
 		transactions[2].Addr == cOperationAddr;
 		transactions[2].Data == cOperationRead;
 
-		transactions[0].Addr == cStartAddrAddr || cEndAddrAddr;
+		transactions[0].Addr == cStartAddrAddr || 
+		transactions[0].Addr == cEndAddrAddr;
 		if (transactions[0].Addr == cStartAddrAddr) {
 			transactions[1].Addr == cEndAddrAddr;
 			transactions[1].Data == EndAddr;
@@ -40,6 +41,7 @@ class WbTransactionSequenceReadSingleBlock extends WbTransactionSequence;
 				transactions[i].Kind == WbTransaction::Write;
 			} else {
 				transactions[i].Kind == WbTransaction::Read;
+				transactions[i].Addr == cReadDataAddr;
 			}
 		}
 	};

@@ -32,7 +32,7 @@ program Test(ISdBus SdBus, IWishboneBus WbBus);
 		harness.Card = card;
 
 		harness.start();
-		#1ms;
+		#2ms;
 
 		log.terminate();
     end	
@@ -72,6 +72,7 @@ module Testbed();
 
 	initial begin
 		#10 nResetAsync <= 1;
+		#10 IWbBus.RST_I <= 0;
 	end
 
 	Test tb(CardInterface, IWbBus);

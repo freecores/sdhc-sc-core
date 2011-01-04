@@ -2,7 +2,7 @@
 `ifndef WBTRANSACTION_SV
 `define WBTRANSACTION_SV
 
-typedef bit[3:0] WbAddr;
+typedef bit[2:0] WbAddr;
 typedef bit[31:0] WbData;
 
 class WbTransaction;
@@ -18,6 +18,10 @@ class WbTransaction;
 	function void display();
 		$display("Transaction: %s, %s, %b, %b", Type.name(), Kind.name(), Addr, Data);
 	endfunction
+
+	constraint NotImplementedYet {
+		Type == Classic;
+	};
 endclass
 
 class WbTransactionSequence;

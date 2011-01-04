@@ -43,12 +43,12 @@ endtask
 task SdBFM::sendAllDataBlocks(SdDataBlock blocks[]);
 	foreach(blocks[i]) begin
 		sendDataBlock(blocks[i]);
-		waitUntilReady();
+		//waitUntilReady(); // TODO: check pauses between transactions on the bus without waits
 	end
 endtask
 
 task SdBFM::waitUntilReady();
-	repeat (8) @ICard.cb;
+	//repeat (8) @ICard.cb;
 endtask
 
 task SdBFM::sendDataBlock(SdDataBlock block);
@@ -182,7 +182,6 @@ task SdBFM::recvWideDataBlock(output SdDataBlock block);
 	aCrc16 crc[4];
 	block = new();
 
-	$display("Startbits: %t", $time);
 	for (int j = 0; j <= 512*2; j++) begin
 		@ICard.cb;
 		for(int i = 0; i < 4; i++) begin
@@ -202,7 +201,6 @@ task SdBFM::recvWideDataBlock(output SdDataBlock block);
 
 	// end bits
 	@ICard.cb;
-	$display("Endbits: %h, %t", ICard.cb.Data, $time);
 	assert(ICard.cb.Data == 'b1111);
 endtask
 
@@ -234,7 +232,7 @@ endtask
 task SdBFM::start();
 	fork
 		begin
-			run();
+			//run();
 		end
 	join_none
 endtask

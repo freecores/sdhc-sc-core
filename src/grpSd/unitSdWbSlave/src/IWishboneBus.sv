@@ -13,7 +13,7 @@ interface IWishboneBus;
 		logic 						 ERR_I;
 		logic 												 RTY_I;
 		logic 												 CLK_I = 1;
-		logic RST_I;
+		logic RST_I = 1;
 		logic 												 ACK_I;
 		logic [`cWishboneWidth-1 : 0] 						 DAT_I;
 

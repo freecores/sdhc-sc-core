@@ -659,6 +659,7 @@ begin
 
 			when requestnewoperation => 
 
+				NextR.ToSdData.DisableRb       <= cInactivated;
 				NextR.ToSdWbSlave.ReqOperation <= not R.ToSdWbSlave.ReqOperation;
 				NextR.State                    <= idle;
 

@@ -32,6 +32,7 @@ class SdCoreTransactionBFM;
 				SdCoreTransaction::readSingleBlock:
 					begin
 						WbTransactionSequenceReadSingleBlock tmp = new(trans.startAddr, trans.endAddr);
+						assert (tmp.randomize()) else Log.error("Randomizing WbTransactionSequence seq failed.");
 						seq = tmp;
 					end
 				default:
@@ -42,11 +43,9 @@ class SdCoreTransactionBFM;
 					end
 			endcase
 
-			assert (seq.randomize()) else Log.error("Randomizing WbTransactionSequence seq failed.");
-			seq.display();
-
-			foreach(seq.transactions[i])
+			foreach(seq.transactions[i]) begin
 				WbTransOutMb.put(seq.transactions[i]);
+			end
 
 			if (StopAfter > 0) StopAfter--;
 		end

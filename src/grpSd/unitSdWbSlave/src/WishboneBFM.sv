@@ -11,22 +11,57 @@
 
 `include "IWishboneBus.sv";
 `include "WbTransaction.sv";
+`include "Logger.sv";
 
 class WbBFM;
 
 	virtual IWishboneBus.Master Bus;
 	WbTransMb TransInMb;
 	WbTransMb TransOutMb;
+	int StopAfter = -1;
+	Logger Log = new();
 
 	function new(virtual IWishboneBus.Master Bus);
 		this.Bus = Bus;
 	endfunction
 
-	function void start();
-	endfunction
+	task start();
+		fork
+			this.run();
+		join_none;
+	endtask
+
+	task run();
+		Idle();
+
+		while (StopAfter != 0) begin
+			WbTransaction transaction;
+
+			TransInMb.get(transaction);
+			
+			case (transaction.Type)
+			WbTransaction::Classic: begin
+				case (transaction.Kind)
+				WbTransaction::Read: begin 
+					Read(transaction.Addr, transaction.Data);
+				end
+				WbTransaction::Write: begin 
+					Write(transaction.Addr, transaction.Data);
+				end
+				endcase
+			end
+			
+			default: begin
+				string msg;
+				$swrite(msg, "Transaction.Type %s not handled.", transaction.Type.name());
+				Log.error(msg);
+			end
+			endcase
+			if (StopAfter > 0) StopAfter--;
+		end
+	endtask
 
 	task Idle();
-
 		@(posedge this.Bus.CLK_I)
 		this.Bus.cbMaster.CYC_O  <= cNegated;
 		this.Bus.cbMaster.ADR_O  <= '{default: cDontCare};
@@ -39,24 +74,23 @@ class WbBFM;
 		this.Bus.cbMaster.WE_O   <= cDontCare;
 		this.Bus.cbMaster.LOCK_O <= cNegated;
 		this.Bus.cbMaster.CTI_O  <= '{default: cDontCare};
-		$display("%t : Bus idle.", $time);
-
+		Log.note("WbBus idle");
 	endtask;
 
 	function void checkResponse();
 
 		// Analyse slave response
 		if (this.Bus.cbMaster.ERR_I == cAsserted) begin
-			$display("%t : MasterWrite: ERR_I asserted; Slave encountered an error.", $time);
+			Log.error("MasterWrite: ERR_I asserted; Slave encountered an error.");
 		end
 		if (this.Bus.cbMaster.RTY_I == cAsserted) begin
-			$display("%t : MasterWrite: RTY_I asserted; Retry requested.", $time);
+			Log.note("MasterWrite: RTY_I asserted; Retry requested.");
 		end
 
 	endfunction;
 
 	task Read(logic [`cWishboneWidth-1 : 0] Address,
-			   ref logic [`cWishboneWidth-1 : 0] Data,
+			   ref bit [`cWishboneWidth-1 : 0] Data,
 			   input logic [`cWishboneWidth-1 : 0] TGA = '{default: cDontCare},
 			   input logic [`cWishboneWidth-1 : 0] BankSelect = '{default: 1});
 
@@ -79,7 +113,11 @@ class WbBFM;
 		checkResponse();
 
 		Data = this.Bus.cbMaster.DAT_I; // latch it before the CLOCK???
-		//$display("%t : Reading %h", $time, Data);
+		begin
+			string msg;
+			$swrite(msg, "WbBus: Reading %h", Data);
+			Log.note(msg);
+		end
 
 		this.Bus.cbMaster.STB_O <= cNegated;
 		this.Bus.cbMaster.CYC_O <= cNegated;
@@ -197,7 +235,7 @@ class WbBFM;
 	task TestSingleOps (logic [`cWishboneWidth-1 : 0] Address,
 					   logic [`cWishboneWidth-1 : 0] Data);
 
-		logic [`cWishboneWidth-1 : 0] rd;
+		bit [`cWishboneWidth-1 : 0] rd;
 
 		this.Write(Address, Data);
 		this.Read(Address, rd);

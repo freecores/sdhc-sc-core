@@ -23,7 +23,6 @@ class SdCoreTransferFunction;
 			SdCoreTransaction transaction;
 
 			TransInMb.get(transaction);
-			Log.note("SdCoreTransferFunction transaction received");
 
 			if (StopAfter > 0) StopAfter--;
 		end

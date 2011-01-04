@@ -172,6 +172,7 @@ package Sd is
 		ExpectBits : aSdDataBits; -- how many bits are expected in wide with data mode
 		Valid      : std_ulogic; -- valid, when the datablock is valid and has to be sent
 		CheckBusy  : std_ulogic; -- check for busy signaling
+		DisableRb  : std_ulogic; -- disable read back: do not save read data to fifo
 	end record aSdDataFromController;
 
 	constant cDefaultSdDataFromController : aSdDataFromController := (
@@ -179,7 +180,8 @@ package Sd is
 	DataMode   => usual,
 	ExpectBits => ScrBits,
 	Valid      => cInactivated,
-	CheckBusy  => cInactivated);
+	CheckBusy  => cInactivated,
+	DisableRb  => cActivated);
 
 	type aSpeedBits is record
 		HighSpeedSupported : std_ulogic;

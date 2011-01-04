@@ -64,6 +64,9 @@ task Harness::start();
 	Card.SdTransOutMb = new(1);
 	Card.SdTransInMb = new(1);
 
+	// todo: remove
+	Card.bfm = SdBfm;
+
 	// connect Mailboxes
 	TransFunc.TransInMb = TransSeqGen.TransOutMb[0];
 	TransBfm.SdTransInMb = TransSeqGen.TransOutMb[1];

@@ -193,7 +193,7 @@ begin
 
 				end if;
 			else
-				if (RByteC = 0 and RBitC = 7 and R.WordInvalid = cInactivated) then
+				if (RByteC = 0 and RBitC = 7 and R.WordInvalid = cInactivated and iSdDataFromController.DisableRb = cInactivated) then
 					-- received word is valid, save it to ram
 					NextR.WriteReadFifo.data <= R.Word;
 					HandleFifoAccess(iWriteReadFifo.wrfull, NextR.WriteReadFifo.wrreq);
@@ -407,16 +407,18 @@ begin
 
 					when crc =>
 						-- save last word to ram
-						HandleFifoAccess(iWriteReadFifo.wrfull, NextR.WriteReadFifo.wrreq);
-						NextR.WriteReadFifo.data <= R.Word;
-
 						ShiftIntoCrc(std_ulogic_vector(iData.Data));
 
 						if (R.Counter = 15) then
-						-- all 16 crc bits received
+							-- all 16 crc bits received
 							NextR.Region <= endbit;
 						else
 							NextR.Counter <= R.Counter + 1;
+
+							if (R.Counter = 0 and iSdDataFromController.DisableRb = cInactivated) then
+								HandleFifoAccess(iWriteReadFifo.wrfull, NextR.WriteReadFifo.wrreq);
+								NextR.WriteReadFifo.data <= R.Word;
+							end if;
 						end if;
 
 					when endbit => 
