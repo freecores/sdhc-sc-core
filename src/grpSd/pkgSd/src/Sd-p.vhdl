@@ -19,17 +19,20 @@ package Sd is
 
 	constant cSdCmdIdHigh : natural := 6;
 	subtype aSdCmdId is std_ulogic_vector(cSdCmdIdHigh-1 downto 0);
+	subtype aSdCmdArg is std_ulogic_vector(31 downto 0);
 
-	type SdCmdToken is record
+	type aSdCmdContent is record
+		id : aSdCmdId;
+		arg : aSdCmdArg;
+	end record aSdCmdContent;
+
+	type aSdCmdToken is record
 		startbit : std_ulogic; -- cSdStartBit
 		transbit : std_ulogic;
-		-- content
-		cmdid : aSdCmdId;
-		args : std_ulogic_vector(31 downto 0);
-
+		content : aSdCmdContent;		
 		crc7 : std_ulogic_vector(6 downto 0); -- CRC of content
 		endbit : std_ulogic; --cSdEndBit
-	end record SdCmdToken;
+	end record aSdCmdToken;
 
 	-- command ids
 	-- abbreviations:
@@ -54,7 +57,7 @@ package Sd is
 
 	constant cSdCmdSendIfCond : aSdCmdId := std_ulogic_vector(to_unsigned(8,
 	cSdCmdIdHigh)); -- [31:12] reserved, [11:8] supply voltage, [7:0] check
-	-- pattern
+					-- pattern
 
 	constant cSdCmdSendCSD : aSdCmdId := std_ulogic_vector(to_unsigned(9,
 	cSdCmdIdHigh)); -- [31:16] RCA

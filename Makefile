@@ -1,6 +1,6 @@
 # Recursive makefile for simulations
 
-SIMS = grpCrc/unitCrc grpWishbone/unitWbSlave
+SIMS = grpCrc/unitCrc grpWishbone/unitWbSlave grpSd/unitSdCmd
 SYNS = grpCrc/unitCrc
 
 sim:
