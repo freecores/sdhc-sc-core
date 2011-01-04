@@ -82,25 +82,21 @@ end entity SdTop;
 
 architecture Rtl of SdTop is
 
-	signal iSdCtrl, oWbCtrl : aSdWbSlaveToSdController;
-	signal oSdCtrl, iWbCtrl : aSdControllerToSdWbSlave;
-	signal iSdWriteFifo     : aiReadFifo;
-	signal oSdWriteFifo     : aoReadFifo;
-	signal iSdReadFifo      : aiWriteFifo;
-	signal oSdReadFifo      : aoWriteFifo;
-	signal iWbWriteFifo     : aiWriteFifo;
-	signal oWbWriteFifo     : aoWriteFifo;
-	signal iWbReadFifo      : aiReadFifo;
-	signal oWbReadFifo      : aoReadFifo;
-
-	signal ReadFifoQTemp    : std_logic_vector(31 downto 0);
-	signal WriteFifoQTemp   : std_logic_vector(31 downto 0);
+	signal iSdCtrlSync  : aSdWbSlaveToSdController;
+	signal oWbCtrl      : aSdWbSlaveToSdController;
+	signal oSdCtrl      : aSdControllerToSdWbSlave;
+	signal iWbCtrlSync  : aSdControllerToSdWbSlave;
+	signal iSdWriteFifo : aiReadFifo;
+	signal oSdWriteFifo : aoReadFifo;
+	signal iSdReadFifo  : aiWriteFifo;
+	signal oSdReadFifo  : aoWriteFifo;
+	signal iWbWriteFifo : aiWriteFifo;
+	signal oWbWriteFifo : aoWriteFifo;
+	signal iWbReadFifo  : aiReadFifo;
+	signal oWbReadFifo  : aoReadFifo;
 
 begin
 
-	--------------------------------------------------------------------------------
-	 -- clk domains
-	--------------------------------------------------------------------------------
 	SdClkDomain_inst: entity work.SdClkDomain
 	generic map (
 		gClkFrequency  => gClkFrequency,
@@ -114,7 +110,7 @@ begin
 		ioData       => ioData,
 		oLedBank     => oLedBank,
 		oSdCtrl      => oSdCtrl,
-		iSdCtrl      => iSdCtrl,
+		iSdCtrl      => iSdCtrlSync,
 		iSdWriteFifo => iSdWriteFifo,
 		oSdWriteFifo => oSdWriteFifo,
 		iSdReadFifo  => iSdReadFifo,
@@ -143,53 +139,31 @@ begin
 		oWriteFifo  => oWbWriteFifo,
 		oReadFifo   => oWbReadFifo,
 		oWbToSdCtrl => oWbCtrl,
-		iSdCtrlToWb => iWbCtrl
+		iSdCtrlToWb => iWbCtrlSync
 	);
-	
 
-	--------------------------------------------------------------------------------	
-	 -- clk domain synchronization
-	--------------------------------------------------------------------------------
-	SdWbControllerSync_inst: entity work.SdWbControllerSync
+	SdWbClkDomainSync_inst: entity work.SdWbClkDomainSync
 	generic map (
 		gUseSameClocks => gUseSameClocks
 	)
 	port map (
-		iWbClk        => iWbClk,
-		iWbRstSync    => iWbRstSync,
-		iSdClk        => iSdClk,
-		iSdRstSync    => iSdRstSync,
-		iSdWb         => oWbCtrl,
-		oSdWb         => iWbCtrl,
-		iSdController => oSdCtrl,
-		oSdController => iSdCtrl
-	);
-
-	WriteDataFifo_inst: entity work.WriteDataFifo
-	port map (
-		data    => std_logic_vector(oWbWriteFifo.data),
-		rdclk   => iSdClk,
-		rdreq   => oSdWriteFifo.rdreq,
-		wrclk   => iWbClk,
-		wrreq   => oWbWriteFifo.wrreq,
-		q       => ReadFifoQTemp,
-		rdempty => iSdWriteFifo.rdempty,
-		wrfull  => iWbWriteFifo.wrfull
-	);
-	iSdWriteFifo.q <= std_ulogic_vector(ReadFifoQTemp);
-
-	ReadDataFifo_inst: entity work.WriteDataFifo
-	port map (
-		data    => std_logic_vector(oSdReadFifo.data),
-		rdclk   => iWbClk,
-		rdreq   => oWbReadFifo.rdreq,
-		wrclk   => iSdClk,
-		wrreq   => oSdReadFifo.wrreq,
-		q       => WriteFifoQTemp,
-		rdempty => iWbReadFifo.rdempty,
-		wrfull  => iSdReadFifo.wrfull
-	);
-	iWbReadFifo.q <= std_ulogic_vector(WriteFifoQTemp);
-
+		iWbClk       => iWbClk,
+		iWbRstSync   => iWbRstSync,
+		iSdClk       => iSdClk,
+		iSdRstSync   => iSdRstSync,
+		iWbCtrl      => oWbCtrl,
+		iWbWriteFifo => oWbWriteFifo,
+		iWbReadFifo  => oWbReadFifo,
+		iSdCtrl      => oSdCtrl,
+		iSdWriteFifo => oSdWriteFifo,
+		iSdReadFifo  => oSdReadFifo,
+		oWbCtrlSync  => iWbCtrlSync,
+		oWbWriteFifo => iWbWriteFifo,
+		oWbReadFifo  => iWbReadFifo,
+		oSdCtrlSync  => iSdCtrlSync,
+		oSdWriteFifo => iSdWriteFifo,
+		oSdReadFifo  => iSdReadFifo
+	 );
+	
 end architecture Rtl;
 

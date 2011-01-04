@@ -62,6 +62,7 @@ set units {Crc Crc {Rtl}
 	Components Ics307Configurator {Rtl}
 	Sd SdClkDomain {Rtl}
 	Sd WbClkDomain {Rtl}
+	Sd SdWbClkDomainSync {Rtl}
 	Sd SdTop {Rtl}
 	Sd TbdSd {Rtl}}
 
