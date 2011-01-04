@@ -17,7 +17,9 @@ entity SdTop is
 		inResetAsync : in std_ulogic; 
 
 		-- SD Card
-		ioCmd : inout std_logic -- Cmd line to and from card
+		ioCmd : inout std_logic; -- Cmd line to and from card
+		oClk : out std_ulogic;
+		ioData : inout std_logic_vector(3 downto 0)
 	);
 end entity SdTop;
 
@@ -27,6 +29,8 @@ architecture Rtl of SdTop is
 	signal FromController : aSdCmdFromController;
 
 begin
+	ioData <= "ZZZZ";
+	oClk <= iClk;
 
 	SdController_inst: entity work.SdController(Rtl)
 	port map (iClk => iClk,
