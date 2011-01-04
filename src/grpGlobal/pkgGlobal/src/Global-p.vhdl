@@ -1,10 +1,12 @@
--------------------------------------------------
--- file: Global-p.vhdl
--- author: Rainer Kastl
 --
--- Global package contains constants and functions
+-- Title: - 
+-- File: Global-p.vhdl
+-- Author: Copyright 2010: Rainer Kastl
+-- Standard: VHDL'93
+-- 
+-- Description: Global package contains constants and functions
 -- for use everywhere.
--------------------------------------------------
+--
 
 library ieee;
 use ieee.std_logic_1164.all;
@@ -20,6 +22,12 @@ package Global is
 	subtype aLedBank is std_ulogic_vector(7 downto 0);
 
 	function LogDualis(cNumber : natural) return natural;
+
+
+	-- Edge detector
+	constant cDetectRisingEdge  : natural := 0;
+	constant cDetectFallingEdge : natural := 1;
+	constant cDetectAnyEdge     : natural := 2;
 
 end package Global;
 
