@@ -2,7 +2,7 @@
 
 LIBS = libaltera_mf libcycloneii
 SIMS = grpCrc/unitCrc grpStrobesClocks/unitTimeoutGenerator
-SYSVSIMS = grpSd/unitSdVerificationTestbench
+SYSVSIMS = grpSdVerification/unitSdVerificationTestbench
 SYNS = grpSd/unitTbdSd 
 
 all: clean libs sim svsim syn

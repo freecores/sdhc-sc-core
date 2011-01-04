@@ -26,12 +26,50 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 # 
-# File        : tbwb-unattended.tcl
+# File        : Files.tcl
 # Owner       : Rainer Kastl
 # Description : 
 # Links       : 
 # 
 
-set script tbwb.tcl
+set libs {altera_mf}
 
-do "../../../sim/unattended.tcl"
+set pkgs {Global Global
+	Sd Sd
+	Crc CRCs
+	Rs232 Rs232
+	Components Ics307Values
+	Wishbone Wishbone
+	Sd SdWb
+}
+
+set units {Crc Crc {Rtl}
+	Sd SdCmd {Rtl}
+	StrobesClocks Counter {Rtl}
+	Sd SdController {Rtl}
+	Sd SdData {Rtl}
+	Cyclone2 CycSimpleDualPortedRam {Syn}
+	Memory SimpleDualPortedRam {Rtl}
+	Memory SinglePortedRam {Rtl}
+	StrobesClocks StrobeGen {Rtl}
+	Sd SdWbSlave {Rtl}
+	Sd SdClockMaster {Rtl}
+	Sd SdCardSynchronizer {Rtl}
+	Synchronization Synchronizer {Rtl}
+	StrobesClocks EdgeDetector {Rtl}
+	Sd SdWbSdControllerSync {Rtl}
+	Cyclone2 WriteDataFifo {Syn}
+	Sd SdClkDomain {Rtl}
+	Sd WbClkDomain {Rtl}
+	Sd SdWbClkDomainSync {Rtl}
+	Sd SdTop {Rtl}}
+
+set svunits {SdVerification SdCardModel
+	SdVerification SdVerificationTestbench}
+
+set sysvlogparams [list +incdir+../../../grpSdVerification/unitSdCardModel/src+../src+../../../grpWishbone/unitWishboneBFM/src+../../../grpVerification/unitLogger/src/+../../../grpSdVerification/unitSdCoreTransactionBFM/src+../../../grpSdVerification/unitSdCoreTransactionSeqGen/src+../../../grpSdVerification/unitSdCoreTransferFunction/src+../../../grpSdVerification/unitSdCoreChecker/src+../../../grpSdVerification/unitSdCoreTransaction/src+../../../grpSd/pkgSdWb/src/]
+
+#set tb
+set top Testbed
+#set vsimargs -coverage
+

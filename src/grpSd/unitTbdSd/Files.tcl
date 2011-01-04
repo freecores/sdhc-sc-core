@@ -68,9 +68,8 @@ set units {Crc Crc {Rtl}
 
 set svunits {Sd TbdSd}
 
-set sysvlogparams [list +incdir+../../unitSdCardModel/src+../src+../../unitSdWbSlave/src+../../../grpVerification/unitLogger/src/+../../../grpSdVerification/unitSdCoreTransactionBFM/src+../../../grpSdVerification/unitSdCoreTransactionSeqGen/src+../../../grpSdVerification/unitSdCoreTransferFunction/src+../../../grpSdVerification/unitSdCoreChecker/src+../../../grpSdVerification/unitSdCoreTransaction/src+../../pkgSdWb/src/]
+set sysvlogparams [list +incdir+../../../grpSdVerification/unitSdCardModel/src+../src+../../../grpWishbone/unitWishboneBFM/src+../../../grpVerification/unitLogger/src/+../../../grpSdVerification/unitSdCoreTransactionBFM/src+../../../grpSdVerification/unitSdCoreTransactionSeqGen/src+../../../grpSdVerification/unitSdCoreTransferFunction/src+../../../grpSdVerification/unitSdCoreChecker/src+../../../grpSdVerification/unitSdCoreTransaction/src+../../../grpSd/pkgSdWb/src/]
 
 #set tb
 set top Testbed
-
 
