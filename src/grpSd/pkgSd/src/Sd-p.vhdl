@@ -9,6 +9,7 @@
 library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
+use work.Global.all;
 
 package Sd is
 
@@ -28,6 +29,10 @@ package Sd is
 		arg : aSdCmdArg;
 	end record aSdCmdContent;
 
+	constant cDefaultSdCmdContent : aSdCmdContent := (
+	id => (others => '0'),
+	arg => (others => '0'));
+
 	type aSdCmdToken is record
 		startbit : std_ulogic; -- cSdStartBit
 		transbit : std_ulogic;
@@ -36,10 +41,55 @@ package Sd is
 		endbit : std_ulogic; --cSdEndBit
 	end record aSdCmdToken;
 
+	-- SD Card Regs
+	subtype aVoltageWindow is std_ulogic_vector(23 downto 15);
+	constant cVoltageWindow : aVoltageWindow := (others => '1');
+	constant cSdR3Id : aSdCmdId := (others => '1');
+	constant cSdR2Id : aSdCmdId := (others => '1');
+
+	type aSdRegOCR is record
+		voltagewindow : aVoltageWindow;
+		ccs : std_ulogic;
+		nBusy : std_ulogic;
+	end record aSdRegOCR;
+
+	function OCRToArg (ocr : in aSdRegOCR) return aSdCmdArg;
+	function ArgToOcr (arg : in aSdCmdArg) return aSdRegOCR;
+
+	subtype aSdCIDMID is std_ulogic_vector(7 downto 0);
+	subtype aSdCIDOID is std_ulogic_vector(15 downto 0);
+	subtype aSdCIDPNM is std_ulogic_vector(39 downto 0);
+	subtype aSdCIDPRV is std_ulogic_vector(7 downto 0);
+	subtype aSdCIDPSN is std_ulogic_vector(31 downto 0);
+	subtype aSdCIDMDT is std_ulogic_vector(11 downto 0);
+
+	type aSdRegCID is record
+		mid : aSdCIDMID;
+		oid : aSdCIDOID;
+		name : aSdCIDPNM;
+		revision : aSdCIDPRV;
+		serialnumber : aSdCIDPSN;
+		date : aSdCIDMDT;
+	end record;
+
+	constant cCIDLength : natural := 127;
+
+	constant cDefaultSdRegCID : aSdRegCID := (
+	mid => (others => '0'),
+	oid => (others => '0'),
+	name => (others => '0'),
+	revision => (others => '0'),
+	serialnumber => (others => '0'),
+	date =>	(others => '0'));
+
+	function UpdateCID(icid : in aSdRegCID; data : in std_ulogic; pos : in
+	natural) return aSdRegCID;
+
 	-- Types for entities
 	type aSdCmdFromController is record
 		Content : aSdCmdContent;
 		Valid : std_ulogic;
+		ExpectCID : std_ulogic; -- gets asserted when next response is R2
 	end record aSdCmdFromController;
 
 	type aSdCmdToController is record
@@ -51,7 +101,16 @@ package Sd is
 		-- a cmd was received)
 		Err : std_ulogic; -- gets asserted when an error occurred during
 		-- receiving a cmd
+		Cid : aSdRegCID;
 	end record aSdCmdToController;
+
+	constant cDefaultSdCmdToController : aSdCmdToController := (
+	Ack => cInactivated,
+	Receiving => cInactivated,
+	Valid => cInactivated,
+	Content => cDefaultSdCmdContent,
+	Err => cInactivated,
+	Cid => cDefaultSdRegCID);
 
 	-- constants for Controller
 	subtype aRCA is std_ulogic_vector(15 downto 0);
@@ -110,19 +169,6 @@ package Sd is
 
 	constant cSdCmdACMD41 : aSdCmdId := std_ulogic_vector(to_unsigned(41, cSdCmdIdHigh));
 
-	subtype aVoltageWindow is std_ulogic_vector(23 downto 15);
-	constant cVoltageWindow : aVoltageWindow := (others => '1');
-	constant cSdR3Id : aSdCmdId := (others => '1');
-
-	type aSdRegOCR is record
-		voltagewindow : aVoltageWindow;
-		ccs : std_ulogic;
-		nBusy : std_ulogic;
-	end record aSdRegOCR;
-
-	function OCRToArg (ocr : in aSdRegOCR) return aSdCmdArg;
-	function ArgToOcr (arg : in aSdCmdArg) return aSdRegOCR;
-
 end package Sd;
 
 package body Sd is
@@ -143,6 +189,29 @@ package body Sd is
 		ocr.voltagewindow := arg(23 downto 15);
 		return ocr;
 	end function ArgToOcr;
+
+	function UpdateCID(icid : in aSdRegCID; data : in std_ulogic; pos : in
+	natural) return aSdRegCID is
+		variable cid : aSdRegCID;
+	begin
+		cid := icid;
+
+		if (pos <= 127 and pos >= 120) then
+			cid.mid(pos-120) := data;
+		elsif (pos <= 119 and pos >= 104) then
+			cid.oid(pos-104) := data;
+		elsif (pos <= 103 and pos >= 64) then
+			cid.name(pos-64) := data;
+		elsif (pos <= 63 and pos >= 56) then
+			cid.revision(pos-56) := data;
+		elsif (pos <= 55 and pos >= 24) then
+			cid.serialnumber(pos-24) := data;
+		elsif (pos <= 19 and pos >= 8) then
+			cid.date(pos-8) := data;
+		end if;
+
+		return cid;
+	end function UpdateCID;
 
 end package body Sd;
 

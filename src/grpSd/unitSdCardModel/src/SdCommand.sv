@@ -184,3 +184,43 @@ class SDCommandR3 extends SDCommandResponse;
 
 endclass
 
+include "../../unitSdCardModel/src/SDCID.sv";
+class SDCommandR2 extends SDCommandResponse;
+	local SDCID cid;
+	
+	function new();
+		startbit = 0;
+		transbit = 0;
+		this.id = 'b111111;
+		this.cid = new();
+		this.cid.randomize();
+		endbit = 1;
+	endfunction
+
+	task automatic send(virtual ISdCmd.Card ICmd);
+		logic data[$];
+		cidreg_t cidreg;
+
+		// fill queue
+		data.push_back(startbit);
+		data.push_back(transbit);
+		for (int i = 5; i >= 0; i--)
+			data.push_back(id[i]);
+
+		cidreg = cid.get();
+		for (int i = 127; i >= 1; i--)
+			data.push_back(cidreg[i]);
+
+		data.push_back(endbit);
+
+		foreach(data[i]) begin
+			@ICmd.cb;
+			ICmd.cb.Cmd <= data[i];
+		end
+
+		@ICmd.cb;
+		ICmd.cb.Cmd <= 'z;
+	endtask
+	
+endclass
+

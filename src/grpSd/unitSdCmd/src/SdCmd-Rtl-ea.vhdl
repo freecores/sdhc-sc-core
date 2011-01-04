@@ -30,7 +30,7 @@ end entity SdCmd;
 architecture Rtl of SdCmd is
 
 	type aSdCmdState is (idle, startbit, transbit, cmdid, arg, crc, endbit,
-	recvtransbit, recvcmdid, recvarg, recvcrc, recvendbit, recvcrcerror);
+	recvtransbit, recvcmdid, recvarg, recvcid, recvcrc, recvendbit, recvcrcerror);
 
 	type aCrcOut is record 
 		Clear : std_ulogic;
@@ -38,23 +38,30 @@ architecture Rtl of SdCmd is
 		Data : std_ulogic;
 	end record aCrcOut;
 
+	constant cDefaultCrcOut : aCrcOut := (
+	Clear => cInactivated,
+	DataIn => cInactivated,
+	Data => cInactivated);
+
 	type aSdCmdOut is record
 		Crc : aCrcOut;
 		Controller : aSdCmdToController;
 		Cmd : std_logic;
 	end record aSdCmdOut;
 
+	constant cDefaultOut : aSdCmdOut := (
+	Crc => cDefaultCrcOut,	
+	Controller => cDefaultSdCmdToController,
+	Cmd => 'Z');
+
+
 	signal State, NextState : aSdCmdState;
 	signal SerialCrc, CrcCorrect : std_ulogic;
-	signal Counter, NextCounter : unsigned(integer(log2(real(32))) - 1 downto 0);
+	signal Counter, NextCounter : unsigned(integer(log2(real(128))) - 1 downto 0);
 	signal Output : aSdCmdOut;
 
-	constant cDefaultOut : aSdCmdOut := ((cInactivated, cInactivated,cInactivated),
-   	(Ack => cInactivated, Receiving => cInactivated, Valid => cInactivated,
-	Content => (id => (others => '0'), arg => (others => '0')), Err => 
-	cInactivated), 'Z');
-
 	signal ReceivedToken, NextReceivedToken : aSdCmdToken;
+	signal Cid, NextCid : aSdRegCID;
 
 begin
 
@@ -71,11 +78,13 @@ begin
 			State <= NextState;
 			Counter <= NextCounter;
 			ReceivedToken <= NextReceivedToken;
+			Cid <= NextCid;
 		end if;
 	end process CmdStateReg;
 
 	-- Comb. process
-	NextStateAndOutput : process (iFromController, ioCmd, SerialCrc, CrcCorrect, State, Counter)
+	NextStateAndOutput : process (iFromController, ioCmd, SerialCrc, CrcCorrect,
+		State, Counter, ReceivedToken)
 
 		procedure NextStateWhenAllSent (constant nextlength : in natural; constant toState : in aSdCmdState) is
 		begin
@@ -115,8 +124,10 @@ begin
 		NextState <= State;
 		NextCounter <= Counter;
 		NextReceivedToken <= ReceivedToken;
+		NextCid <= Cid;
 		Output <= cDefaultOut;
 		Output.Controller.Content <= ReceivedToken.content;
+		Output.Controller.Cid <= Cid;
 
 		case State is
 			when idle => 
@@ -171,13 +182,25 @@ begin
 
 			when recvcmdid => 
 				Output.Controller.Receiving <= cActivated;
-				RecvBitsAndCalcCrc(NextReceivedToken.Content.id, recvarg,
-				NextReceivedToken.Content.arg'high);
+				if (iFromController.ExpectCID = cInactivated) then
+					RecvBitsAndCalcCrc(NextReceivedToken.Content.id, recvarg,
+					NextReceivedToken.Content.arg'high);
+				elsif (iFromController.ExpectCID = cActivated) then
+					RecvBitsAndCalcCrc(NextReceivedToken.Content.id, recvcid,
+					cCIDLength-8);
+					Output.Crc.Clear <= cActivated;
+				end if;
 
 			when recvarg => 
 				Output.Controller.Receiving <= cActivated;
 				RecvBitsAndCalcCrc(NextReceivedToken.Content.arg, recvcrc,
 				crc7'high-1);
+
+			when recvcid => 
+				Output.Controller.Receiving <= cActivated;
+				NextCid <= UpdateCID(cid, ioCmd, to_integer(Counter)+8);
+				ShiftIntoCrc(ioCmd);
+				NextStateWhenAllSent(crc7'high-1, recvcrc);
 
 			when recvcrc => 
 				NextReceivedToken.crc7(to_integer(Counter)) <= ioCmd;

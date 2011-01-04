@@ -26,11 +26,11 @@ end entity SdController;
 architecture Rtl of SdController is
 
 	type aSdControllerState is (CMD0, CMD8Ws, CMD8, CMD8Response, CMD55,
-	CMD55Response, ACMD41, ACMD41Response, CMD2, idle,
-	invalidCard);
+	CMD55Response, ACMD41, ACMD41Response, CMD2, CMD2Response, CMD3,
+	CMD3Response, idle, invalidCard);
 	constant cDefaultControllerState : aSdControllerState := CMD0;
 	constant cDefaultoSdCmd : aSdCmdFromController := ((id => (others => '0'),
-	arg => (others => '0')), Valid => cInactivated);
+	arg => (others => '0')), Valid => cInactivated, ExpectCID => cInactivated);
 
 	type aSdControllerReg is record
 		HCS : std_ulogic;
@@ -147,14 +147,30 @@ begin
 				end if;
 
 			when CMD2 => 
+				oSdCmd.Content.id <= cSdCmdAllSendCID;
+				oSdCmd.Valid <= cActivated;
+				if (iSdCmd.Ack = cActivated) then
+					NextState <= CMD2Response;
+				end if;
+
+			when CMD2Response => 
+				oSdCmd.ExpectCID <= cActivated;
+				
+				if (iSdCmd.Valid = cActivated) then
+					NextState <= invalidCard;
+
+					if (iSdCmd.Content.id = cSdR2Id) then -- Check Response
+						NextState <= CMD3;
+					end if;
+				end if;
+
+			when CMD3 => 
 				null;
 
 			when others => 
 				report "SdController: State not handled" severity error;
 		end case;
 	end process Comb;
-
-
 
 end architecture Rtl;
 

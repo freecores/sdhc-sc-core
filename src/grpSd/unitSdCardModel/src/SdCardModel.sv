@@ -73,6 +73,7 @@ class SDCard;
 		SDCommandR7 voltageresponse;
 		SDCommandR1 response;
 		SDCommandR3 acmd41response;
+		SDCommandR2 cidresponse;
 		SDOCR ocr;
 		
 		// expect CMD0 so that state is clear
@@ -128,6 +129,14 @@ class SDCard;
 		ocr.setBusy(cOCRDone);
 		acmd41response = new(ocr);
 		acmd41response.send(ICmd);		
+
+		// expect CMD2
+		recv();
+		assert(recvcmd.id == cSdCmdAllSendCID);
+
+		// respond with R2
+		cidresponse = new();
+		cidresponse.send(ICmd);	
 
 		-> InitDone;
 
