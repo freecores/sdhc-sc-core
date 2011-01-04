@@ -61,7 +61,7 @@ architecture bhv of tbCrc is
             assert (Valid(counter) = SerialCRC) report "Serial CRC error"
             severity error;
             counter := counter + 1;
-            wait until clk = '0';
+			wait until clk = '0';
         end loop;
 
         -- clear the registers, not needed after shifting the serial data out
