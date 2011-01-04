@@ -1,4 +1,5 @@
-set pkgs {Global Global} {Wishbone Wishbone}
+set pkgs {Global Global 
+	Wishbone Wishbone}
 set units {Wishbone WbSlave {Rtl}}
 set tb Crc
 set tbarch bhv
