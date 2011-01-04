@@ -52,6 +52,22 @@ set_global_assignment -name ON_CHIP_BITSTREAM_DECOMPRESSION OFF
 
 source ../Pins.tcl
 
+set_global_assignment -name TIMEQUEST_DO_REPORT_TIMING ON
+set_global_assignment -name USE_TIMEQUEST_TIMING_ANALYZER ON
+set_global_assignment -name FINAL_PLACEMENT_OPTIMIZATION ALWAYS
+set_global_assignment -name AUTO_GLOBAL_MEMORY_CONTROLS ON
+set_global_assignment -name PHYSICAL_SYNTHESIS_REGISTER_DUPLICATION ON
+set_global_assignment -name PHYSICAL_SYNTHESIS_ASYNCHRONOUS_SIGNAL_PIPELINING ON
+set_global_assignment -name PHYSICAL_SYNTHESIS_EFFORT EXTRA
+set_global_assignment -name OPTIMIZATION_TECHNIQUE SPEED
+set_global_assignment -name STRATIXII_OPTIMIZATION_TECHNIQUE SPEED
+set_global_assignment -name CYCLONE_OPTIMIZATION_TECHNIQUE SPEED
+set_global_assignment -name CYCLONEII_OPTIMIZATION_TECHNIQUE SPEED
+set_global_assignment -name STRATIX_OPTIMIZATION_TECHNIQUE SPEED
+set_global_assignment -name MAXII_OPTIMIZATION_TECHNIQUE SPEED
+set_global_assignment -name SYNTH_TIMING_DRIVEN_SYNTHESIS ON
+set_global_assignment -name MUX_RESTRUCTURE OFF
+
 set_instance_assignment -name CLOCK_SETTINGS SdClock -to iSdClk
 set_instance_assignment -name CLOCK_SETTINGS WbClock -to iWbClk
 set_instance_assignment -name PARTITION_HIERARCHY root_partition -to | -section_id Top
