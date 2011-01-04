@@ -9,6 +9,12 @@ class RamAction;
 	kinds Kind;
 	int Addr;
 	DataBlock Data;
+
+	function new(kinds kind = Read, int addr = 0, DataBlock data = {});
+		Kind = kind;
+		Addr = addr;
+		Data = data;
+	endfunction
 endclass
 
 typedef mailbox #(RamAction) RamActionMb;

@@ -81,21 +81,51 @@ class SdCoreChecker;
 		join_none
 	endtask
 
+	function void checkRamAction(RamAction actual, RamAction expected, DataBlock block);
+		if (expected.Kind == RamAction::Write) begin
+			if (actual.Kind != expected.Kind ||
+				actual.Addr != expected.Addr ||
+				actual.Data != expected.Data) begin
+
+				string msg;
+				$swrite(msg, "RamActions differ: %s%p%s%p%s%d%s%d%s%p%s%p",
+				"\nactual kind ", actual.Kind, ", expected kind ", expected.Kind,
+				"\nactual addr ", actual.Addr, ", expected addr ", expected.Addr,
+				"\nactual data ", actual.Data, ", expected data ", expected.Data);
+				Log.error(msg);
+
+			end
+	    end	else begin
+			if (actual.Kind != expected.Kind ||
+				actual.Addr != expected.Addr ||
+				actual.Data != block) begin
+
+				string msg;
+				$swrite(msg, "RamActions differ: %s%p%s%p%s%d%s%d%s%p%s%p",
+				"\nactual kind ", actual.Kind, ", expected kind ", expected.Kind,
+				"\nactual addr ", actual.Addr, ", expected addr ", expected.Addr,
+				"\nactual data ", actual.Data, ", expected data ", block);
+				Log.error(msg);
+
+			end
+		end
+	endfunction
+
 	task run();
 		while (StopAfter != 0) begin
 			ExpectedResult res;
-			RamAction ram;
+			RamAction ram[];
 
+			// get transactions
 			ExpectedResultInMb.get(res);
+			ram = new[res.RamActions.size()];
+			foreach(ram[i]) RamActionInMb.get(ram[i]);
 			SdTransInMb.get(trans);
-
-			//if (res.RamActions.size() > 0) RamActionInMb.get(ram);
-
-			Log.warning("SdCoreChecker: RamActions not handled");
 
 			// update functional coverage
 			SdCoreTransactions.sample();
 
+			// check transaction
 			if (res.trans.compare(trans) == 1) begin
 				string msg;
 				Log.note("Checker: Transaction successful");
@@ -106,6 +136,11 @@ class SdCoreChecker;
 				string msg;
 				$swrite(msg, "Actual: %s, Expected: %s", trans.toString(), res.trans.toString());
 				Log.error(msg);
+			end
+
+			// check data
+			foreach(ram[i]) begin
+				checkRamAction(ram[i], res.RamActions[i], trans.data[i]);
 			end
 
 			if (StopAfter > 0) StopAfter--;

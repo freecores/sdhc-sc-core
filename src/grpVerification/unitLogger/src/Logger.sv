@@ -11,6 +11,7 @@
 class Logger;
 
 	local static int errors = 0;
+	local static int warnings = 0;
 
 	function new();
 	endfunction
@@ -23,6 +24,7 @@ class Logger;
 	function void warning(string msg);
 		$write("Warning at %t: ", $time);
 		$display(msg);
+		warnings++;
 	endfunction
 
 	function void error(string msg);
@@ -35,6 +37,10 @@ class Logger;
 		$display("Simulation %0sED", (errors) ? "FAIL" : "PASS");
 		if (errors > 0) begin
 			$display("%d errors.", errors);
+		end
+
+		if (warnings > 0) begin
+			$display("%d warnings.", warnings);
 		end
 	endfunction
 

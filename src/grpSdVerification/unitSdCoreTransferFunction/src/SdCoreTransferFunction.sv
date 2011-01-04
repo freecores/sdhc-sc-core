@@ -4,6 +4,7 @@
 `include "SdCoreTransaction.sv";
 `include "ExpectedResult.sv";
 `include "Logger.sv";
+`include "SdCardModel.sv";
 
 class SdCoreTransferFunction;
 
@@ -34,14 +35,13 @@ class SdCoreTransferFunction;
 						res.RamActions[0] = new();
 						res.RamActions[0].Kind = RamAction::Read;
 						res.RamActions[0].Addr = transaction.startAddr;
-						Log.note("TF: Handle data");
 					end
 
 				SdCoreTransaction::writeSingleBlock:
 					begin
 						res.RamActions = new[1];
 						res.RamActions[0] = new();
-						res.RamActions[0].Kind = RamAction::Read;
+						res.RamActions[0].Kind = RamAction::Write;
 						res.RamActions[0].Addr = transaction.startAddr;
 						res.RamActions[0].Data = transaction.data[0];
 					end

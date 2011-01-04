@@ -23,26 +23,18 @@ class WbTransactionSequenceWriteSingleBlock extends WbTransactionSequence;
 
 		for (int i = 0; i < 512/4; i++) begin
 			WbData temp = 0;
-			temp = { >> {Datablock[i*4], Datablock[i*4+1], Datablock[i*4+2], Datablock[i*4+3]}};
+			temp = { >> {Datablock[i*4+3], Datablock[i*4+2], Datablock[i*4+1], Datablock[i*4+0]}};
 			Data.push_back(temp);
 		end
 	endfunction
 
 	constraint WriteAddrFirst {
-		transactions[0].Addr == cStartAddrAddr || 
-		transactions[0].Addr == cEndAddrAddr;
 		transactions[2].Addr == cOperationAddr;
+		transactions[1].Addr == cEndAddrAddr;
+		transactions[1].Data == EndAddr;
+		transactions[0].Addr == cStartAddrAddr;
+		transactions[0].Data == StartAddr;
 
-		if (transactions[0].Addr == cStartAddrAddr) {
-			transactions[1].Addr == cEndAddrAddr;
-			transactions[1].Data == EndAddr;
-			transactions[0].Data == StartAddr;
-		} else if (transactions[0].Addr == cEndAddrAddr) {
-			transactions[1].Addr == cStartAddrAddr;
-			transactions[0].Data == EndAddr;
-			transactions[1].Data == StartAddr;
-		}
-	
 		foreach(transactions[i]) {
 			transactions[i].Kind == WbTransaction::Write;
 

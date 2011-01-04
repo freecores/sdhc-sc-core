@@ -164,8 +164,8 @@ begin
 									NxR.WbState     <= ClassicWrite;
 
 									if (iWbDat.Sel = "1") then
-										if (iWbDat.Adr = cOperationAddr and 
-										R.SdIntState = newOperation) then
+										if (iWbDat.Adr = cOperationAddr or iWbDat.Adr = cStartAddrAddr or iWbDat.Adr = cEndAddrAddr) and 
+										R.SdIntState = newOperation then
 										-- insert waitstates until we can notify the SdController again
 
 											NxR.oWbCtrl.Ack <= cInactivated;

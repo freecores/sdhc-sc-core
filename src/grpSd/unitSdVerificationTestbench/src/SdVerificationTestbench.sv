@@ -32,7 +32,7 @@ program Test(ISdBus SdBus, IWishboneBus WbBus);
 		harness.Card = card;
 
 		harness.start();
-		#2ms;
+		#20ms;
 
 		log.terminate();
     end	

@@ -35,7 +35,6 @@ class SdCoreTransactionBFM;
 						int j = 0;
 						string msg;
 						WbTransactionSequenceReadSingleBlock tmp = new(trans.startAddr, trans.endAddr);
-						$swrite(msg, "Addresses: in: %h, %h, out: %h, %h", trans.startAddr, trans.endAddr, tmp.StartAddr, tmp.EndAddr);
 						assert (tmp.randomize()) else Log.error("Randomizing WbTransactionSequence seq failed.");
 						seq = tmp;
 
@@ -51,10 +50,10 @@ class SdCoreTransactionBFM;
 
 							// receive read data
 							if (tr.Kind == WbTransaction::Read && tr.Addr == cReadDataAddr) begin
-								trans.data[0][j++] = tr.Data[31:24];
-								trans.data[0][j++] = tr.Data[23:16];
-								trans.data[0][j++] = tr.Data[15:8];
 								trans.data[0][j++] = tr.Data[7:0];
+								trans.data[0][j++] = tr.Data[15:8];
+								trans.data[0][j++] = tr.Data[23:16];
+								trans.data[0][j++] = tr.Data[31:24];
 							end
 						end
 						

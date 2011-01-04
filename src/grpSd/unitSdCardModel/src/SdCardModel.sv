@@ -17,38 +17,72 @@ const logic cInactivated = 0;
 `include "Logger.sv";
 `include "RamAction.sv";
 
+class RamModel;
+	local bit[0:511][7:0] data[];
+	RamActionMb RamActionOutMb;
+
+	function new(int size);
+		data = new[size];
+	endfunction
+
+	function int size();
+		return data.size();
+	endfunction
+
+	task getDataBlock(logic[31:0] addr, output SdDataBlock block);
+		RamAction action = new(RamAction::Read, addr, data[addr]);
+		block = new();
+
+		for (int i = 0; i < 512; i++) begin
+			for (int j = 7; j >= 0; j--) begin
+				block.data.push_back(data[addr][i][j]);
+			end
+		end
+
+		RamActionOutMb.put(action);
+	endtask
+
+	task setDataBlock(logic[31:0] addr, SdDataBlock block);
+		for (int i = 0; i < 512; i++) begin
+			for (int j = 7; j >= 0; j--) begin
+				data[addr][i][j] = block.data.pop_front();
+			end
+		end
+	
+		begin
+			RamAction action = new(RamAction::Write, addr, data[addr]);
+			RamActionOutMb.put(action);
+		end
+	endtask
+
+endclass
+
 class SdCardModel;
 	
-	RamActionMb RamActionOutMb;
 	SdBfmMb SdTransOutMb;
 	SdBfmMb SdTransInMb;
 
 	SdBFM bfm;
-	local SdCardModelState state;
+	local SdCardModelState state = new();
 	local RCA_t rca;
 	local logic CCS;
 	local Mode_t mode;
 	local DataMode_t datamode;
-	local Logger log;
-
+	local Logger log = new();
+	RamModel ram;
 
 	//local rand int datasize; // ram addresses = 2^datasize - 1; 512 byte blocks
 	//constraint cdatasize {datasize == 32;}
-
-	local bit[0:511][7:0] ram[];
 	
 	/*function void post_randomize() ;
 		this.ram = new[datasize];
 	endfunction*/
 
 	function new();
-		//this.bfm = bfm;
-		state = new();
 		this.CCS = 1;
 		rca = 0;
 		mode = standard;
-		log = new();
-		ram = new[100];
+		ram = new(100);
 	endfunction
 
 	task start();
@@ -254,15 +288,9 @@ class SdCardModel;
 		assert(addr <= ram.size()) else log.error("Read outside of available RAM");
 		response = new(cSdCmdReadSingleBlock, state);
 		response.DataBlocks = new[1];
-		response.DataBlocks[0] = new();
 		
 		//$display("Ram before read (%h):  %h", addr, ram[addr]);
-
-		for (int i = 0; i < 512; i++) begin
-			for (int j = 7; j >= 0; j--) begin
-				response.DataBlocks[0].data.push_back(ram[addr][i][j]);
-			end
-		end
+		ram.getDataBlock(addr, response.DataBlocks[0]);
 
 		this.bfm.send(response);
 	endtask
@@ -281,28 +309,11 @@ class SdCardModel;
 
 		// recv data
 		this.bfm.receiveDataBlock(rdblock);
-		//$display("rddata: %p", rdblock.data);
-		//$display("datasize: %h", datasize);
-		//$display("Address (token): %h", token.arg);
-		//$display("Address: %h", addr);
-
-		// write into ram
-		for (int i = 0; i < 512; i++) begin
-			for (int j = 7; j >= 0; j--) begin
-				//$display("rd_front: %d", rdblock.data[0:7]);
-				ram[addr][i][j] = rdblock.data.pop_front();
-			end
-		end
-
+		ram.setDataBlock(addr, rdblock);
+	
 		this.bfm.waitUntilReady();
 		this.bfm.sendBusy();
 	
-		//$display("Ram after write (%h):  %h", addr, ram[addr]);
-		/*$display("Ram after write (%h):", addr);
-		for(int i = 0; i < 512; i++) begin
-			$display("idx %d: %d", i, ram[addr][i]);
-		end*/
-
 	endtask
 
 	task recvCMD55(RCA_t rca);
