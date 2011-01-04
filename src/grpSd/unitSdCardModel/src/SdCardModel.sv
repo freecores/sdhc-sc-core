@@ -13,21 +13,17 @@ const logic cInactivated = 0;
 
 `include "Crc.sv";
 `include "SdCommand.sv";
-`include "SdData.sv";
 `include "SdBFM.sv";
 `include "Logger.sv";
 
 class SDCard;
 	local SdBFM bfm;
-	local virtual ISdCard.card ICard;
 	local SDCardState state;
 	local RCA_t rca;
 	local logic CCS;
 	local Mode_t mode;
 	local DataMode_t datamode;
 	local Logger log;
-
-	local event CmdReceived, InitDone;
 
 	local rand int datasize; // ram addresses = 2^datasize - 1; 512 byte blocks
 	constraint cdatasize {datasize > 1; datasize <= 32;}
@@ -38,12 +34,9 @@ class SDCard;
 		this.ram = new[2^(datasize-1)];
 	endfunction
 
-	function new(virtual ISdCard CardInterface, event CmdReceived, event InitDone);
-		ICard = CardInterface;
-		bfm = new(CardInterface);
+	function new(SdBFM bfm);
+		this.bfm = bfm;
 		state = new();
-		this.CmdReceived = CmdReceived;
-		this.InitDone = InitDone;
 		this.CCS = 1;
 		rca = 0;
 		mode = standard;
@@ -61,7 +54,6 @@ class SDCard;
 		SDOCR ocr;
 		SDCommandR6 rcaresponse;
 		logic data[$];
-		SdData sddata;
 		SdBusTransToken token;
 
 		log.note("Expecting CMD0");
@@ -156,21 +148,19 @@ class SDCard;
 		this.bfm.receive(token);
 		assert(token.id == cSdCmdSendSCR);
 
-		// respond with R1
+		// respond with R1 and dummy SCR
 		response = new(cSdCmdSendSCR, state);
-		this.bfm.send(response);
-
-		repeat(2) @ICard.cb;
-
+		response.DataBlocks = new[1];
+		response.DataBlocks[0] = new();
+		
 		// send dummy SCR
 		for (int i = 0; i < 64; i++)
-			data.push_back(0);
+			response.DataBlocks[0].data.push_back(0);
 		
-		data[63-50] = 1;
-		data[63-48] = 1;
+		response.DataBlocks[0].data[63-50] = 1;
+		response.DataBlocks[0].data[63-48] = 1;
 
-		sddata = new(standard, widewidth);
-		sddata.send(ICard, data);
+		this.bfm.send(response);
 
 		// expect ACMD6
 		recvCMD55(rca);
@@ -182,7 +172,7 @@ class SDCard;
 		response = new(cSdCmdSetBusWidth, state);
 		this.bfm.send(response);
 
-		sddata.mode = wide;
+		this.bfm.Mode = wide;
 		mode = wide;
 
 		// expect CMD6
@@ -190,17 +180,17 @@ class SDCard;
 		this.bfm.receive(token);
 		assert(token.id == cSdCmdSwitchFuntion);
 		assert(token.arg == 'h00FFFFF1);
-		this.bfm.send(response);
 
-		// send status data structure
-		data = {};
+		response.DataBlocks = new[1];
+		response.DataBlocks[0] = new();
 		
 		for (int i = 0; i < 512; i++)
-			data.push_back(0);
+			response.DataBlocks[0].data.push_back(0);
 
-		data[511-401] = 1;
-		data[511-376] = 1;
-		sddata.send(ICard, data);
+		response.DataBlocks[0].data[511-401] = 1;
+		response.DataBlocks[0].data[511-376] = 1;
+
+		this.bfm.send(response);
 
 		// expect CMD6 with set
 		log.note("Expect CMD6 with set");
@@ -208,16 +198,6 @@ class SDCard;
 		assert(token.id == cSdCmdSwitchFuntion);
 		assert(token.arg == 'h80FFFFF1);
 		this.bfm.send(response);
-
-		// send status data structure
-		data = {};
-		
-		for (int i = 0; i < 512; i++)
-			data.push_back(0);
-
-		data[511-401] = 1;
-		data[511-376] = 1;
-		sddata.send(ICard, data);
 
 		// switch to 50MHz
 		// expect CMD13
@@ -227,8 +207,6 @@ class SDCard;
 		assert(token.arg == rca);
 		response = new(cSdCmdSendStatus, state);
 		this.bfm.send(response);
-
-		-> InitDone;
 
 	endtask
 
@@ -253,57 +231,55 @@ class SDCard;
 
 	task read(SdBusTransToken token);
 		SDCommandR1 response;
-		logic data[$];
 		logic[31:0] addr;
-		SdData sddata = new(mode, usual);
 
 		// expect Read
 		assert(token.id == cSdCmdReadSingleBlock);
 		addr = token.arg[0];
 		assert(addr < ram.size());
 		response = new(cSdCmdReadSingleBlock, state);
-		this.bfm.send(response);
-
-		data = {};
+		response.DataBlocks = new[1];
+		response.DataBlocks[0] = new();
+		
 		for (int i = 0; i < 512; i++) begin
 			for (int j = 7; j >= 0; j--) begin
-				data.push_back(ram[addr][i*8 + j]);
+				response.DataBlocks[0].data.push_back(ram[addr][i*8 + j]);
 			end
 		end
 
-		sddata.send(ICard, data);
+		this.bfm.send(response);
 	endtask
 
 	task write(SdBusTransToken token);
 		SDCommandR1 response;
-		SdData sddata = new(this.mode, widewidth);
-		logic rddata[$];
+		SdDataBlock rdblock;
 		logic[31:0] addr;
 
 		// expect Write
 		assert(token.id == cSdCmdWriteSingleBlock);
-		addr = token.arg[0];
+		addr = token.arg;
 		assert(addr < ram.size());
 		response = new(cSdCmdWriteSingleBlock, state);
 		this.bfm.send(response);
 
 		// recv data
-		sddata.recv(ICard, rddata);
-		$display("rddata: %p", rddata);
+		this.bfm.receiveDataBlock(rdblock);
+		$display("rddata: %p", rdblock.data);
 
 		$display("datasize: %h", datasize);
+		$display("Address (token): %h", token.arg);
 		$display("Address: %h", addr);
 
 		// write into ram
 		for (int i = 0; i < 512; i++) begin
 			for (int j = 7; j >= 0; j--) begin
-				ram[addr][i * 8 + j] = rddata.pop_front();
+				ram[addr][i * 8 + j] = rdblock.data.pop_front();
 			end
 		end
 
-		repeat (8) @ICard.cb;
-		sddata.sendBusy(ICard);
-
+		this.bfm.waitUntilReady();
+		this.bfm.sendBusy();
+	
 		$display("Ram at write address: %h", ram[addr]);
 
 	endtask
@@ -327,8 +303,8 @@ endclass
 
 class NoSDCard extends SDCard;
 
-	function new(virtual ISdCard CardInterface, event CmdReceived, event InitDone);
-		super.new(CardInterface, CmdReceived, InitDone);
+	function new(SdBFM bfm);
+		super.new(bfm);
 	endfunction
 
 	task automatic init();

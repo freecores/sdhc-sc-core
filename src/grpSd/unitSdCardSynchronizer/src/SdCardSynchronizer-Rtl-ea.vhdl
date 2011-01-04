@@ -21,6 +21,7 @@ entity SdCardSynchronizer is
 
 		iClk      : in std_ulogic;
 		iRstSync  : in std_ulogic;
+		iStrobe   : in std_ulogic;
 		iCmd      : in std_logic;
 		iData     : in std_logic_vector(3 downto 0);
 		oCmdSync  : out std_ulogic;
@@ -50,17 +51,19 @@ begin
 
 			else
 
-				-- register input data
-				CmdSync(0)  <= iCmd;
-				DataSync(0) <= std_ulogic_vector(iData);
+				if (iStrobe = cActivated) then
+					-- register input data
+					CmdSync(0)  <= iCmd;
+					DataSync(0) <= std_ulogic_vector(iData);
 
-				-- additional synchronization FFs
-				for i in 1 to gSyncCount - 1 loop
+					-- additional synchronization FFs
+					for i in 1 to gSyncCount - 1 loop
 
-					CmdSync(i)  <= CmdSync(i - 1);
-					DataSync(i) <= DataSync(i - 1);
+						CmdSync(i)  <= CmdSync(i - 1);
+						DataSync(i) <= DataSync(i - 1);
 
-				end loop;
+					end loop;
+				end if;
 			end if;
 		end if;
 	end process Reg;

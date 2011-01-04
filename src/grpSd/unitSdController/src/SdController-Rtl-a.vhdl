@@ -558,6 +558,7 @@ begin
 
 			when read => 
 				NextR.ToSdData.DataMode <= usual;
+				oLedBank(0) <= cActivated;	
 
 				case R.Region is
 					when send =>
@@ -604,6 +605,7 @@ begin
 
 			when write => 
 				NextR.ToSdData.DataMode <= usual;
+				oLedBank(1) <= cActivated;
 
 				case R.Region is
 					when send =>

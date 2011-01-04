@@ -1,17 +1,24 @@
 `ifndef SDBUSTRANS_SV
 `define SDBUSTRANS_SV
 
+`include "SdDataBlock.sv"
+
 const logic cSdStartbit = 0;
 const logic cSdEndbit = 1;
 
 typedef logic SdBusTransData[$];
 
-virtual class SdBusTrans;
+class SdBusTrans;
+
+	SdDataBlock DataBlocks[];
+	bit SendBusy = 0;
+
 	virtual function SdBusTransData packToData();
 	endfunction
 
 	virtual function void unpackFromData(ref SdBusTransData data);
 	endfunction
+
 endclass
 
 class SdBusTransToken extends SdBusTrans;

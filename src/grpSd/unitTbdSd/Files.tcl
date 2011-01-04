@@ -29,6 +29,11 @@ set units {Crc Crc {Rtl}
 	Sd SdTop {Rtl}
 	Sd TbdSd {Rtl}}
 
-set tb {Sd TbdSd {Bhv}}
+set svunits {Sd TbdSd}
+
+set sysvlogparams [list +incdir+../../unitSdCardModel/src+../src+../../unitSdWbSlave/src+../../../grpVerification/unitLogger/src/]
+
+#set tb
+set top Testbed
 
 

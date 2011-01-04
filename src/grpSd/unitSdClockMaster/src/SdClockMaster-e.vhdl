@@ -25,6 +25,7 @@ entity SdClockMaster is
 		iDisable   : in std_ulogic; -- Disables the clock output
 
 		oSdStrobe  : out std_ulogic; -- strobe signal to enable SdCmd and SdData
+		oSdInStrobe : out std_ulogic; -- strobe signal to capture the input cmd and data
 		oSdCardClk : out std_ulogic -- clock output to SD card
 	);
 

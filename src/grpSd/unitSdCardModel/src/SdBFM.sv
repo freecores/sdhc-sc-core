@@ -8,35 +8,51 @@
 `ifndef SDBFM_SV
 `define SDBFM_SV
 
-`include "SdCmdInterface.sv"
+`include "SdBusInterface.sv"
 `include "Crc.sv"
 `include "Logger.sv"
 `include "SDCommandArg.sv"
 `include "SdBusTrans.sv"
 
 typedef mailbox #(SdBusTrans) SdBfmMb;
+typedef enum {
+	standard,
+	wide
+} Mode_t;
 
 class SdBFM;
 
-	virtual ISdCard.card ICard;
+	virtual ISdBus.card ICard;
 	SdBfmMb ReceivedTransMb;
 	SdBfmMb SendTransMb;
-	local semaphore Sem;
-	local Logger Log;
-	local int StopAfter = -1;
-
-	extern function new(virtual ISdCard card);
+	Mode_t Mode;
+	
+	extern function new(virtual ISdBus card);
 
 	extern task start(); // starts a thread for receiving and sending via mailboxes
 	extern function stop(int AfterCount); // stop the thread
 
 	extern task send(input SdBusTrans token);
+	extern task sendBusy();
 	extern task receive(output SdBusTransToken token);
+	extern task receiveDataBlock(output SdDataBlock block);
+	extern task waitUntilReady();
 
+	extern local task sendCmd(inout SdBusTransData data);
+	extern local task sendAllDataBlocks(SdDataBlock blocks[]);
+	extern local task sendDataBlock(SdDataBlock block);
+	extern local task sendStandardDataBlock(logic data[$]);
+	extern local task sendWideDataBlock(logic data[$]);
+	extern local task recvDataBlock(output SdDataBlock block);
+	extern local task recvStandardDataBlock(output SdDataBlock block);
+	extern local task recvWideDataBlock(output SdDataBlock block);
 	extern local task recv(output SdBusTransToken token);
 	extern local task receiveOrSend();
 	extern local task run();
 
+	local semaphore Sem;
+	local Logger Log;
+	local int StopAfter = -1;
 endclass
 
 `include "SdBFM-impl.sv";

@@ -67,6 +67,7 @@ architecture Rtl of SdTop is
 	signal iSdWbSync, oSdControllerSync : aSdWbSlaveToSdController;
 	signal iSdControllerSync, oSdWbSync : aSdControllerToSdWbSlave;
 	signal SdStrobe                     : std_ulogic;
+	signal SdInStrobe                   : std_ulogic;
 	signal HighSpeed                    : std_ulogic;
 	signal iCmd                         : aiSdCmd;
 	signal oCmd                         : aoSdCmd;
@@ -209,6 +210,7 @@ begin
 		iHighSpeed => HighSpeed,
 		iDisable   => DisableSdClk,
 		oSdStrobe  => SdStrobe,
+		oSdInStrobe => SdInStrobe,
 		oSdCardClk => oSClk
 	);
 
@@ -217,6 +219,7 @@ begin
 
 		iClk       => iSdClk,
 		iRstSync   => iRstSync,
+		iStrobe    => SdInStrobe,
 		iCmd       => ioCmd,
 		iData      => ioData,
 		oCmdSync   => iCmd.Cmd,

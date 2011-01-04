@@ -5,10 +5,10 @@
 // Interface for the SdCmd entity
 // 
 
-`ifndef SDCMDINTERFACE
-`define SDCMDINTERFACE
+`ifndef SDBUSINTERFACE_SV
+`define SDBUSINTERFACE_SV
 
-interface ISdCard;
+interface ISdBus;
 	wire Cmd;
 	logic SClk;
 	wire[3:0] Data;

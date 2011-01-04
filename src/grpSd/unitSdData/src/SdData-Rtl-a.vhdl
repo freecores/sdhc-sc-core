@@ -334,7 +334,7 @@ begin
 						case R.Mode is
 							when wide => 
 								for i in 0 to 3 loop
-									temp(i) := R.Word(to_integer(RBitInWordC) - i);
+									temp(3 - i) := R.Word(to_integer(RBitInWordC) - i);
 								end loop;
 
 							when standard => 

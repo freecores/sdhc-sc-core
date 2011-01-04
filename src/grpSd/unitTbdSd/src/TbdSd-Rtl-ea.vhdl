@@ -62,8 +62,11 @@ architecture Rtl of TbdSd is
 	signal oRty  : std_ulogic;
 
 	signal ErrorLed, DoneLed : std_ulogic;
+	signal LedBank : std_ulogic_vector(7 downto 0);
 
 begin
+
+	oLedBank <= LedBank(7 downto 1) & DoneLed;
 
 	Reg : process (iClk) is
 	begin
@@ -125,7 +128,7 @@ begin
 		ioCmd        => ioCmd,
 		oSclk        => oSclk,
 		ioData       => ioData,
-		oLedBank     => oLedBank
+		oLedBank     => LedBank
 	);
 
 	TestWbMaster_inst : entity work.TestWbMaster
