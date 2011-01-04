@@ -6,5 +6,3 @@ set pkgs {Global Global
 set units {Crc Crc {Rtl}
 	Sd SdData {Rtl}}
 
-set tb {Sd SdData Bhv}
-
