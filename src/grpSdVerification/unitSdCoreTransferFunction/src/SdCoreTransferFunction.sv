@@ -9,8 +9,25 @@ class SdCoreTransferFunction;
 	SdCoreTransSeqMb TransInMb;
 	ExpectedResultMb ExpectedResultOutMb;
 
-	function void start();
-	endfunction
+	Logger Log = new();
+	int StopAfter = -1;
+
+	task start();
+		fork
+			this.run();
+		join_none;
+	endtask
+
+	task run();
+		while (StopAfter != 0) begin
+			SdCoreTransaction transaction;
+
+			TransInMb.get(transaction);
+			Log.note("SdCoreTransferFunction transaction received");
+
+			if (StopAfter > 0) StopAfter--;
+		end
+	endtask
 
 endclass
 

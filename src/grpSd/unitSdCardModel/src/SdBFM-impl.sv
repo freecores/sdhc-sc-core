@@ -220,6 +220,7 @@ task SdBFM::receiveOrSend();
 		if (flag == 1) send(token);
 		else if (flag == -1) Log.error("Error accessing SendTransMb.");
 	end
+	@ICard.cb;
 endtask
 
 task SdBFM::run();
@@ -235,7 +236,7 @@ task SdBFM::start();
 		begin
 			run();
 		end
-	join_any
+	join_none
 endtask
 
 `endif
