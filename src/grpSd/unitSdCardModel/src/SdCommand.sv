@@ -24,7 +24,8 @@ typedef enum {
 
 typedef enum {
 	cSdCmdACMD41 = 41,
-	cSdCmdSendSCR = 51
+	cSdCmdSendSCR = 51,
+	cSdCmdSetBusWidth = 6
 } SDAppCommandId;
 
 const SDCommandArg cSdArgACMD41HCS = 'b01000000111111111000000000000000;

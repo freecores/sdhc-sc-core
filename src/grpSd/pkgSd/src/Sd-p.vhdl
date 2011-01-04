@@ -104,6 +104,8 @@ package Sd is
 	subtype aSdRCA is std_ulogic_vector(15 downto 0);
 	constant cDefaultRCA : aSdRCA := (others => '0');
 
+	constant cSdWideModeBit : natural := 50;
+
 	-- Data types
 	constant cBlocklen : natural := 512 * 8; -- 512 bytes
 	subtype aSdDataBlock is std_ulogic_vector(cBlocklen - 1 downto 0);
@@ -235,6 +237,9 @@ package Sd is
 
 	constant cSdCmdACMD41 : aSdCmdId := std_ulogic_vector(to_unsigned(41, cSdCmdIdHigh));
 	constant cSdCmdSendSCR : aSdCmdId := std_ulogic_vector(to_unsigned(51, cSdCmdIdHigh));
+	constant cSdCmdSetBusWidth : aSdCmdId := std_ulogic_vector(to_unsigned(6, cSdCmdIdHigh)); -- [31:2] stuff, [1:0] bus width
+	constant cSdWideBusWidth : std_ulogic_vector(1 downto 0) := "10";
+	constant cSdStandardBusWidth : std_ulogic_vector(1 downto 0) := "00";
 
 end package Sd;
 

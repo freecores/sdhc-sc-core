@@ -104,15 +104,7 @@ class SDCard;
 		voltageresponse = new(recvcmd.arg);
 		voltageresponse.send(ICmd);
 
-		// expect CMD55 with default RCA
-		recv();
-		assert(recvcmd.id == cSdCmdNextIsACMD);
-		assert(recvcmd.arg == 0);
-		state.recvCMD55();
-
-		// respond with R1
-		response = new(cSdCmdNextIsACMD, state);
-		response.send(ICmd);	
+		recvCMD55(0);
 
 		// expect ACMD41 with HCS = 1
 		recv();
@@ -124,15 +116,7 @@ class SDCard;
 		acmd41response = new(ocr);
 		acmd41response.send(ICmd);		
 		
-		// expect CMD55 with default RCA
-		recv();
-		assert(recvcmd.id == cSdCmdNextIsACMD);
-		assert(recvcmd.arg == 0);
-		state.recvCMD55();
-
-		// respond with R1
-		response = new(cSdCmdNextIsACMD, state);
-		response.send(ICmd);	
+		recvCMD55(0);
 
 		// expect ACMD41 with HCS = 1
 		recv();
@@ -171,17 +155,8 @@ class SDCard;
 		response = new(cSdCmdSelCard, state);
 		response.send(ICmd);
 
-		// expect CMD55
-		recv();
-		assert(recvcmd.id == cSdCmdNextIsACMD);
-		assert(recvcmd.arg[31:16] == rca);
-		state.recvCMD55();
-
-		// respond with R1
-		response = new(cSdCmdNextIsACMD, state);
-		response.send(ICmd);	
-
 		// expect ACMD51
+		recvCMD55(rca);
 		recv();
 		assert(recvcmd.id == cSdCmdSendSCR);
 
@@ -201,8 +176,31 @@ class SDCard;
 		sddata = new(standard, widewidth);
 		sddata.send(ICmd, data);
 
+		// expect ACMD6
+		recvCMD55(rca);
+		recv();
+		assert(recvcmd.id == cSdCmdSetBusWidth);
+		assert(recvcmd.arg == 'h00000002);
+
+		response = new(cSdCmdSetBusWidth, state);
+		response.send(ICmd);
+
 		-> InitDone;
 
+	endtask
+
+	task recvCMD55(RCA_t rca);
+		SDCommandR1 response;
+
+		// expect CMD55
+		recv();
+		assert(recvcmd.id == cSdCmdNextIsACMD);
+		assert(recvcmd.arg[31:16] == rca);
+		state.recvCMD55();
+
+		// respond with R1
+		response = new(cSdCmdNextIsACMD, state);
+		response.send(ICmd);	
 	endtask
 	
 	function automatic SDCommandToken getCmd();

@@ -11,7 +11,7 @@
 architecture Rtl of SdController is
 
 	type aSdControllerState is (startup, init, config, idle, invalidCard);
-	type aCmdRegion is (CMD0, CMD8, ACMD41, CMD2, CMD3, SelectCard, CheckBusWidth);
+	type aCmdRegion is (CMD0, CMD8, ACMD41, CMD2, CMD3, SelectCard, CheckBusWidth, SetBusWidth, CheckSpeed);
 	type aRegion is (idle, send, response, waitstate, senddata, receivedata, checkbusy, waitstatedata);
 	
 	constant cDefaultToSdCmd : aSdCmdFromController := (
@@ -89,7 +89,12 @@ begin
 		NextState            := R.State;
 
 		-- Status
-		oLedBank <= (others => cInactivated);
+		oLedBank    <= (others => cInactivated);
+		if (R.ToSdData.Mode = wide) then
+			oLedBank(5) <= cActivated;
+		else
+			oLedBank(5) <= cInactivated;
+		end if;
 
 		case R.State is
 			when startup => 
@@ -198,8 +203,6 @@ begin
 						end if;
 
 					when CMD2 => 
-						oLedBank(3) <= cActivated;
-
 						case R.Region is
 							when send => 
 								NextR.ToSdCmd.Content.id <= cSdCmdAllSendCID;
@@ -230,8 +233,6 @@ begin
 						end case;
 
 					when CMD3 => 
-						oLedBank(4) <= cActivated;
-
 						case R.Region is
 							when send => 
 								NextR.ToSdCmd.Content.id <= cSdCmdSendRelAdr;
@@ -262,7 +263,7 @@ begin
 				end case;
 
 			when config => 
-				oLedBank(5) <= cActivated;
+				oLedBank(3) <= cActivated;
 
 				case R.CmdRegion is
 					when SelectCard => 
@@ -331,17 +332,68 @@ begin
 								when receivedata => 
 									if (iSdData.Err = cActivated) then
 										NextR.State <= init;
+
 									elsif (iSdData.Valid = cActivated) then
-										-- check for 4 bit mode
-										NextR.State <= idle;
+										NextR.Region <= waitstatedata;
+
 									elsif (Timeout = cActivated) then
 										NextR.State <= invalidCard;
 									end if;
+
+								when waitstatedata => 
+										NextRegion := send;
+										
+										if (NextCmdTimeout = cActivated) then
+											if (iSdData.DataBlock(cSdWideModeBit) = cActivated) then
+												NextCmdRegion   := SetBusWidth;
+												NextR.SendCMD55 <= cActivated;
+
+											else 
+												NextCmdRegion := CheckSpeed;
+											end if;
+										end if;
+
 
 								when others => 
 									report "Unhandled region" severity error;
 							end case;
 						end if;
+
+					when SetBusWidth => 
+						oLedBank(4) <= cActivated;
+
+						if (R.SendCMD55 = cInactivated) then
+							case R.Region is
+								when send => 
+									NextR.ToSdCmd.Content.id              <= cSdCmdSetBusWidth;
+									NextR.ToSdCmd.Content.arg(1 downto 0) <= cSdWideBusWidth;
+									NextRegion                            := response;
+
+								when response => 
+									if (iSdCmd.Valid = cActivated) then
+										if (iSdCmd.Content.id = cSdCmdSetBusWidth) then
+											NextR.CardStatus <= iSdCmd.Content.arg;
+											NextR.Region <= waitstate;
+											
+										else
+											NextR.State <= invalidCard;
+										end if;
+									elsif (Timeout = cActivated) then
+										NextR.State <= invalidCard;
+									end if;
+
+								when waitstate => 
+									NextRegion          := send;
+									NextCmdRegion       := CheckSpeed;
+									NextR.ToSdData.Mode <= wide;
+
+								when others => 
+									report "Unhandled region" severity error;
+							end case;
+						end if;
+
+					when CheckSpeed => 
+						NextR.State <= idle;
 
 					when others => 
 						report "Unhandled CmdRegion" severity error;
