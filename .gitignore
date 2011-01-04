@@ -2,6 +2,7 @@
 *.aux
 *.dvi
 *.backup
+*.bak
 sim/work/*
 *.swp
 *-blx.bib
