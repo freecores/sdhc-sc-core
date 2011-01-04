@@ -49,12 +49,12 @@ architecture Rtl of SdCmd is
 	signal Output : aSdCmdOut;
 
 	constant cDefaultOut : aSdCmdOut := ((cInactivated, cInactivated,
-	cInactivated), (Receiving => cInactivated), 'Z');
+	cInactivated), (Ack => cInactivated, Receiving => cInactivated), 'Z');
 
 begin
 
 	ioCmd <= Output.Cmd;
-	oToController.Receiving <= cInactivated;
+	oToController <= Output.Controller;
 
 	-- State register
 	CmdStateReg : process (iClk, inResetAsync)
@@ -128,7 +128,12 @@ begin
 
 			when crc => 
 				Output.Cmd <= SerialCrc;
-				NextStateWhenAllSent(0, endbit);
+				if (Counter > 0) then
+					NextCounter <= Counter - 1;
+				else
+					NextState <= endbit;
+					Output.Controller.Ack <= cActivated;
+				end if;
 
 			when endbit =>
 				Output.Cmd <= cSdEndBit;

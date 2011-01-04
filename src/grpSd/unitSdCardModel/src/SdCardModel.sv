@@ -116,32 +116,32 @@ class SDCommandResponse;
 	task automatic send(virtual ISdCmd.Card ICmd);
 		calcCrc();
 
-		@ICmd.cbCard;
-		ICmd.cbCard.Cmd <= startbit;
+		@ICmd.cb;
+		ICmd.cb.Cmd <= startbit;
 
-		@ICmd.cbCard;
-		ICmd.cbCard.Cmd <= transbit;
+		@ICmd.cb;
+		ICmd.cb.Cmd <= transbit;
 
 		for(int i = 5; i >= 0; i--) begin
-			@ICmd.cbCard;
-			ICmd.cbCard.Cmd <= id[i];
+			@ICmd.cb;
+			ICmd.cb.Cmd <= id[i];
 		end	
 
 		for (int i = 31; i>= 0; i--) begin
-			@ICmd.cbCard;
-			ICmd.cbCard.Cmd <= arg[i];
+			@ICmd.cb;
+			ICmd.cb.Cmd <= arg[i];
 		end
 
 		for (int i = 5; i >= 0; i--) begin
-			@ICmd.cbCard;
-			ICmd.cbCard.Cmd <= crc[i];
+			@ICmd.cb;
+			ICmd.cb.Cmd <= crc[i];
 		end
 
-		@ICmd.cbCard;
-		ICmd.cbCard.Cmd <= endbit;
+		@ICmd.cb;
+		ICmd.cb.Cmd <= endbit;
 		
-		@ICmd.cbCard;
-		ICmd.cbCard.Cmd <= 'z;
+		@ICmd.cb;
+		ICmd.cb.Cmd <= 'z;
 	endtask
 endclass
 
@@ -179,37 +179,37 @@ class SDCard;
 	// Receive a command token and handle it
 	task recv();
 		recvcmd = new();
-		ICmd.cbCard.Cmd <= 'z;
+		ICmd.cb.Cmd <= 'z;
 
-		wait(ICmd.cbCard.Cmd == 0);
+		wait(ICmd.cb.Cmd == 0);
 		// Startbit
-		recvcmd.startbit = ICmd.cbCard.Cmd;
+		recvcmd.startbit = ICmd.cb.Cmd;
 
-		@ICmd.cbCard;
+		@ICmd.cb;
 		// Transbit
-		recvcmd.transbit = ICmd.cbCard.Cmd;
+		recvcmd.transbit = ICmd.cb.Cmd;
 
 		// CmdID
 		for (int i = 5; i >= 0; i--) begin
-			@ICmd.cbCard;
-			recvcmd.id[i] = ICmd.cbCard.Cmd;
+			@ICmd.cb;
+			recvcmd.id[i] = ICmd.cb.Cmd;
 		end
 
 		// Arg
 		for (int i = 31; i >= 0; i--) begin
-			@ICmd.cbCard;
-			recvcmd.arg[i] = ICmd.cbCard.Cmd;
+			@ICmd.cb;
+			recvcmd.arg[i] = ICmd.cb.Cmd;
 		end
 
 		// CRC
 		for (int i = 6; i >= 0; i--) begin
-			@ICmd.cbCard;
-			recvcmd.crc7[i] = ICmd.cbCard.Cmd;
+			@ICmd.cb;
+			recvcmd.crc7[i] = ICmd.cb.Cmd;
 		end
 
 		// Endbit
-		@ICmd.cbCard;
-		recvcmd.endbit = ICmd.cbCard.Cmd;
+		@ICmd.cb;
+		recvcmd.endbit = ICmd.cb.Cmd;
 
 		recvcmd.checkFromHost();
 		-> CmdReceived;

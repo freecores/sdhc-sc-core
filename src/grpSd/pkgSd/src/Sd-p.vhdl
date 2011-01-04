@@ -12,11 +12,13 @@ use ieee.numeric_std.all;
 
 package Sd is
 
+	-- CMD transfer: constants
 	constant cSdStartBit : std_ulogic := '0';
 	constant cSdEndBit : std_ulogic := '1';
 	constant cSdTransBitHost : std_ulogic := '1';
 	constant cSdTransBitSlave : std_ulogic := '0';
 
+	-- CMD transfer: types
 	constant cSdCmdIdHigh : natural := 6;
 	subtype aSdCmdId is std_ulogic_vector(cSdCmdIdHigh-1 downto 0);
 	subtype aSdCmdArg is std_ulogic_vector(31 downto 0);
@@ -33,6 +35,18 @@ package Sd is
 		crc7 : std_ulogic_vector(6 downto 0); -- CRC of content
 		endbit : std_ulogic; --cSdEndBit
 	end record aSdCmdToken;
+	
+	-- Types for entities
+	type aSdCmdFromController is record
+		Content : aSdCmdContent;
+		Valid : std_ulogic;
+	end record aSdCmdFromController;
+
+	type aSdCmdToController is record
+		Ack : std_ulogic; -- Gets asserted when crc was sent, but endbit was
+		-- not. This way we can minimize the wait time between sending 2 cmds.
+		Receiving : std_ulogic;
+	end record aSdCmdToController;
 
 	-- command ids
 	-- abbreviations:
@@ -56,8 +70,17 @@ package Sd is
 	constant cSdCmdDeselCard : aSdCmdId := cSdCmdSelCard; -- [31:16] RCA
 
 	constant cSdCmdSendIfCond : aSdCmdId := std_ulogic_vector(to_unsigned(8,
-	cSdCmdIdHigh)); -- [31:12] reserved, [11:8] supply voltage, [7:0] check
-					-- pattern
+	cSdCmdIdHigh));
+
+	constant cSdDefaultVoltage : std_ulogic_vector(3 downto 0) := "0001"; -- 2.7
+	-- - 3.6 V
+	constant cCheckpattern : std_ulogic_vector(7 downto 0) := "10101010";
+	-- recommended
+
+	constant cSdArgVoltage : aSdCmdArg := 
+		"00000000000000000000" & -- reserved 
+		cSdDefaultVoltage & -- supply voltage
+		cCheckPattern;
 
 	constant cSdCmdSendCSD : aSdCmdId := std_ulogic_vector(to_unsigned(9,
 	cSdCmdIdHigh)); -- [31:16] RCA
@@ -70,15 +93,6 @@ package Sd is
 
 	constant cSdCmdSendStatus : aSdCmdId := std_ulogic_vector(to_unsigned(13,
 	cSdCmdIdHigh)); -- [31:16] RCA
-
-	type aSdCmdFromController is record
-		Content : aSdCmdContent;
-		Valid : std_ulogic;
-	end record aSdCmdFromController;
-
-	type aSdCmdToController is record
-		Receiving : std_ulogic;
-	end record aSdCmdToController;
 
 end package Sd;
 

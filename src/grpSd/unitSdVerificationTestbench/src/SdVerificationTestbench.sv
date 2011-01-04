@@ -16,7 +16,6 @@ program Test(ISdCmd ICmd);
 	initial begin
 	SDCard card = new(ICmd, $root.Testbed.CmdReceived, $root.Testbed.InitDone);
 	SDCommandToken recvCmd, sendCmd;
-	bit done = 0;
 	int c = 0;
 
 	ICmd.Clk <= 0;
@@ -29,48 +28,10 @@ program Test(ISdCmd ICmd);
 
     fork
 		begin // generator
-			// init
-			sendCmd = new();
-
-			@ICmd.cb;
-			sendCmd.id = cSdCmdGoIdleState;
-			sendCmd.arg = 0;
-			-> $root.Testbed.ApplyCommand;
-			@$root.Testbed.CmdReceived;
-
-			sendCmd.id = cSdCmdSendIfCond;
-			sendCmd.arg[31:12] = 0; // Reserved
-			sendCmd.arg[11:8] = cSdStandardVoltage; // 2.7 - 3.6V
-			sendCmd.arg[7:0] = 'b10101010; // Check pattern, recommended value
-			-> $root.Testbed.ApplyCommand;
-			@$root.Testbed.CmdReceived;
-
-			ICmd.Valid <= 0;
-			@$root.Testbed.InitDone;
-
-			for (int i = 0; i < `cCmdCount; i++) begin
-				$display("generator: %0d", i);
-				sendCmd = new();
-				sendCmd.randomize();
-				-> $root.Testbed.ApplyCommand;
-				@$root.Testbed.GenCmd;
-			end
 		end
 
         begin // monitor
 	    end
-
-        begin // driver for SdCmd
-			for (int i = 0; i < `cCmdCount + 2; i++) begin
-				@$root.Testbed.ApplyCommand;
-				
-				$display("driver: %0d", i);
-				ICmd.CmdId <= sendCmd.id;
-				ICmd.Arg <= sendCmd.arg;
-				ICmd.Valid <= 1;
-				-> $root.Testbed.CardRecv;
-			end
-        end
 
         begin // driver for SdCardModel
 			card.init();
@@ -107,9 +68,7 @@ endprogram
 module Testbed();
 	ISdCmd CmdInterface();
 
-	SdCmdWrapper CmdWrapper(CmdInterface.Clk, CmdInterface.nResetAsync,
-		CmdInterface.CmdId, CmdInterface.Arg, CmdInterface.Valid,
-		CmdInterface.Receiving, CmdInterface.Cmd);
+	SdTop top(CmdInterface.Clk, CmdInterface.nResetAsync, CmdInterface.Cmd);
 
 	always #10 CmdInterface.Clk <= ~CmdInterface.Clk;
 
