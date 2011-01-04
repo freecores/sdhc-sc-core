@@ -27,8 +27,8 @@ class SdCoreTransaction;
 		kind == readSingleBlock || 
 		kind == writeSingleBlock;
 
-		startAddr inside {[0:1000]};
-		endAddr inside {[0:1000]};
+		startAddr inside {[0:31]};
+		endAddr inside {[0:31]};
 	};
 
 	function SdCoreTransaction copy();
@@ -59,18 +59,25 @@ class SdCoreTransactionSequence;
 
 	rand SdCoreTransaction transactions[];
 
+	function new();
+		transactions = new[100];
+		foreach(transactions[i]) transactions[i] = new();
+	endfunction
+
 	constraint randlength {
 		transactions.size() > 0;
 		transactions.size() <= 100;
+
+		foreach(transactions[i]) {
+			if (i % 2 == 0) {
+				transactions[i].kind == SdCoreTransaction::writeSingleBlock;
+			} else {
+				transactions[i].kind == SdCoreTransaction::readSingleBlock;
+				transactions[i].startAddr == transactions[i-1].startAddr;
+			}
+		}
 	}
 
-	function void post_randomize();
-		foreach (transactions[i]) begin
-			transactions[i] = new();
-			assert(transactions[i].randomize());
-		end
-	endfunction
-	
 endclass
 
 typedef mailbox #(SdCoreTransaction) SdCoreTransSeqMb;

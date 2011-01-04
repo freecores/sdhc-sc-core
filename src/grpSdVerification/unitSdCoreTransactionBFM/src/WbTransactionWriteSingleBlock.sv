@@ -7,11 +7,11 @@
 
 class WbTransactionSequenceWriteSingleBlock extends WbTransactionSequence;
 
-	WbAddr StartAddr;
-	WbAddr EndAddr;
+	WbData StartAddr;
+	WbData EndAddr;
 	WbData Data[$];
 
-	function new(WbAddr StartAddr, WbAddr EndAddr, DataBlock Datablock);
+	function new(WbData StartAddr, WbData EndAddr, DataBlock Datablock);
 		size = 1 + 1 + 1 + 512*8/32; // startaddr, endaddr, operation, write data
 	
 		transactions = new[size];

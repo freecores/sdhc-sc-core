@@ -6,10 +6,10 @@
 
 class WbTransactionSequenceReadSingleBlock extends WbTransactionSequence;
 
-	WbAddr StartAddr;
-	WbAddr EndAddr;
+	WbData StartAddr;
+	WbData EndAddr;
 
-	function new(WbAddr StartAddr, WbAddr EndAddr);
+	function new(WbData StartAddr, WbData EndAddr);
 		size = 1 + 1 + 1 + 512*8/32; // startaddr, endaddr, operation, read data back
 		
 		transactions = new[size];

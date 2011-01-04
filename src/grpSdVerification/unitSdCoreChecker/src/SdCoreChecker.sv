@@ -97,7 +97,10 @@ class SdCoreChecker;
 			SdCoreTransactions.sample();
 
 			if (res.trans.compare(trans) == 1) begin
+				string msg;
 				Log.note("Checker: Transaction successful");
+				$swrite(msg, "%s", trans.toString());
+				Log.note(msg);
 			end
 			else begin
 				string msg;

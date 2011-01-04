@@ -32,14 +32,14 @@ class SdCardModel;
 	local Logger log;
 
 
-	local rand int datasize; // ram addresses = 2^datasize - 1; 512 byte blocks
-	constraint cdatasize {datasize > 1; datasize <= 32;}
+	//local rand int datasize; // ram addresses = 2^datasize - 1; 512 byte blocks
+	//constraint cdatasize {datasize == 32;}
 
-	local bit[512*8-1:0] ram[];
+	local bit[0:511][7:0] ram[];
 	
-	function void post_randomize() ;
-		this.ram = new[2^(datasize-1)];
-	endfunction
+	/*function void post_randomize() ;
+		this.ram = new[datasize];
+	endfunction*/
 
 	function new();
 		//this.bfm = bfm;
@@ -48,6 +48,7 @@ class SdCardModel;
 		rca = 0;
 		mode = standard;
 		log = new();
+		ram = new[100];
 	endfunction
 
 	task start();
@@ -249,15 +250,17 @@ class SdCardModel;
 
 		// expect Read
 		assert(token.id == cSdCmdReadSingleBlock);
-		addr = token.arg[0];
-		assert(addr < ram.size());
+		addr = token.arg;
+		assert(addr <= ram.size()) else log.error("Read outside of available RAM");
 		response = new(cSdCmdReadSingleBlock, state);
 		response.DataBlocks = new[1];
 		response.DataBlocks[0] = new();
 		
+		//$display("Ram before read (%h):  %h", addr, ram[addr]);
+
 		for (int i = 0; i < 512; i++) begin
 			for (int j = 7; j >= 0; j--) begin
-				response.DataBlocks[0].data.push_back(ram[addr][i*8 + j]);
+				response.DataBlocks[0].data.push_back(ram[addr][i][j]);
 			end
 		end
 
@@ -272,7 +275,7 @@ class SdCardModel;
 		// expect Write
 		assert(token.id == cSdCmdWriteSingleBlock);
 		addr = token.arg;
-		assert(addr < ram.size());
+		assert(addr <= ram.size()) else log.error("Write outside of available RAM");
 		response = new(cSdCmdWriteSingleBlock, state);
 		this.bfm.send(response);
 
@@ -286,14 +289,19 @@ class SdCardModel;
 		// write into ram
 		for (int i = 0; i < 512; i++) begin
 			for (int j = 7; j >= 0; j--) begin
-				ram[addr][i * 8 + j] = rdblock.data.pop_front();
+				//$display("rd_front: %d", rdblock.data[0:7]);
+				ram[addr][i][j] = rdblock.data.pop_front();
 			end
 		end
 
 		this.bfm.waitUntilReady();
 		this.bfm.sendBusy();
 	
-		//$display("Ram at write address: %h", ram[addr]);
+		//$display("Ram after write (%h):  %h", addr, ram[addr]);
+		/*$display("Ram after write (%h):", addr);
+		for(int i = 0; i < 512; i++) begin
+			$display("idx %d: %d", i, ram[addr][i]);
+		end*/
 
 	endtask
 

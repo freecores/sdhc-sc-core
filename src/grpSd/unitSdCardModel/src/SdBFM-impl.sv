@@ -184,7 +184,7 @@ task SdBFM::recvWideDataBlock(output SdDataBlock block);
 
 	for (int j = 0; j < 512*2; j++) begin
 		@ICard.cb;
-		for(int i = 0; i < 4; i++) begin
+		for(int i = 3; i >= 0; i--) begin
 			block.data.push_back(ICard.cb.Data[i]);
 		end
 	end
@@ -192,7 +192,7 @@ task SdBFM::recvWideDataBlock(output SdDataBlock block);
 	// crc
 	for (int j = 0; j < 16; j++) begin
 		@ICard.cb;
-		for(int i = 0; i < 4; i++) begin
+		for(int i = 3; i >= 0; i--) begin
 			crc[i] = ICard.cb.Data[i];
 		end
 	end
