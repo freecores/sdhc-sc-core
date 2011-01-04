@@ -2,11 +2,13 @@
 `define SDCORETRANSACTIONSEQGEN_SV
 
 `include "SdCoreTransaction.sv";
+`include "Logger.sv";
 
 class SdCoreTransactionSeqGen;
 
 	SdCoreTransSeqMb TransOutMb[2];
 	SdCoreTransactionSequence seq;
+	Logger Log = new();
 
 	local int stopAfter = 1;
 
@@ -23,7 +25,7 @@ class SdCoreTransactionSeqGen;
 
 			for (int i = 0; i < seq.transactions.size(); i++) begin
 				TransOutMb[0].put(seq.transactions[i]);
-				TransOutMb[1].put(seq.transactions[i]);
+				TransOutMb[1].put(seq.transactions[i].copy());
 			end
 
 			if (stopAfter > 0) stopAfter--;

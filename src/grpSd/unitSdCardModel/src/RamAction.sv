@@ -1,8 +1,14 @@
 `ifndef RAMACTION_SV
 `define RAMACTION_SV
 
-class RamAction;
+`include "SdCoreTransaction.sv";
 
+class RamAction;
+	typedef enum {Read, Write} kinds;
+
+	kinds Kind;
+	int Addr;
+	DataBlock Data;
 endclass
 
 typedef mailbox #(RamAction) RamActionMb;

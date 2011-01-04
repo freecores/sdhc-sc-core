@@ -182,7 +182,7 @@ task SdBFM::recvWideDataBlock(output SdDataBlock block);
 	aCrc16 crc[4];
 	block = new();
 
-	for (int j = 0; j <= 512*2; j++) begin
+	for (int j = 0; j < 512*2; j++) begin
 		@ICard.cb;
 		for(int i = 0; i < 4; i++) begin
 			block.data.push_back(ICard.cb.Data[i]);
@@ -197,7 +197,7 @@ task SdBFM::recvWideDataBlock(output SdDataBlock block);
 		end
 	end
 
-	// TODO: check crc
+	Log.warning("TODO: Check crc in recvWideDataBlock");
 
 	// end bits
 	@ICard.cb;

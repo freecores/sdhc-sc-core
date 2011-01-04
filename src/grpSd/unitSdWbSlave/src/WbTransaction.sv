@@ -16,7 +16,13 @@ class WbTransaction;
 	rand WbData Data;
 
 	function void display();
-		$display("Transaction: %s, %s, %b, %b", Type.name(), Kind.name(), Addr, Data);
+		$display(toString());
+	endfunction
+
+	function string toString();
+		string s;
+		$swrite(s, "Transaction: %s, %s, %b, %b", Type.name(), Kind.name(), Addr, Data);
+		return s;
 	endfunction
 
 	constraint NotImplementedYet {

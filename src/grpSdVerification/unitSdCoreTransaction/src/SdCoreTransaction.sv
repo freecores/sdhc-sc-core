@@ -24,8 +24,34 @@ class SdCoreTransaction;
 			data.size() == 0;
 		}
 
-		kind == readSingleBlock;
+		kind == readSingleBlock || 
+		kind == writeSingleBlock;
+
+		startAddr inside {[0:1000]};
+		endAddr inside {[0:1000]};
 	};
+
+	function SdCoreTransaction copy();
+		SdCoreTransaction rhs = new();
+		rhs.kind = this.kind;
+		rhs.startAddr = this.startAddr;
+		rhs.endAddr = this.endAddr;
+		rhs.data = new[this.data.size()];
+		rhs.data = this.data;
+		return rhs;
+	endfunction
+
+	function string toString();
+		string s;
+		$swrite(s, "kind: %p, addresses: %d, %d, data: %p", kind, startAddr, endAddr, data);
+		return s;
+	endfunction
+
+	function bit compare(input SdCoreTransaction rhs);
+		if (rhs.kind == this.kind && rhs.startAddr == this.startAddr &&
+			rhs.endAddr == this.endAddr && rhs.data == this.data) return 1;
+		else return 0;
+	endfunction
 
 endclass
 

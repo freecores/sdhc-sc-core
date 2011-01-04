@@ -57,6 +57,8 @@ class WbBFM;
 				Log.error(msg);
 			end
 			endcase
+
+			TransOutMb.put(transaction);
 			if (StopAfter > 0) StopAfter--;
 		end
 	endtask
@@ -113,12 +115,7 @@ class WbBFM;
 		checkResponse();
 
 		Data = this.Bus.cbMaster.DAT_I; // latch it before the CLOCK???
-		begin
-			string msg;
-			$swrite(msg, "WbBus: Reading %h", Data);
-			Log.note(msg);
-		end
-
+		
 		this.Bus.cbMaster.STB_O <= cNegated;
 		this.Bus.cbMaster.CYC_O <= cNegated;
 		@(posedge this.Bus.CLK_I);

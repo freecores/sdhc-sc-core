@@ -278,11 +278,10 @@ class SdCardModel;
 
 		// recv data
 		this.bfm.receiveDataBlock(rdblock);
-		$display("rddata: %p", rdblock.data);
-
-		$display("datasize: %h", datasize);
-		$display("Address (token): %h", token.arg);
-		$display("Address: %h", addr);
+		//$display("rddata: %p", rdblock.data);
+		//$display("datasize: %h", datasize);
+		//$display("Address (token): %h", token.arg);
+		//$display("Address: %h", addr);
 
 		// write into ram
 		for (int i = 0; i < 512; i++) begin
@@ -294,7 +293,7 @@ class SdCardModel;
 		this.bfm.waitUntilReady();
 		this.bfm.sendBusy();
 	
-		$display("Ram at write address: %h", ram[addr]);
+		//$display("Ram at write address: %h", ram[addr]);
 
 	endtask
 

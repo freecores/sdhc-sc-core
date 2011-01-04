@@ -28,10 +28,14 @@ class Logger;
 	function void error(string msg);
 		$write("Error at %t: ", $time);
 		$display(msg);
+		errors++;
 	endfunction
 
 	function void terminate();
-		$display("Simulation %0sED", (errors) ? "FAIL" : "PASS" );
+		$display("Simulation %0sED", (errors) ? "FAIL" : "PASS");
+		if (errors > 0) begin
+			$display("%d errors.", errors);
+		end
 	endfunction
 
 endclass

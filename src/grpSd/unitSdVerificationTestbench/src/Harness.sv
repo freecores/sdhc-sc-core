@@ -21,15 +21,10 @@ class Harness;
 	SdCoreTransactionBFM TransBfm;
 	WbBFM WbBfm;
 	SdBFM SdBfm;
-
 	SdCoreTransactionSeqGen TransSeqGen;
-
 	SdCoreTransferFunction TransFunc;
-
 	SdCardModel Card;
-
 	SdCoreChecker Checker;
-
 	Logger Log;
 
 	extern function new(virtual ISdBus SdBus, virtual IWishboneBus WbBus);
