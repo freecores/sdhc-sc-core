@@ -37,7 +37,6 @@ class SDCommandToken;
 	aCrc crc7;
 	logic endbit;
 
-
 	function void display();
 		$display("Startbit: %b", startbit);
 		$display("Transbit: %b", transbit);
@@ -59,23 +58,24 @@ class SDCommandToken;
 	endfunction
 
 	function void checkCrc();
-		assert(crc7 == calcCrc());
+		assert(crc7 == calcCrcOfToken());
 	endfunction
 
-	function automatic aCrc calcCrc();
-		aCrc crc = 0;
+	function automatic aCrc calcCrcOfToken();
 		logic[39:0] temp;
+		aCrc crc = 0;
+
 		temp[39] = startbit;
 		temp[38] = transbit;
 		temp[37:32] = id;
 		temp[31:0] = arg;
-	
+
 		for(int i = 39; i >= 0; i--) begin
 			if (((crc[6] & 1)) != temp[i])
-            	 crc = (crc << 1) ^ 'b10001001;
-	        else
-    	         crc <<= 1;	
-			end
+				 crc = (crc << 1) ^ 'b10001001;
+			else
+				 crc <<= 1;	
+		end
 		return crc;
 	endfunction
 
@@ -89,32 +89,99 @@ class SDCommandToken;
 endclass
 
 class SDCommandResponse;
+	protected logic startbit;
+	protected logic transbit;
+	protected logic[5:0] id;
+	protected SDCommandArg arg;
+	protected aCrc crc;
+	protected logic endbit;
+
+	function automatic void calcCrc();
+		logic[39:0] temp;
+
+		temp[39] = startbit;
+		temp[38] = transbit;
+		temp[37:32] = id;
+		temp[31:0] = arg;
+
+		for(int i = 39; i >= 0; i--) begin
+			if (((crc[6] & 1)) != temp[i])
+				 crc = (crc << 1) ^ 'b10001001;
+			else
+				 crc <<= 1;	
+		end
+	endfunction
+
+	
+	task automatic send(virtual ISdCmd.Card ICmd);
+		calcCrc();
+
+		@ICmd.cbCard;
+		ICmd.cbCard.Cmd <= startbit;
+
+		@ICmd.cbCard;
+		ICmd.cbCard.Cmd <= transbit;
+
+		for(int i = 5; i >= 0; i--) begin
+			@ICmd.cbCard;
+			ICmd.cbCard.Cmd <= id[i];
+		end	
+
+		for (int i = 31; i>= 0; i--) begin
+			@ICmd.cbCard;
+			ICmd.cbCard.Cmd <= arg[i];
+		end
+
+		for (int i = 5; i >= 0; i--) begin
+			@ICmd.cbCard;
+			ICmd.cbCard.Cmd <= crc[i];
+		end
+
+		@ICmd.cbCard;
+		ICmd.cbCard.Cmd <= endbit;
+		
+		@ICmd.cbCard;
+		ICmd.cbCard.Cmd <= 'z;
+	endtask
+endclass
+
+class SDCommandR7 extends SDCommandResponse;
+
+	function new(SDCommandArg arg);
+		startbit = 0;
+		transbit = 0;
+		id = cSdCmdSendIfCond;
+		this.arg = arg; 
+		endbit = 1;
+	endfunction
 
 endclass
 
 class SDCard;
-	virtual ISdCmd.Card ICmd;
+	local virtual ISdCmd.Card ICmd;
 
-	SDCardState state;
-	SDCommandToken recvcmd;
+	local SDCardState state;
+	local SDCommandToken recvcmd;
 
-	event CmdReceived;
+	local event CmdReceived, InitDone;
 
-	function new(virtual ISdCmd CmdInterface, event CmdReceived);
-		ICmd = CmdInterface;	
+	function new(virtual ISdCmd CmdInterface, event CmdReceived, event InitDone);
+		ICmd = CmdInterface;
 		state = idle;
 		this.CmdReceived = CmdReceived;
+		this.InitDone = InitDone;
 	endfunction
 
 	task reset();
 		state = idle;
 	endtask
 
+	// Receive a command token and handle it
 	task recv();
 		recvcmd = new();
 		ICmd.cbCard.Cmd <= 'z;
 
-		@(ICmd.cbCard.Cmd == 0);
+		wait(ICmd.cbCard.Cmd == 0);
 		// Startbit
 		recvcmd.startbit = ICmd.cbCard.Cmd;
 
@@ -144,9 +211,32 @@ class SDCard;
 		@ICmd.cbCard;
 		recvcmd.endbit = ICmd.cbCard.Cmd;
 
+		recvcmd.checkFromHost();
 		-> CmdReceived;
 	endtask
 
+	task automatic init();
+		SDCommandR7 voltageresponse;
+		SDCommandResponse response;
+		
+		// expect CMD0 so that state is clear
+		recv();
+		assert(recvcmd.id == cSdCmdGoIdleState);
+		
+		// expect CMD8: voltage and SD 2.00 compatible
+		recv();
+		assert(recvcmd.id == cSdCmdSendIfCond);	
+		assert(recvcmd.arg[12:8] == 'b0001); // Standard voltage
+
+		// respond with R7: we are SD 2.00 compatible and compatible to the
+		// voltage
+		voltageresponse = new(recvcmd.arg);
+		response = voltageresponse;
+		response.send(ICmd);
+
+		-> InitDone;
+
+	endtask
 	
 	function automatic SDCommandToken getCmd();
 		return recvcmd;
