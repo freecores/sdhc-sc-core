@@ -1,17 +1,29 @@
--------------------------------------------------------------------------------
--- Title      : Strobe Generator
--- Project    : 
--------------------------------------------------------------------------------
--- $Id: StrobeGen-Rtl-a.vhd,v 1.1 2003/04/08 13:51:09 pfaff Exp $
--------------------------------------------------------------------------------
--- Author     : Copyright 2003: Markus Pfaff
--- Standard   : Using VHDL'93
--- Simulation : Model Technology Modelsim
--- Synthesis  : Exemplar Leonardo
--------------------------------------------------------------------------------
--- Description:
--- Description for synthesis.
--------------------------------------------------------------------------------
+-- SDHC-SC-Core
+-- Secure Digital High Capacity Self Configuring Core
+-- 
+-- (C) Copyright 2010 Rainer Kastl
+-- 
+-- This file is part of SDHC-SC-Core.
+-- 
+-- SDHC-SC-Core is free software: you can redistribute it and/or modify it
+-- under the terms of the GNU Lesser General Public License as published by
+-- the Free Software Foundation, either version 3 of the License, or (at
+-- your option) any later version.
+-- 
+-- SDHC-SC-Core is distributed in the hope that it will be useful, but
+-- WITHOUT ANY WARRANTY; without even the implied warranty of
+-- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+-- General Public License for more details.
+-- 
+-- You should have received a copy of the GNU Lesser General Public License
+-- along with SDHC-SC-Core. If not, see http://www.gnu.org/licenses/.
+-- 
+-- File        : StrobeGen-Rtl-a.vhdl
+-- Owner       : Rainer Kastl
+-- Description : 
+-- Links       : See EDS at FH Hagenberg
+-- 
+
 architecture Rtl of StrobeGen is
 
 	constant max       : natural                           := gClkFrequency/(1 sec/ gStrobeCycleTime);

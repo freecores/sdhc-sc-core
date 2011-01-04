@@ -1,29 +1,37 @@
--------------------------------------------------------------------------------
--- Title      : Testbench for design "StrobeGen"
--- Project    : 
--------------------------------------------------------------------------------
--- $Id: tbStrobeGen-Bhv-ea.vhd,v 1.1 2004/04/26 19:31:30 fseebach Exp $
--------------------------------------------------------------------------------
--- Author     : Copyright 2003: Markus Pfaff
--- Standard   : Using VHDL'93
--- Simulation : Model Technology Modelsim
--- Synthesis  : Exemplar Leonardo; Precision
--------------------------------------------------------------------------------
--- Description:
---
--------------------------------------------------------------------------------
+-- SDHC-SC-Core
+-- Secure Digital High Capacity Self Configuring Core
+-- 
+-- (C) Copyright 2010 Rainer Kastl
+-- 
+-- This file is part of SDHC-SC-Core.
+-- 
+-- SDHC-SC-Core is free software: you can redistribute it and/or modify it
+-- under the terms of the GNU Lesser General Public License as published by
+-- the Free Software Foundation, either version 3 of the License, or (at
+-- your option) any later version.
+-- 
+-- SDHC-SC-Core is distributed in the hope that it will be useful, but
+-- WITHOUT ANY WARRANTY; without even the implied warranty of
+-- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+-- General Public License for more details.
+-- 
+-- You should have received a copy of the GNU Lesser General Public License
+-- along with SDHC-SC-Core. If not, see http://www.gnu.org/licenses/.
+-- 
+-- File        : tbStrobeGen-Bhv-ea.vhdl
+-- Owner       : Rainer Kastl
+-- Description : 
+-- Links       : See EDS at FH Hagenberg
+-- 
+
 library ieee;
 use ieee.std_logic_1164.all;
 
 use work.Global.all;
 
---------------------------------------------------------------------------------
-
 entity tbStrobeGen is
 
 end entity tbStrobeGen;
-
---------------------------------------------------------------------------------
 
 architecture Bhv of tbStrobeGen is
 

@@ -1,23 +1,29 @@
--------------------------------------------------------------------------------
--- Title      : Tests
--- Project    : EdgeDetector
--------------------------------------------------------------------------------
--- File       : tbEdgeDetection-Bhv-ea.vhd
--- Author     : Rainer Kastl  <hse05015@fh-hagenberg.at>
--- Company    : FH-Hagenberg
--- Created    : 2006-12-12
--- Last update: 2006-12-18
--- Platform   : 
--- Standard   : VHDL'93
--------------------------------------------------------------------------------
--- Description: Testing of EdgeDetector
--------------------------------------------------------------------------------
--- Copyright (c) 2006 FH-Hagenberg
--------------------------------------------------------------------------------
--- Revisions  :
--- Date        Version  Author                                     Description
--- 2006-12-12  1.0      Rainer Kastl  <hse05015@fh-hagenberg.at>  Created
--------------------------------------------------------------------------------
+-- SDHC-SC-Core
+-- Secure Digital High Capacity Self Configuring Core
+-- 
+-- (C) Copyright 2010 Rainer Kastl
+-- 
+-- This file is part of SDHC-SC-Core.
+-- 
+-- SDHC-SC-Core is free software: you can redistribute it and/or modify it
+-- under the terms of the GNU Lesser General Public License as published by
+-- the Free Software Foundation, either version 3 of the License, or (at
+-- your option) any later version.
+-- 
+-- SDHC-SC-Core is distributed in the hope that it will be useful, but
+-- WITHOUT ANY WARRANTY; without even the implied warranty of
+-- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+-- General Public License for more details.
+-- 
+-- You should have received a copy of the GNU Lesser General Public License
+-- along with SDHC-SC-Core. If not, see http://www.gnu.org/licenses/.
+-- 
+-- File        : tbEdgeDetection-Bhv-ea.vhdl
+-- Owner       : Rainer Kastl
+-- Description : 
+-- Links       : See EDS at FH Hagenberg
+-- 
+
 library ieee;
 use ieee.std_logic_1164.all;
 use work.Global.all;

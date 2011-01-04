@@ -1,20 +1,28 @@
-# Copyright (C) 1991-2010 Altera Corporation
-# Your use of Altera Corporation's design tools, logic functions 
-# and other software and tools, and its AMPP partner logic 
-# functions, and any output files from any of the foregoing 
-# (including device programming or simulation files), and any 
-# associated documentation or information are expressly subject 
-# to the terms and conditions of the Altera Program License 
-# Subscription Agreement, Altera MegaCore Function License 
-# Agreement, or other applicable license agreement, including, 
-# without limitation, that your use is for the sole purpose of 
-# programming logic devices manufactured by Altera and sold by 
-# Altera or its authorized distributors.  Please refer to the 
-# applicable agreement for further details.
-
-# Quartus II: Generate Tcl File for Project
-# File: CRCsyn.tcl
-# Generated on: Wed Jun 23 17:07:05 2010
+# SDHC-SC-Core
+# Secure Digital High Capacity Self Configuring Core
+# 
+# (C) Copyright 2010 Rainer Kastl
+# 
+# This file is part of SDHC-SC-Core.
+# 
+# SDHC-SC-Core is free software: you can redistribute it and/or modify it
+# under the terms of the GNU Lesser General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or (at
+# your option) any later version.
+# 
+# SDHC-SC-Core is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# General Public License for more details.
+# 
+# You should have received a copy of the GNU Lesser General Public License
+# along with SDHC-SC-Core. If not, see http://www.gnu.org/licenses/.
+# 
+# File        : CRCsyn.tcl
+# Owner       : Rainer Kastl
+# Description : Synthesis script
+# Links       : Crc-Rtl-ea.vhdl
+# 
 
 # Load Quartus II Tcl Project package
 package require ::quartus::project
