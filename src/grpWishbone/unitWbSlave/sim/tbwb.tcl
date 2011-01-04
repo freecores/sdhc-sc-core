@@ -19,5 +19,5 @@ vcom ../../unit$tb/src/tb$tb-$tbarch-ea.vhdl
 
 vsim tb$tb
 
-do wave.do
+#do wave.do
 run -all
