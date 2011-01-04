@@ -13,3 +13,9 @@ sim/work/*
 */syn/db
 */syn/incremental_db
 _DaBa.pdf
+transcript
+vsim.wlf
+work
+modelsim.ini
+src/libaltera_mf/sim/altera_mf/
+src/libcycloneii/sim/cycloneii/
