@@ -3,3 +3,11 @@
 *.dvi
 *.backup
 sim/work/*
+*.swp
+*-blx.bib
+*.bbl
+*.log
+*.toc
+*.blg
+*/syn/db
+*/syn/incremental_db
