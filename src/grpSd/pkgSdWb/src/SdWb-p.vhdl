@@ -61,7 +61,6 @@ package SdWb is
 	type aSdControllerToSdWbSlave is record
 
 		ReqOperationEdge : std_ulogic; -- Request a new OperationBlock
-		Done             : std_ulogic; 
 		ReadData         : aData;
 
 	end record aSdControllerToSdWbSlave;

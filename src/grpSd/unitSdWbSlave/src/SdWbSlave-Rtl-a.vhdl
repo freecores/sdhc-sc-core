@@ -9,7 +9,7 @@
 
 architecture Rtl of SdWbSlave is
 
-	type aWbState is (idle, ClassicRead, ClassicWrite);
+	type aWbState is (idle, ClassicWrite, ClassicRead);
 	type aSdIntState is (idle, newOperation);
 
 	type aRegs is record
@@ -18,7 +18,7 @@ architecture Rtl of SdWbSlave is
 		SdIntState     : aSdIntState; -- state of the sd controller interface
 		OperationBlock : aOperationBlock; -- Operation for the SdController
 		ReqOperation   : std_ulogic; -- Register for catching edges on the SdController ReqOperationEdge line
-		-- Register outputs
+									 -- Register outputs
 		oWbDat         : aSdWbSlaveDataOutput;
 		oWbCtrl        : aWbSlaveCtrlOutput;
 		oController    : aSdWbSlaveToSdController;
@@ -37,7 +37,10 @@ architecture Rtl of SdWbSlave is
 	signal R, NxR : aRegs;
 
 begin
- 
+	oWbDat      <= R.oWbDat;
+	oWbCtrl     <= R.oWbCtrl;
+	oController <= R.oController;
+
 	WbStateReg  : process (iClk, iRstSync)
 	begin
 		if (iClk'event and iClk = cActivated) then
@@ -61,81 +64,78 @@ begin
 		case R.WbState is
 			when idle =>
 				if iWbCtrl.Cyc = cActivated and iWbCtrl.Stb = cActivated then
-				
+
 					case iWbCtrl.Cti is
 						when cCtiClassicCycle => 
-							-- switch to ClassicRead or ClassicWrite
 							case iWbCtrl.We is
 								when cInactivated => 
-									NxR.WbState <= ClassicRead;
+
+									-- perform a ClassicRead
+									NxR.oWbCtrl.Ack <= cActivated;
+									NxR.WbState     <= ClassicRead;
+
+									if (iWbDat.Sel = "1") then
+										case iWbDat.Adr is
+											when cOperationAddr => 
+												NxR.oWbDat.Dat <= R.OperationBlock.Operation;
+
+											when cStartAddrAddr => 
+												NxR.oWbDat.Dat <= R.OperationBlock.StartAddr;
+
+											when cEndAddrAddr => 
+												NxR.oWbDat.Dat <= R.OperationBlock.EndAddr;
+
+											when cReadDataAddr => 
+											-- read data from fifo
+
+											when others => 
+												report "Read to an invalid address" severity warning;
+												NxR.oWbCtrl.Err <= cActivated;
+												NxR.oWbCtrl.Ack <= cInactivated;
+										end case;
+									end if;
+									
 								when cActivated => 
-									NxR.WbState <= ClassicWrite;
+
+									--perform a ClassicWrite
+									NxR.oWbCtrl.Ack <= cActivated;
+									NxR.WbState     <= ClassicWrite;
+
+									if (iWbDat.Sel = "1" and 
+									iWbDat.Adr = cOperationAddr and 
+									R.SdIntState = newOperation) then
+										-- insert waitstates until we can notify the SdController again
+
+										NxR.oWbCtrl.Ack <= cInactivated;
+										NxR.WbState     <= idle;
+
+									end if;
+
 								when others => 
 									report "iWbCtrl.We is invalid" severity warning;
 							end case;		
-			
+
 						when others => null;
 					end case;
-				
+
 				end if;
 
-			when ClassicRead =>
-				assert (iWbCtrl.Cyc = cActivated) report
-				"Cyc deactivated mid cyclus" severity warning;
-
-				NxR.oWbCtrl.Ack <= cActivated;	
-
-				if (iWbDat.Sel = "1") then
-					case iWbDat.Adr is
-						when cOperationAddr => 
-							NxR.oWbDat.Dat <= R.OperationBlock.Operation;
-
-						when cStartAddrAddr => 
-							NxR.oWbDat.Dat <= R.OperationBlock.StartAddr;
-
-						when cEndAddrAddr => 
-							NxR.oWbDat.Dat <= R.OperationBlock.EndAddr;
-
-						when cReadDataAddr => 
-							-- read data from fifo
-
-						when others => 
-							report "Read to an invalid address" severity warning;
-							NxR.oWbCtrl.Err <= cActivated;
-							NxR.oWbCtrl.Ack <= cInactivated;
-					end case;
-				end if;
-				
+			when ClassicRead => 
 				NxR.WbState <= idle;
 
-			when ClassicWrite =>
-				assert (iWbCtrl.Cyc = cActivated) report
-				"Cyc deactivated mid cyclus" severity warning;
-
-				-- default state transition and output
-
-				NxR.oWbCtrl.Ack <= cActivated;
-				NxR.WbState     <= idle;
+				
+			when ClassicWrite => 
+				NxR.WbState <= idle;
 
 				if (iWbDat.Sel = "1") then
 					case iWbDat.Adr is
 						when cOperationAddr => 
-							
-							if (R.SdIntState = idle) then
-								-- save operation and notify the SdController
 
-								NxR.OperationBlock.Operation <= iWbDat.Dat;
-								NxR.SdIntState               <= newOperation;
-
-							else
-								-- insert waitstates until we can notify the SdController again
-
-								NxR.oWbCtrl.Ack <= cInactivated; 
-
-							end if;
+							NxR.OperationBlock.Operation <= iWbDat.Dat;
+							NxR.SdIntState               <= newOperation;
 
 						when cStartAddrAddr => 
-
+							
 							NxR.OperationBlock.StartAddr <= iWbDat.Dat;
 
 						when cEndAddrAddr => 
@@ -146,11 +146,13 @@ begin
 							-- put into fifo
 
 						when others => 
-							report "Read to an invalid address" severity warning;
+							report "Write to an invalid address" severity warning;
 					end case;
 				end if;
 
-			when others => null;
+
+			when others => 
+				report "Invalid state" severity error;
 		end case;
 
 		-- send operations to SdController
@@ -160,8 +162,8 @@ begin
 
 				if (iController.ReqOperationEdge = cActivated) then
 
-					R.ReqOperation <= cActivated;
-					
+					NxR.ReqOperation <= cActivated;
+
 				end if;
 
 			when newOperation => 
@@ -172,12 +174,12 @@ begin
 					NxR.oController.AckOperationToggle <= not R.oController.AckOperationToggle;
 
 					-- go to idle state, the next request will come only after the SdController received this block
-					
+
 					NxR.ReqOperation <= cInactivated;
 					NxR.SdIntState   <= idle;
 
 				end if;
-					
+
 			when others => 
 				report "Invalid state" severity error;
 		end case;

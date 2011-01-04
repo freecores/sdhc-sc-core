@@ -60,6 +60,17 @@ if [info exists tb] {
 	}
 }
 
+if [info exists svtb] {
+	foreach {grp unit} $svtb {
+		set fname ../../../grp$grp/unit$unit/src/tb$unit.sv
+		if [file isfile $fname] {
+			vlog $fname
+		} else {
+			echo "Svunit $grp $unit not found! ($fname)"
+		}
+	}
+}
+
 if [info exists svunits] {
 	foreach {grp unit} $svunits {
 		set fname ../../../grp$grp/unit$unit/src/$unit.sv
