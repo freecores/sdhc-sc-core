@@ -37,7 +37,8 @@ architecture Rtl of SdController is
 	(id       => (others        => '0'),
 	arg       => (others        => '0')),
 	Valid     => cInactivated,
-	ExpectCID => cInactivated);
+	ExpectCID => cInactivated,
+	CheckCrc  => cActivated);
 
 	type aSdControllerReg is record
 		State      : aSdControllerState;
@@ -226,8 +227,9 @@ begin
 								end if;
 
 							when receive => 
-								oLedBank(0)   <= cActivated;
-								TimeoutEnable <= cActivated;
+								oLedBank(0)     <= cActivated;
+								-- TimeoutEnable   <= cActivated;
+								oSdCmd.CheckCrc <= cInactivated;
 
 								if (iSdCmd.Valid = cActivated) then
 									NextR.CmdRegion <= CMD55;
@@ -241,15 +243,23 @@ begin
 												NextR.State <= invalidCard;
 											else
 												NextR.CCS       <= ocr.ccs;
-												NextR.CmdRegion <= CMD2;
-												NextR.Region    <= send;
+												NextR.CmdRegion <= ACMD41;
+												NextR.Region    <= waitstate;
 											end if;
 										end if;
 									end if;
 								elsif (Timeout = cActivated) then
-									NextR.CmdRegion <= CMD55;
+									NextR.State <= invalidCard;
+								end if;
+							
+							when waitstate => 
+								TimeoutEnable <= cActivated;
+
+								if (Timeout = cActivated) then
+									NextR.CmdRegion <= CMD2;
 									NextR.Region    <= send;
 								end if;
+
 
 							when others => 
 								report "SdController: Unhandled state" severity error;
@@ -276,12 +286,18 @@ begin
 
 									if (iSdCmd.Content.id = cSdR2Id) then 
 										NextR.State     <= init;
-										NextR.CmdRegion <= CMD3;
-										NextR.Region    <= send;
+										NextR.Region    <= waitstate;
 									end if;
 								-- elsif timeout
 								end if;
+							
+							when waitstate => 
+								TimeoutEnable <= cActivated;
 
+								if (Timeout = cActivated) then
+									NextR.CmdRegion <= CMD3;
+									NextR.Region    <= send;
+								end if;
 							when others => 
 								report "SdController: Unhandled state" severity error;
 						end case;
@@ -332,7 +348,7 @@ begin
 	TimeoutGenerator_inst: entity work.TimeoutGenerator
 	generic map (
 		gClkFrequency => 25E6,
-		gTimeoutTime  => 100 ms
+		gTimeoutTime  => 1 ms
 	)
 	port map (
 		iClk => iClk,

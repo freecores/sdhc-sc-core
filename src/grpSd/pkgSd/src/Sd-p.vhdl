@@ -105,9 +105,10 @@ package Sd is
 
 	-- Types for entities
 	type aSdCmdFromController is record
-		Content : aSdCmdContent;
-		Valid : std_ulogic;
+		Content   : aSdCmdContent;
+		Valid     : std_ulogic;
 		ExpectCID : std_ulogic; -- gets asserted when next response is R2
+		CheckCrc  : std_ulogic;
 	end record aSdCmdFromController;
 
 	type aSdCmdToController is record

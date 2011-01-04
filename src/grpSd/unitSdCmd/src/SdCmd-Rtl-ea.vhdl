@@ -238,12 +238,16 @@ begin
 						NextR.ReceivedToken.endbit <= ioCmd;
 
 						-- check 
-						if (CrcCorrect = cActivated and R.ReceivedToken.transbit = cSdTransBitSlave) then
+						if (iFromController.CheckCrc = cActivated) then
+							if (CrcCorrect = cActivated and R.ReceivedToken.transbit = cSdTransBitSlave) then
+								NextO.Controller.Valid <= cActivated;
+
+							else
+								NextO.Controller.Err <= cActivated;
+
+							end if;
+						else 
 							NextO.Controller.Valid <= cActivated;
-
-						else
-							NextO.Controller.Err <= cActivated;
-
 						end if;
 						
 						NextR.State <= idle;

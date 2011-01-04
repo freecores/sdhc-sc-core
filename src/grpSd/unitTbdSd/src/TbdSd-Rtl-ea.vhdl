@@ -13,6 +13,7 @@ use ieee.numeric_std.all;
 use work.Global.all;
 use work.Ics307Values.all;
 use work.Rs232.all;
+use work.Sd.all;
 
 entity TbdSd is
 
@@ -50,29 +51,41 @@ architecture Rtl of TbdSd is
 
 	signal SdCardStatus : std_ulogic_vector(31 downto 0);
 
-	type aState is (send, waitforchange);
+	type aState is (id, arg, waitforchange);
 	type aReg is record
 		State : aState;
 		SdCardStatus : std_ulogic_vector(31 downto 0);
-		Counter : unsigned(1 downto 0);
+		Counter : natural;
+		ReceivedContent : aSdCmdContent;
+		ValidContent : aSdCmdContent;
+		Data : std_ulogic_vector(7 downto 0);
+		DataAvailable : std_ulogic;
 	end record aReg;
 
-	signal R, NextR : aReg;
-	signal Ledbank  : aLedBank;
+	signal R, NextR        : aReg;
+	signal ReceivedContent : aSdCmdContent;
+	signal oReceivedContentValid : std_ulogic;
 
 begin
 
-	oLedBank(6 downto 0) <= Ledbank(6 downto 0);
 	oDigitAdr <= "101"; -- DIGIT_6
 	oTx       <= oRs232Tx.Tx;
 
-	-- Send SdCardStatus via Rs232
+	iRs232Tx.Transmit <= cActivated;
+	iRs232Tx.Data <= R.Data;
+	iRs232Tx.DataAvailable <= R.DataAvailable;
+
+	-- Send ReceivedContent via Rs232
 	Rs232_Send : process (iClk, inResetAsync)
 	begin
 		if (inResetAsync = cnActivated) then
-			R.State <= send;
+			R.State <= id;
 			R.SdCardStatus <= (others => '0');
-			R.Counter <= "11";
+			R.Counter <= 3;
+			R.ReceivedContent <= cDefaultSdCmdContent;
+			R.ValidContent <= cDefaultSdCmdContent;
+			R.Data <= (others => '0');
+			R.DataAvailable <= cInactivated;
 
 		elsif (iClk'event and iClk = cActivated) then
 			R <= NextR;
@@ -80,29 +93,36 @@ begin
 		end if;
 	end process Rs232_Send;
 
-	Rs232_comb : process (oRs232Tx.DataWasRead, SdCardStatus, R)
+	Rs232_comb : process (oRs232Tx.DataWasRead, ReceivedContent, oReceivedContentValid, R)
 	begin
 		NextR <= R;
-		iRs232Tx.Transmit <= cInactivated;
-		iRs232Tx.Data <= R.SdCardStatus((to_integer(R.Counter) * 8) + 7 downto to_integer(R.Counter) * 8);
-		iRs232Tx.DataAvailable <= cInactivated;
 
 		case R.State is
 			when waitforchange => 
-				oLedBank(7) <= cActivated;
-				if (R.SdCardStatus /= SdCardStatus) then
-					NextR.SdCardStatus <= SdCardStatus;
-					NextR.State <= send;
+				NextR.DataAvailable <= cInactivated;
+
+				if (R.ReceivedContent /= R.ValidContent) then
+					NextR.ReceivedContent <= R.ValidContent;
+					NextR.State <= id;
 				end if;
 
-			when send => 
-				oLedBank(7) <= cInactivated;
-				iRs232Tx.DataAvailable <= cActivated;
-				iRs232Tx.Transmit <= cActivated;
+			when id => 
+				NextR.DataAvailable <= cActivated;
+				NextR.Data <= "00" & R.ReceivedContent.id;
 
 				if (oRs232Tx.DataWasRead = cActivated) then
-					if (R.Counter = "00") then
-						NextR.Counter <= "11";
+					NextR.DataAvailable <= cInactivated;
+					NextR.State <= arg;
+				end if;
+
+			when arg => 
+				NextR.DataAvailable <= cActivated;
+				NextR.Data <= R.ReceivedContent.arg(R.Counter * 8 + 7 downto R.Counter * 8);
+
+				if (oRs232Tx.DataWasRead = cActivated) then
+					NextR.DataAvailable <= cInactivated;
+					if (R.Counter = 0) then
+						NextR.Counter <= 3;
 						NextR.State <= waitforchange;
 					else
 						NextR.Counter <= R.Counter - 1;
@@ -113,17 +133,23 @@ begin
 				report "Unhandled state" severity error;
 		end case;
 
+		if (oReceivedContentValid = cActivated) then
+			NextR.ValidContent <= ReceivedContent;
+		end if;
+
 	end process Rs232_comb;
 		
 	SDTop_inst : entity work.SdTop(Rtl)
 	port map (
-		iClk          => iClk,
-		inResetAsync  => inResetAsync,
-		ioCmd         => ioCmd,
-		oSclk         => oSclk,
-		ioData        => ioData,
-		oSdCardStatus => SdCardStatus,
-		oLedBank      => LedBank
+		iClk             => iClk,
+		inResetAsync     => inResetAsync,
+		ioCmd            => ioCmd,
+		oSclk            => oSclk,
+		ioData           => ioData,
+		oSdCardStatus    => SdCardStatus,
+		oReceivedContent => ReceivedContent,
+		oReceivedContentValid => oReceivedContentValid,
+		oLedBank         => oLedBank
 	);
 
 	Rs232Tx_inst : entity work.Rs232Tx

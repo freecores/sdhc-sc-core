@@ -22,8 +22,10 @@ entity SdTop is
 		ioData : inout std_logic_vector(3 downto 0);
 
 		-- Status
-		oSdCardStatus : out aSdCardStatus;
-		oLedBank      : out aLedBank
+		oSdCardStatus         : out aSdCardStatus;
+		oReceivedContent      : out aSdCmdContent;
+		oReceivedContentValid : out std_ulogic;
+		oLedBank              : out aLedBank
 	);
 end entity SdTop;
 
@@ -34,9 +36,11 @@ architecture Rtl of SdTop is
 	signal SdRegisters    : aSdRegisters;
 
 begin
-	ioData        <= "ZZZZ";
-	oSclk         <= iClk;
-	oSdCardStatus <= SdRegisters.CardStatus;
+	ioData                <= "ZZZZ";
+	oSclk                 <= iClk;
+	oSdCardStatus         <= SdRegisters.CardStatus;
+	oReceivedContent      <= ToController.Content;
+	oReceivedContentValid <= ToController.Valid;
 
 	SdController_inst: entity work.SdController(Rtl)
 	port map (

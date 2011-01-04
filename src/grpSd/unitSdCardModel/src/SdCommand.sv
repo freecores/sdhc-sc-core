@@ -160,6 +160,24 @@ class SDCommandR3 extends SDCommandResponse;
 		this.arg = ocr.get(); 
 		endbit = 1;
 	endfunction
+	
+	task automatic send(virtual ISdCmd.Card ICmd);
+		aCrc crc = 0;
+		
+		data.push_back(startbit);
+		data.push_back(transbit);
+		for(int i = 5; i >= 0; i--)
+			data.push_back(id[i]);
+
+		for (int i = 31; i>= 0; i--)
+			data.push_back(arg[i]);
+
+		for (int i = 6; i >= 0; i--)
+			data.push_back(1);
+
+		data.push_back(endbit);
+		sendData(ICmd);
+	endtask
 
 endclass
 
