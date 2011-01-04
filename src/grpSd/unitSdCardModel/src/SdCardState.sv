@@ -11,20 +11,28 @@ typedef enum {
 } SDCardStates;
 
 class SDCardState;
-	local logic OutOfRange;
-	local logic AddressError;
-	local logic BlockLenError;
-
-	local logic[3:0] state;	
-
-	local logic AppCmd;
+	logic OutOfRange;
+	logic AddressError;
+	logic BlockLenError;
+	logic ComCrcError;
+	logic IllegalCommand;
+	logic Error;
+	logic[3:0] state;	
+	logic ReadyForData;
+	logic AppCmd;
+	logic AkeSeqError;
 
 	function new();
 		OutOfRange = 0;
 		AddressError = 0;
 		BlockLenError = 0;
+		ComCrcError = 0;
+		IllegalCommand = 0;
+		Error = 0;
 		state = idle;
+		ReadyForData = 0;
 		AppCmd = 0;
+		AkeSeqError = 0;
 	endfunction	
 
 	function void recvCMD55();

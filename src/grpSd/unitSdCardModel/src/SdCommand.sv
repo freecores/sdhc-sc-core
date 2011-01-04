@@ -6,6 +6,7 @@
 // 
 `define cSDArgWith 32
 typedef logic[`cSDArgWith-1:0] SDCommandArg;
+typedef logic[15:0] RCA_t;
 typedef logic[6:0] aCrc;
 
 typedef enum {
@@ -222,5 +223,27 @@ class SDCommandR2 extends SDCommandResponse;
 		ICmd.cb.Cmd <= 'z;
 	endtask
 	
+endclass
+
+class SDCommandR6 extends SDCommandResponse;
+
+	function new(RCA_t rca, SDCardState state);
+		startbit = 0;
+		transbit = 0;
+		id = cSdCmdSendRelAdr;
+		this.arg[31:16] = rca; 
+		this.arg[15] = state.ComCrcError;
+		this.arg[14] = state.IllegalCommand;
+		this.arg[13] = state.Error;
+		this.arg[12:9] = state.state;
+		this.arg[8] = state.ReadyForData;
+		this.arg[7:6] = 0;
+		this.arg[5] = state.AppCmd;
+		this.arg[4] = 0;
+		this.arg[3] = state.AkeSeqError;
+		this.arg[2:0] = 0;
+		endbit = 1;
+	endfunction
+
 endclass
 

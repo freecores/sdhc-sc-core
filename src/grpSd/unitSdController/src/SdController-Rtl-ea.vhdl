@@ -35,9 +35,10 @@ architecture Rtl of SdController is
 	type aSdControllerReg is record
 		HCS : std_ulogic;
 		CCS : std_ulogic;
+		RCA : aSdRCA;
 	end record aSdControllerReg;
 	constant cDefaultSdControllerReg : aSdControllerReg := (cActivated,
-	cInactivated);
+	cInactivated, cDefaultRCA);
 
 	signal Reg, NextReg : aSdControllerReg;
 
@@ -165,7 +166,20 @@ begin
 				end if;
 
 			when CMD3 => 
-				null;
+				oSdCmd.Content.id <= cSdCmdSendRelAdr;
+				oSdCmd.Valid <= cActivated;
+				if (iSdCmd.Ack = cActivated) then
+					NextState <= CMD3Response;
+				end if;
+
+			when CMD3Response => 
+				if (iSdCmd.Valid = cActivated) then
+					if (iSdCmd.Content.id = cSdCmdSendRelAdr) then
+						-- todo: check status
+						NextReg.RCA <= iSdCmd.Content.arg(31 downto 16);
+						NextState <= idle;
+					end if;
+				end if;
 
 			when others => 
 				report "SdController: State not handled" severity error;

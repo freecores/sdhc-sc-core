@@ -14,6 +14,7 @@ class SDCard;
 	local virtual ISdCmd.Card ICmd;
 
 	local SDCardState state;
+	local RCA_t rca;
 	local SDCommandToken recvcmd;
 	local logic CCS;
 
@@ -25,6 +26,7 @@ class SDCard;
 		this.CmdReceived = CmdReceived;
 		this.InitDone = InitDone;
 		this.CCS = 1;
+		rca = 0;
 	endfunction
 
 	task reset();
@@ -75,6 +77,7 @@ class SDCard;
 		SDCommandR3 acmd41response;
 		SDCommandR2 cidresponse;
 		SDOCR ocr;
+		SDCommandR6 rcaresponse;
 		
 		// expect CMD0 so that state is clear
 		recv();
@@ -137,6 +140,14 @@ class SDCard;
 		// respond with R2
 		cidresponse = new();
 		cidresponse.send(ICmd);	
+
+		// expect CMD3
+		recv();
+		assert(recvcmd.id == cSdCmdSendRelAdr);
+
+		// respond with R3
+		rcaresponse = new(rca, state);
+		rcaresponse.send(ICmd);
 
 		-> InitDone;
 

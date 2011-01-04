@@ -85,6 +85,9 @@ package Sd is
 	function UpdateCID(icid : in aSdRegCID; data : in std_ulogic; pos : in
 	natural) return aSdRegCID;
 
+	subtype aSdRCA is std_ulogic_vector(15 downto 0);
+	constant cDefaultRCA : aSdRCA := (others => '0');
+
 	-- Types for entities
 	type aSdCmdFromController is record
 		Content : aSdCmdContent;
