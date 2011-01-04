@@ -2,4 +2,4 @@
 *.aux
 *.dvi
 *.backup
-*work*
+sim/work/*
