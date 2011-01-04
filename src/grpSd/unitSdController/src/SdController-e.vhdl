@@ -12,8 +12,10 @@
 library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
+
 use work.Global.all;
 use work.Sd.all;
+use work.SdWb.all;
 
 entity SdController is
 	generic (
@@ -38,6 +40,10 @@ entity SdController is
 		-- DataRam
 		iDataRam : in aSdControllerFromRam;
 		oDataRam : out aSdControllerToRam;
+
+		-- SdWbSlave
+		iSdWbSlave : in aSdWbSlaveToSdController;
+		oSdWbSlave : out aSdControllerToSdWbSlave;
 
 		-- Status
 		oLedBank     : out aLedBank

@@ -29,8 +29,9 @@ entity StrobeGen is
 
   port (
     -- Sequential logic inside this unit
-    iClk         : in  std_ulogic;
-    inResetAsync : in  std_ulogic;
+    iClk         : in std_ulogic;
+    inResetAsync : in std_ulogic := '1';
+    iRstSync     : in std_ulogic := '0';
 
     -- Strobe with the above given cycle time
     oStrobe      : out std_ulogic);

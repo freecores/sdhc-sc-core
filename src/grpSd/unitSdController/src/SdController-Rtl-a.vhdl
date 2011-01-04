@@ -92,7 +92,7 @@ begin
 		end if;
 	end process Regs;
 
-	Comb : process (iSdCmd, iSdData, iDataRam, Timeout, R)
+	Comb : process (iSdCmd, iSdData, iDataRam, iSdWbSlave, Timeout, R)
 		variable ocr           : aSdRegOCR;
 		variable arg           : aSdCmdArg;
 		variable NextRegion    : aRegion;

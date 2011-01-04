@@ -9,15 +9,38 @@ library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 use work.Global.all;
+use work.Wishbone.all;
 use work.Sd.all;
+use work.SdWb.all;
 
 entity SdTop is
 	generic (
-		gClkFrequency  : natural := 25E6;
+		gUseSameClocks : boolean := true;
+		gClkFrequency  : natural := 100E6;
 		gHighSpeedMode : boolean := true
 	);
 	port (
-		iClk         : in std_ulogic;
+		-- Wishbone interface
+		iWbClk   : in std_ulogic;
+		iRstSync : in std_ulogic;
+
+		iCyc  : in std_ulogic;
+		iLock : in std_ulogic;
+		iStb  : in std_ulogic;
+		iWe   : in std_ulogic;
+		iCti  : in std_ulogic_vector(2 downto 0);
+		iBte  : in std_ulogic_vector(1 downto 0);
+		iSel  : in std_ulogic_vector(0 downto 0);
+		iAdr  : in std_ulogic_vector(6 downto 4);
+		iDat  : in std_ulogic_vector(31 downto 0);
+
+		oDat  : out std_ulogic_vector(31 downto 0);
+		oAck  : out std_ulogic;
+		oErr  : out std_ulogic;
+		oRty  : out std_ulogic;
+
+		-- Sd interface
+		iSdClk       : in std_ulogic;
 		inResetAsync : in std_ulogic;
 
 		-- SD Card
@@ -26,10 +49,6 @@ entity SdTop is
 		ioData : inout std_logic_vector(3 downto 0);
 
 		-- Status
-		oReceivedContent      : out aSdCmdContent;
-		oReceivedContentValid : out std_ulogic;
-		oReceivedData         : out std_ulogic_vector(511 downto 0);
-		oReceivedDataValid    : out std_ulogic;
 		oLedBank              : out aLedBank
 	);
 
@@ -45,118 +64,90 @@ architecture Rtl of SdTop is
 	signal SdDataToRam             : aSdDataToRam;
 	signal SdControllerToDataRam   : aSdControllerToRam;
 	signal SdControllerFromDataRam : aSdControllerFromRam;
+	signal SdWbSlaveToController   : aSdWbSlaveToSdController;
+	signal SdWbSlaveFromController : aSdControllerToSdWbSlave;
+
 	signal SdStrobe                : std_ulogic;
-	signal SdStrobe25MHz           : std_ulogic;
-	signal SdStrobe50MHz           : std_ulogic;
 	signal HighSpeed               : std_ulogic;
 
-	signal iCmd : aiSdCmd;
-	signal oCmd : aoSdCmd;
-	signal iData : aiSdData;
-	signal oData : aoSdData;
+	signal iCmd                    : aiSdCmd;
+	signal oCmd                    : aoSdCmd;
+	signal iData                   : aiSdData;
+	signal oData                   : aoSdData;
 
-	signal Sclk : std_ulogic;
-	signal Counter : natural range 0 to 3;
-
+	signal iWbCtrl                 : aWbSlaveCtrlInput;
+	signal oWbCtrl                 : aWbSlaveCtrlOutput;
+	signal iWbDat                  : aSdWbSlaveDataInput;
+	signal oWbDat                  : aSdWbSlaveDataOutput;
+	
 begin
-
-	Reg : process (iClk, inResetAsync)
-	begin
-		if (inResetAsync = cnActivated) then
-			iCmd.Cmd   <= '1';
-			iData.Data <= (others => '1');
-		elsif (rising_edge(iClk)) then
-			iCmd.Cmd   <= ioCmd;
-			iData.Data <= std_ulogic_vector(ioData);
-		end if;
-	end process Reg;
 
 	ioCmd <= oCmd.Cmd when oCmd.En = cActivated else 'Z';
 	Gen_data : for i in 0 to 3 generate
 		ioData(i) <= oData.Data(i) when oData.En(i) = cActivated else 'Z';
 	end generate;
 
-	Sclk100MHz:  if gClkFrequency = 100E6 generate
+	-- map wishbone signals to internal signals
+	iWbCtrl <= (
+			   Cyc  => iCyc,
+			   Lock => iLock,
+			   Stb  => iStb,
+			   We   => iWe,
+			   Cti  => iCti,
+			   Bte  => iBte
+		   );
 
-		ClkDivider : process (iClk, inResetAsync)
-		begin
-			if (inResetAsync = cnActivated) then
-				Counter <= 0;
-				Sclk <= cInactivated;
+	oAck <= oWbCtrl.Ack;
+	oErr <= oWbCtrl.Err;
+	oRty <= oWbCtrl.Rty;
+	oDat <= oWbDat.Dat;
 
-			elsif (rising_edge(iClk)) then
-				if (HighSpeed = cActivated) then
-					if (Counter = 0 or Counter = 2) then
-						Sclk <= cActivated;
-					else
-						Sclk <= cInactivated;
-					end if;
-				else
-					if (Counter = 0 or Counter = 1) then
-						Sclk <= cActivated;
-					else
-						Sclk <= cInactivated;
-					end if;
-				end if;
+	iWbDat <= (
+			  Sel => iSel,
+			  Adr => iAdr,
+			  Dat => iDat
+		  );
 
-				if (Counter < 3) then
-					Counter <= Counter + 1;
-				else 
-					Counter <= 0;
-				end if;
-			end if;
-		end process ClkDivider;
+	SdWbSlave_inst : entity work.SdWbSlave
+	port map (
+		iClk                => iWbClk,
+		iRstSync            => iRstSync,
 
-		oSclk    <= not Sclk;
-		SdStrobe <= SdStrobe25MHz when HighSpeed = cInactivated else SdStrobe50MHz;
-	
-		SdStrobe_inst25: entity work.StrobeGen(Rtl)
-		generic map (
-			gClkFrequency    => gClkFrequency,
-			gStrobeCycleTime => 1 sec / 25E6)
-		port map (
-			iClk         => iClk,
-			inResetAsync => inResetAsync,
-			oStrobe      => SdStrobe25MHz);
-	
-		SdStrobe_inst50: entity work.StrobeGen(Rtl)
-		generic map (
-			gClkFrequency    => gClkFrequency,
-			gStrobeCycleTime => 1 sec / 50E6)
-		port map (
-			iClk         => iClk,
-			inResetAsync => inResetAsync,
-			oStrobe      => SdStrobe50MHz);
-	
-	end generate;
+		-- wishbone
+		iWbCtrl             => iWbCtrl,
+		oWbCtrl             => oWbCtrl,
+		iWbDat              => iWbDat,
+		oWbDat              => oWbDat,
+		
+		-- To sd controller
+		iController         => SdWbSlaveFromController,
+		oController         => SdWbSlaveToController
+	);
 
-	Sclk50Mhz: if gClkFrequency = 50E6 generate
 
-		oSclk <= not Sclk;
-		Sclk    <= SdStrobe25MHz when HighSpeed = cInactivated else iClk;
-		SdStrobe <= SdStrobe25MHz when HighSpeed = cInactivated else cActivated;
-	
-		SdStrobe_inst: entity work.StrobeGen(Rtl)
-		generic map (
-			gClkFrequency    => gClkFrequency,
-			gStrobeCycleTime => 1 sec / 25E6)
-		port map (
-			iClk         => iClk,
-			inResetAsync => inResetAsync,
-			oStrobe      => SdStrobe25MHz);
-	
-	end generate;	
+	SdClockMaster_inst: entity work.SdClockMaster
+	generic map (
+		gClkFrequency => gClkFrequency
+	)
+	port map (
+		iClk       => iSdClk,
+		iRstSync   => iRstSync,
+		iHighSpeed => HighSpeed,
+		oSdStrobe  => SdStrobe,
+		oSdCardClk => oSClk
+	);
 
-	Sclk25MHz: if gClkFrequency = 25E6 generate
+	SdCardSynchronizer_inst : entity work.SdCardSynchronizer
+	port map (
 
-		oSclk    <= not iClk;
-		SdStrobe <= cActivated;
+		iClk       => iSdClk,
+		iRstSync   => iRstSync,
+		iCmd       => ioCmd,
+		iData      => ioData,
+		oCmdSync   => iCmd.Cmd,
+		oDataSync  => iData.Data
 
-	end generate;
-
-	oReceivedContent      <= SdCmdToController.Content;
-	oReceivedContentValid <= SdCmdToController.Valid;
-	oReceivedDataValid    <= SdDataToController.Valid;
+	);
 
 	SdController_inst: entity work.SdController(Rtl)
 	generic map (
@@ -164,7 +155,7 @@ begin
 		gHighSpeedMode => gHighSpeedMode
 	)
 	port map (
-		iClk         => iClk,
+		iClk         => iSdClk,
 		inResetAsync => inResetAsync,
 		oHighSpeed   => HighSpeed,
 		iSdCmd       => SdCmdToController,
@@ -173,12 +164,14 @@ begin
 		oSdData		 => SdDataFromController,
 		iDataRam     => SdControllerFromDataRam,
 		oDataRam     => SdControllerToDataRam,
+		oSdWbSlave   => SdWbSlaveFromController,
+		iSdWbSlave   => SdWbSlaveToController,
 		oLedBank     => oLedBank
 	);
 
 	SdCmd_inst: entity work.SdCmd(Rtl)
 	port map (
-		iClk            => iClk,
+		iClk            => iSdClk,
 		inResetAsync    => inResetAsync,
 		iStrobe         => SdStrobe,
 		iFromController => SdCmdFromController,
@@ -189,7 +182,7 @@ begin
 
 	SdData_inst: entity work.SdData 
 	port map (
-		iClk                  => iClk,
+		iClk                  => iSdClk,
 		inResetAsync          => inResetAsync,
 		iStrobe               => SdStrobe,
 		iSdDataFromController => SdDataFromController,
@@ -206,7 +199,7 @@ begin
 		gAddrWidth => 7
 	)
 	port map (
-		iClk    => iClk,
+		iClk    => iSdClk,
 		iAddrRW => SdDataToRam.Addr,
 		iDataRW => SdDataToRam.Data,
 		iWeRW   => SdDataToRam.We,
