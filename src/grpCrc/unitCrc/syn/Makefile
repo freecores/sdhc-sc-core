@@ -1,5 +1,9 @@
-quartus=quartus_sh
+# Makefile for synthesizing crcs
 
-syn:
-	$(quartus) -t CRCsyn.tcl
+include ../../../../Makefile.rules
+
+all: CRCsyn.syn
+
+clean:
+	rm -rf db incremental_db *.rbf *.sof *.pin *.pof
 

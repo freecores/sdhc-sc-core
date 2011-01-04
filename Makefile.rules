@@ -1,5 +1,10 @@
 # Common rules for all makefiles
+quartus=quartus_sh
 
 # Target for simulating tcl files.
 %.sim: %.tcl
 	$(SIM) -c -do $<
+
+# Target for using quartus with tcl files.
+%.syn: %.tcl
+	$(quartus) -t $<
