@@ -74,7 +74,7 @@ begin
 
 					when cActivated => -- High-Speed mode
 						NxR.Clk <= R.Counter(0);
-						NxR.Strobe  <= not R.Counter(0);
+						NxR.Strobe  <= R.Counter(0);
 
 					when others => 
 						NxR.Clk <= 'X';
