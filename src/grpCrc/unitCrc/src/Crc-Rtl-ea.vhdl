@@ -43,9 +43,9 @@ entity crc is
 	);
 	port (
 		iClk         : in std_ulogic;
-		inResetAsync : in std_ulogic; -- Asynchronous low active reset
-		iClear       : in std_ulogic; -- Synchronous reset for the registers
+		iRstSync     : in std_ulogic; -- Synchronous high active reset
 		iStrobe      : in std_ulogic; -- Strobe, only shift when it is activated
+		iClear		 : in std_ulogic; -- Clear register
 		iDataIn      : in std_ulogic; -- Signal that currently data is shifted in.
 		                              -- Otherwise the current remainder is shifted out.
 		iData     : in std_ulogic; -- Data input
@@ -69,15 +69,13 @@ architecture rtl of crc is
 begin
 
 	-- shift registers
-	crc : process (iClk, inResetAsync) is
+	crc : process (iClk) is
 		variable input : std_ulogic;
 	begin
-		if (inResetAsync = '0') then
-			regs <= (others => '0');
-		elsif (rising_edge(iClk)) then
-			if (iClear = '1') then
+		if (rising_edge(iClk)) then
+			if (iRstSync = '1') then
 				regs <= (others => '0');
-			elsif (iClear = '0') then
+			else
 				if (iStrobe = '1') then
 					if (iDataIn = '1') then
 					-- calculate CRC
@@ -98,6 +96,10 @@ begin
 						for idx in 1 to regs'high loop
 							regs(idx) <= regs(idx-1);
 						end loop;
+					end if;
+					
+					if (iClear = '1') then
+						regs <= (others => '0');
 					end if;
 				end if;
 			end if;

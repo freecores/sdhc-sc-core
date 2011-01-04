@@ -35,7 +35,7 @@ entity Counter is
 	);
 	port (
 		iClk         : in std_ulogic;
-		inResetAsync : in std_ulogic;
+		iRstSync	 : in std_ulogic;
 		iEnable      : in std_ulogic;
 		iDisable 	 : in std_ulogic;
 		iMax         : in unsigned(gBitWidth - 1 downto 0);

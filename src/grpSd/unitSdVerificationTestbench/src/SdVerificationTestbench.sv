@@ -59,7 +59,7 @@ endprogram
 
 module Testbed();
 	logic Clk = 0;
-	logic nResetAsync = 0;
+	logic RstSync = 1;
 
 	ISdBus CardInterface();
 	IWishboneBus IWbBus();	
@@ -81,17 +81,17 @@ module Testbed();
 			IWbBus.ERR_I,
 			IWbBus.RTY_I,
 			Clk,
-			nResetAsync,
+			RstSync,
 			CardInterface.Cmd,
 			CardInterface.SClk,
 			CardInterface.Data);
 
 	always #5 Clk <= ~Clk;
-	always #5 IWbBus.CLK_I <= ~IWbBus.CLK_I;
+	always #7 IWbBus.CLK_I <= ~IWbBus.CLK_I;
 
 	initial begin
-		#10 nResetAsync <= 1;
-		#10 IWbBus.RST_I <= 0;
+		#20 RstSync <= 0;
+		#28 IWbBus.RST_I <= 0;
 	end
 
 	Test tb(CardInterface, IWbBus);

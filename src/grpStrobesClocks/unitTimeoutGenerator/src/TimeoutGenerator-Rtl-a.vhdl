@@ -34,32 +34,31 @@ architecture Rtl of TimeoutGenerator is
 
 begin
 
-	Regs : process (iClk, inResetAsync)
+	Regs : process (iClk)
 	begin
+		if (iClk'event and iClk = cActivated) then
+			if (iRstSync = cActivated) then
+				Counter  <= (others => '0');
+				Enabled  <= cInactivated;
+				oTimeout <= cInactivated;
+			else
+				oTimeout <= cInactivated; -- Default
 
-		if (inResetAsync = cnActivated) then
-			Counter  <= (others => '0');
-			Enabled  <= cInactivated;
-			oTimeout <= cInactivated;
+				if (iDisable = cActivated) then
+					Enabled <= cInactivated;
+					Counter <= (others => '0');
 
-		elsif (iClk'event and iClk = cActivated) then
-			oTimeout <= cInactivated; -- Default
-			
-			if (iDisable = cActivated) then
-				Enabled <= cInactivated;
-				Counter <= (others => '0');
+				elsif (iEnable = cActivated or Enabled = cActivated) then
+					Counter <= Counter + 1;
+					Enabled <= cActivated;
 
-			elsif (iEnable = cActivated or Enabled = cActivated) then
-				Counter <= Counter + 1;
-				Enabled <= cActivated;
-				
-				if (Counter >= cMax) then
-					Counter  <= to_unsigned(0, cBitWidth);
-					Enabled  <= cInactivated;
-					oTimeout <= cActivated;
+					if (Counter >= cMax) then
+						Counter  <= to_unsigned(0, cBitWidth);
+						Enabled  <= cInactivated;
+						oTimeout <= cActivated;
+					end if;
 				end if;
 			end if;
-
 		end if;
 	end process Regs;
 

@@ -35,7 +35,7 @@ use work.CRCs.all;
 entity SdCmd is
 	port (
 		iClk         : in std_ulogic; -- Clk, rising edge
-		inResetAsync : in std_ulogic; -- Reset, asynchronous active low
+		iRstSync     : in std_ulogic; -- Reset, synchronous active high
 
 		iStrobe      : in std_ulogic; -- Strobe to send data
 
@@ -80,7 +80,7 @@ architecture Rtl of SdCmd is
 	Cmd => (Cmd       => '0',
 	En         => '0'));
 
-	type aCrcOut is record 
+	type aCrcOut is record
 		Clear  : std_ulogic;
 		DataIn : std_ulogic;
 		Data   : std_ulogic;
@@ -103,19 +103,19 @@ begin
 	oCmd <= O.Cmd;
 
 	-- State register
-	CmdStateReg : process (iClk, inResetAsync)
+	CmdStateReg : process (iClk)
 	begin
-		if inResetAsync = cInactivated then
-			R <= cDefaultRegSet;
-			O <= cDefaultOutputRegSet;
+		if iClk'event and iClk = cActivated then
+			if iRstSync = cActivated then
+				R <= cDefaultRegSet;
+				O <= cDefaultOutputRegSet;
+			else
 
-		elsif iClk'event and iClk = cActivated then
-
-			if (iStrobe = cActivated) then
-				R <= NextR;
-				O <= NextO;
+				if (iStrobe = cActivated) then
+					R <= NextR;
+					O <= NextO;
+				end if;
 			end if;
-
 		end if;
 	end process CmdStateReg;
 
@@ -300,8 +300,8 @@ begin
 		gPolynom => crc7)
 	port map(
 		iClk         => iClk,
-		inResetAsync => inResetAsync,
-		iClear       => CrcOut.Clear,
+		iRstSync     => iRstSync,
+		iClear		 => CrcOut.Clear,
 		iStrobe      => iStrobe,
 		iDataIn      => CrcOut.DataIn,
 		iData        => CrcOut.Data,

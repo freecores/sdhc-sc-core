@@ -36,7 +36,7 @@ entity SdData is
 	port (
 		-- clock
 		iClk         : in std_ulogic;
-		inResetAsync : in std_ulogic;
+		iRstSync     : in std_ulogic;
 		
 		iStrobe      : in std_ulogic;
 

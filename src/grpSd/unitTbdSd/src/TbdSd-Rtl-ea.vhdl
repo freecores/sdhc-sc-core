@@ -141,7 +141,6 @@ begin
 		oRty         => oRty,
 
 		iSdClk       => iClk,
-		inResetAsync => inResetAsync,
 		ioCmd        => ioCmd,
 		oSclk        => oSclk,
 		ioData       => ioData,

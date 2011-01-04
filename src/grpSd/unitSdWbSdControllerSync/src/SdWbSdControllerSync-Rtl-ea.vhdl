@@ -40,15 +40,15 @@ entity SdWbControllerSync is
 
 	);
 	port (
-		iRstSync             : in std_ulogic;
-
 		-- clocked by iWbClk
 		iWbClk               : in std_ulogic;
+		iWbRstSync           : in std_ulogic;
 		iSdWb                : in aSdWbSlaveToSdController;
 		oSdWb                : out aSdControllerToSdWbSlave;
 
 		-- clocked by iSdClk
 		iSdClk               : in std_ulogic;
+		iSdRstSync           : in std_ulogic;
 		iSdController        : in aSdControllerToSdWbSlave;
 		oSdController        : out aSdWbSlaveToSdController
 
@@ -73,7 +73,7 @@ begin
 			gSyncCount => gSyncCount
 		)
 		port map (
-			iRstSync => iRstSync,
+			iRstSync => iWbRstSync,
 			iToClk   => iWbClk,
 			iSignal  => iSdController.ReqOperation,
 			oSync    => ReqOperationSync
@@ -84,7 +84,7 @@ begin
 			gSyncCount => gSyncCount
 		)
 		port map (
-			iRstSync => iRstSync,
+			iRstSync => iSdRstSync,
 			iToClk   => iSdClk,
 			iSignal  => iSdWb.AckOperation,
 			oSync    => AckOperationSync
@@ -108,7 +108,7 @@ begin
 	)
 	port map (
 		iClk               => iWbClk,
-		iRstSync           => iRstSync,
+		iRstSync           => iWbRstSync,
 		iLine              => ReqOperationSync,
 		iClearEdgeDetected => cInactivated,
 		oEdgeDetected      => ReqOperationEdge
@@ -121,7 +121,7 @@ begin
 	)
 	port map (
 		iClk               => iSdClk,
-		iRstSync           => iRstSync,
+		iRstSync           => iSdRstSync,
 		iLine              => AckOperationSync,
 		iClearEdgeDetected => cInactivated,
 		oEdgeDetected      => AckOperationEdge

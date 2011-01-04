@@ -33,8 +33,9 @@ program Test(ISdBus SdBus);
 	initial begin
 	SdBusTransToken token;
 	SdBFM SdBfm = new(SdBus);
-	SdCardModel card = new(SdBfm);
+	SdCardModel card = new();
 	assert(card.randomize());
+	card.bfm = SdBfm;
 
     fork
 		begin // generator

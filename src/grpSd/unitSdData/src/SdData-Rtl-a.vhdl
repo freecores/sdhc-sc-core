@@ -64,13 +64,11 @@ architecture Rtl of SdData is
 	DisableSdClk  => cInactivated);
 
 	type aCrcOut is record
-		Clear   : std_ulogic;
 		DataIn  : std_ulogic;
 		Data    : std_ulogic_vector(3 downto 0);
 	end record aCrcOut;
 
 	constant cDefaultCrcOut : aCrcOut := (
-	Clear  => cInactivated,
 	DataIn => cInactivated,
 	Data   => (others       => '0'));
 
@@ -100,26 +98,25 @@ begin
 	oDisableSdClk       <= R.DisableSdClk;
 
 
-	Regs : process (iClk, inResetAsync)
+	Regs : process (iClk)
 	begin
-		-- asynchronous reset
-		if (inResetAsync = cnActivated) then
-			R <= cDefaultReg;
-
 		-- clock event
-		elsif (iClk'event and iClk = cActivated) then
+		if (iClk'event and iClk = cActivated) then
+			if (iRstSync = cActivated) then
+				R <= cDefaultReg;
+			else
+				-- synchronous enable
+				if (iStrobe = cActivated) then
+					R <= NextR;
+				end if;
 
-			-- synchronous enable
-			if (iStrobe = cActivated) then
-				R <= NextR;
+				-- rdreq and wrreq have to be exactly one clock cycle wide
+				R.ReadWriteFifo.rdreq <= NextR.ReadWriteFifo.rdreq and iStrobe;
+				R.WriteReadFifo.wrreq <= NextR.WriteReadFifo.wrreq and iStrobe;
+
+				-- Clock has to be disabled before the next strobe is generated
+				R.DisableSdClk        <= NextR.DisableSdClk;
 			end if;
-
-			-- rdreq and wrreq have to be exactly one clock cycle wide
-			R.ReadWriteFifo.rdreq <= NextR.ReadWriteFifo.rdreq and iStrobe;
-			R.WriteReadFifo.wrreq <= NextR.WriteReadFifo.wrreq and iStrobe;
-
-			-- Clock has to be disabled before the next strobe is generated
-			R.DisableSdClk        <= NextR.DisableSdClk;
 		end if;
 	end process Regs;
 
@@ -469,9 +466,9 @@ begin
 		)
 		port map (
 			iClk         => iClk,
-			inResetAsync => inResetAsync,
+			iRstSync     => iRstSync,
 			iStrobe      => iStrobe,
-			iClear       => CrcOut.Clear,
+			iClear		 => cInactivated,
 			iDataIn      => CrcDataIn(idx),
 			iData        => CrcOut.Data(idx),
 			oIsCorrect   => CrcIn.Correct(idx),

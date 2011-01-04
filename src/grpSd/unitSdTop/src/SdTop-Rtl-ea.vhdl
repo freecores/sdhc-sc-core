@@ -40,8 +40,8 @@ entity SdTop is
 	);
 	port (
 		-- Wishbone interface
-		iWbClk   : in std_ulogic;
-		iRstSync : in std_ulogic;
+		iWbClk     : in std_ulogic;
+		iWbRstSync : in std_ulogic;
 
 		iCyc  : in std_ulogic;
 		iLock : in std_ulogic;
@@ -60,8 +60,7 @@ entity SdTop is
 
 		-- Sd interface
 		iSdClk       : in std_ulogic;
-		inResetAsync : in std_ulogic;
-
+		iSdRstSync   : in std_ulogic;
 		-- SD Card
 		ioCmd  : inout std_logic;
 		oSclk  : out std_ulogic;
@@ -141,9 +140,10 @@ begin
 		gUseSameClocks => gUseSameClocks
 	)
 	port map (
-		iRstSync      => iRstSync,
 		iWbClk        => iWbClk,
+		iWbRstSync    => iWbRstSync,
 		iSdClk        => iSdClk,
+		iSdRstSync    => iSdRstSync,
 		iSdWb         => iSdWbSync,
 		oSdWb         => oSdWbSync,
 		iSdController => iSdControllerSync,
@@ -153,7 +153,7 @@ begin
 	SdWbSlave_inst : entity work.SdWbSlave
 	port map (
 		iClk                => iWbClk,
-		iRstSync            => iRstSync,
+		iRstSync            => iWbRstSync,
 
 		-- wishbone
 		iWbCtrl             => iWbCtrl,
@@ -181,7 +181,7 @@ begin
 	)
 	port map (
 		iClk         => iSdClk,
-		inResetAsync => inResetAsync,
+		iRstSync     => iSdRstSync,
 		oHighSpeed   => HighSpeed,
 		iSdCmd       => SdCmdToController,
 		oSdCmd       => SdCmdFromController,
@@ -195,7 +195,7 @@ begin
 	SdCmd_inst: entity work.SdCmd(Rtl)
 	port map (
 		iClk            => iSdClk,
-		inResetAsync    => inResetAsync,
+		iRstSync        => iSdRstSync,
 		iStrobe         => SdStrobe,
 		iFromController => SdCmdFromController,
 		oToController   => SdCmdToController,
@@ -206,7 +206,7 @@ begin
 	SdData_inst: entity work.SdData 
 	port map (
 		iClk                  => iSdClk,
-		inResetAsync          => inResetAsync,
+		iRstSync			  => iSdRstSync,
 		iStrobe               => SdStrobe,
 		iSdDataFromController => SdDataFromController,
 		oSdDataToController   => SdDataToController,
@@ -225,7 +225,7 @@ begin
 	)
 	port map (
 		iClk       => iSdClk,
-		iRstSync   => iRstSync,
+		iRstSync   => iSdRstSync,
 		iHighSpeed => HighSpeed,
 		iDisable   => DisableSdClk,
 		oSdStrobe  => SdStrobe,
@@ -237,7 +237,7 @@ begin
 	port map (
 
 		iClk       => iSdClk,
-		iRstSync   => iRstSync,
+		iRstSync   => iSdRstSync,
 		iStrobe    => SdInStrobe,
 		iCmd       => ioCmd,
 		iData      => ioData,

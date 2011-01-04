@@ -39,29 +39,31 @@ signal R : aReg := cDefaultReg;
 
 begin
 
-	Regs : process (iClk, inResetAsync)
+	Regs : process (iClk)
 	begin
-		if (inResetAsync = cnActivated) then
-			R <= cDefaultReg;
-		elsif (iClk'event and iClk = cActivated) then
-			oStrobe <= cInactivated;
+		if (iClk'event and iClk = cActivated) then
+			if (iRstSync = cActivated) then
+				R <= cDefaultReg;
+			else
+				oStrobe <= cInactivated;
 
-			if (iDisable = cActivated) then
-				R.Enabled <= cInactivated;
-				R.Counter <= to_unsigned(0, R.Counter'length);
-
-			elsif (iEnable = cActivated or R.Enabled = cActivated) then
-				R.Enabled <= cActivated;
-
-				if (R.Counter = iMax) then
-					R.Counter <= to_unsigned(0, R.Counter'length);
-					oStrobe   <= cActivated;
+				if (iDisable = cActivated) then
 					R.Enabled <= cInactivated;
+					R.Counter <= to_unsigned(0, R.Counter'length);
 
-				else 
-					R.Counter <= R.Counter + 1;
+				elsif (iEnable = cActivated or R.Enabled = cActivated) then
+					R.Enabled <= cActivated;
+
+					if (R.Counter = iMax) then
+						R.Counter <= to_unsigned(0, R.Counter'length);
+						oStrobe   <= cActivated;
+						R.Enabled <= cInactivated;
+
+					else 
+						R.Counter <= R.Counter + 1;
+					end if;
+
 				end if;
-
 			end if;
 		end if;
 	end process Regs;

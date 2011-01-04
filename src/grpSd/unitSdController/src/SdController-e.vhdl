@@ -41,7 +41,7 @@ entity SdController is
 	);
 	port (
 		iClk         : in std_ulogic; -- rising edge
-		inResetAsync : in std_ulogic;
+		iRstSync     : in std_ulogic;
 		oHighSpeed   : out std_ulogic;
 
 		-- SdCmd

@@ -103,12 +103,14 @@ begin
 	oSdWbSlave <= R.ToSdWbSlave;
 	oHighSpeed <= R.HighSpeed;
 
-	Regs : process (iClk, inResetAsync)
+	Regs : process (iClk, iRstSync)
 	begin
-		if (inResetAsync = cnActivated) then
-			R <= cDefaultSdControllerReg;
-		elsif (iClk'event and iClk = cActivated) then
-			R <= NextR;
+		if (iClk'event and iClk = cActivated) then
+			if (iRstSync = cActivated) then
+				R <= cDefaultSdControllerReg;
+			else
+				R <= NextR;
+			end if;
 		end if;
 	end process Regs;
 
@@ -831,7 +833,7 @@ begin
 	)
 	port map (
 		iClk         => iClk,
-		inResetAsync => inResetAsync,
+		iRstSync     => iRstSync,
 		iEnable      => TimeoutEnable,
 		iDisable     => TimeoutDisable,
 		iMax         => TimeoutMax,
