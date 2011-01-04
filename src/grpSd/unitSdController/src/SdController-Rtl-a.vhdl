@@ -383,21 +383,20 @@ begin
 						end if;
 
 					when CheckSpeed => 
-						oLedBank(4) <= cActivated;
-						NextR.ToSdData.DataMode <= widewidth;
+						NextR.ToSdData.DataMode   <= widewidth;
 						NextR.ToSdData.ExpectBits <= SwitchFunctionBits;
 
 						case R.Region is
 							when send => 
-								NextR.ToSdCmd.Content.id <= cSdCmdSwitchFunction;
+								NextR.ToSdCmd.Content.id  <= cSdCmdSwitchFunction;
 								NextR.ToSdCmd.Content.arg <= cSdCmdCheckSpeedSupport;
-								NextRegion := response;
+								NextRegion                := response;
 
 							when response => 
 								if (iSdCmd.Valid = cActivated) then
 									if (iSdCmd.Content.id = cSdCmdSwitchFunction) then
 										NextR.CardStatus <= iSdCmd.Content.arg;
-										NextR.Region <= receivedata;
+										NextR.Region     <= receivedata;
 										
 									else
 										NextR.State <= invalidCard;
@@ -416,7 +415,6 @@ begin
 									if (iSdData.DataBlock(cSdHighSpeedFunctionSupportBit) = cActivated and
 									iSdData.DataBlock(cSdHighSpeedFunctionGroupLow+3 downto cSdHighSpeedFunctionGroupLow) = X"1") then
 										NextCmdRegion := ChangeSpeed;
-										NextRegion := idle;
 
 									else 
 										NextState := idle;
@@ -425,11 +423,52 @@ begin
 
 
 							when others => 
-								report "Unhandled region";
+								report "Unhandled region" severity error;
 						end case;
 
 					when ChangeSpeed => 
 						oLedBank(1) <= cActivated;
+						
+						case R.Region is
+							when send => 
+								NextR.ToSdCmd.Content.id  <= cSdCmdSwitchFunction;
+								NextR.ToSdCmd.Content.arg <= cSdCmdSwitchSpeed;
+								NextRegion                := response;
+
+							when response => 
+								if (iSdCmd.Valid = cActivated) then
+									if (iSdCmd.Content.id = cSdCmdSwitchFunction) then
+										NextR.CardStatus <= iSdCmd.Content.arg;
+										NextR.Region     <= receivedata;
+										
+									else
+										NextR.State <= invalidCard;
+									end if;
+								elsif (Timeout = cActivated) then
+									NextR.State <= invalidCard;
+								end if;
+
+							when receivedata => 
+								null;
+							
+							when waitstatedata => 
+								NextRegion := send;
+
+								if (NextCmdTimeout = cActivated) then
+									if (iSdData.DataBlock(cSdHighSpeedFunctionSupportBit) = cActivated and
+									iSdData.DataBlock(cSdHighSpeedFunctionGroupLow+3 downto cSdHighSpeedFunctionGroupLow) = X"1") then
+										NextState := idle;
+										NextRegion := idle;
+
+									else 
+										NextState := invalidCard;
+									end if;
+								end if;
+
+
+							when others => 
+								report "Unhandled region" severity error;
+						end case;
 
 					when others => 
 						report "Unhandled CmdRegion" severity error;

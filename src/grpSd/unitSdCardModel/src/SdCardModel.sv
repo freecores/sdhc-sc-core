@@ -202,7 +202,24 @@ class SDCard;
 		data[511-400] = 1;
 		data[511-376] = 1;
 		sddata.send(ICmd, data);
+
+		// expect CMD6 with set
+		recv();
+		assert(recvcmd.id == cSdCmdSwitchFuntion);
+		assert(recvcmd.arg == 'h80FFFFF1);
+		response.send(ICmd);
+
+		// send status data structure
+		data = {};
 		
+		for (int i = 0; i < 512; i++)
+			data.push_back(0);
+
+		data[511-400] = 1;
+		data[511-376] = 1;
+		sddata.send(ICmd, data);
+
+		// switch to 50MHz
 
 		-> InitDone;
 

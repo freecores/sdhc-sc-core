@@ -249,9 +249,10 @@ package Sd is
 	-- 23:8 function group 6 - 3
 	-- 7:4 group 2 for command system
 	-- 3:0 group 1 for access mode
-	constant cSdCmdCheckSpeedSupport : aSdCmdArg := X"00FFFFF1";
-	constant cSdHighSpeedFunctionSupportBit : natural := 400;
-	constant cSdHighSpeedFunctionGroupLow : natural := 376;
+	constant cSdCmdCheckSpeedSupport        : aSdCmdArg := X"00FFFFF1";
+	constant cSdCmdSwitchSpeed              : aSdCmdArg := X"80FFFFF1";
+	constant cSdHighSpeedFunctionSupportBit : natural   := 400;
+	constant cSdHighSpeedFunctionGroupLow   : natural   := 376;
 
 end package Sd;
 
