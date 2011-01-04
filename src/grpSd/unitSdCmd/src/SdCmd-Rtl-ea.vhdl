@@ -36,7 +36,7 @@ architecture Rtl of SdCmd is
 		DataIn : std_ulogic;
 		Data : std_ulogic;
 	end record aCrcOut;
-	
+
 	type aSdCmdOut is record
 		Crc : aCrcOut;
 		Controller : aSdCmdToController;
@@ -68,17 +68,25 @@ begin
 	end process CmdStateReg;
 
 	-- Comb. process
-	NextStateAndOutput : process (iFromController, State, Counter)
+	NextStateAndOutput : process (iFromController, ioCmd, SerialCrc, State, Counter)
 
 		procedure NextStateWhenAllSent (constant length : in natural; constant toState : in aSdCmdState) is
 		begin
-			if (NextCounter < length-1) then
+			if (Counter < length-1) then
 				NextCounter <= Counter + 1;
 			else
 				NextCounter <= to_unsigned(0, NextCounter'length);
 				NextState <= toState;
 			end if;
 		end procedure NextStateWhenAllSent;
+
+		procedure SendBitsAndCalcCrc (signal container : in std_ulogic_vector; constant toState : in aSdCmdState) is
+		begin
+			Output.Cmd <= container(to_integer(NextCounter));		
+			Output.Crc.Data <= container(to_integer(NextCounter));
+			Output.Crc.DataIn <= cActivated;
+			NextStateWhenAllSent(container'length, toState);
+		end procedure SendBitsAndCalcCrc;
 
 	begin
 		-- CRC calculation needs one cycle. Therefore we have to start it
@@ -88,47 +96,30 @@ begin
 		NextState <= State;
 		NextCounter <= Counter;
 		Output <= cDefaultOut;
-		
+
 		case State is
 			when idle => 
 				if (iFromController.Send = cActivated) then
 					NextState <= startbit;
-					Output.Crc.DataIn <= cActivated;
-					Output.Crc.Data <= cSdStartBit;
 				end if;
 
 			when startbit =>
 				Output.Cmd <= cSdStartBit;
-				NextState <= transbit;
 				Output.Crc.DataIn <= cActivated;
-				Output.Crc.Data <= cSdTransBitHost;
+				Output.Crc.Data <= cSdStartBit;
+				NextState <= transbit;
 
 			when transbit => 
 				Output.Cmd <= cSdTransBitHost;
-				NextState <= cmdid;
 				Output.Crc.DataIn <= cActivated;
-				Output.Crc.Data <= iFromController.Content.id(0);
+				Output.Crc.Data <= cSdTransBitHost;
+				NextState <= cmdid;
 
 			when cmdid => 
-				Output.Cmd <= iFromController.Content.id(to_integer(NextCounter));
-				if (NextCounter < aSdCmdId'length-2) then
-					Output.Crc.Data <= iFromController.Content.id(to_integer(NextCounter)+1);
-				else 
-					Output.Crc.Data <= iFromController.Content.arg(0);
-				end if;
-				Output.Crc.DataIn <= cActivated;
-				NextStateWhenAllSent(aSdCmdId'length, arg);
-
+				SendBitsAndCalcCrc(iFromController.Content.id, arg);
 
 			when arg => 
-				Output.Cmd <= iFromController.Content.arg(to_integer(NextCounter));
-				if (NextCounter < aSdCmdArg'length-2) then
-					Output.Crc.Data <= iFromController.Content.arg(to_integer(NextCounter)+1);
-					Output.Crc.DataIn <= cActivated;
-				else 
-					Output.Crc.DataIn <= cInactivated;
-				end if;
-				NextStateWhenAllSent(aSdCmdArg'length, crc);
+				SendBitsAndCalcCrc(iFromController.Content.arg, crc);
 
 			when crc => 
 				Output.Cmd <= SerialCrc;
