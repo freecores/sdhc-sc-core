@@ -18,6 +18,7 @@ typedef enum {
 class SdData;
 	Mode_t mode;
 	DataMode_t datamode;
+	logic data[$];
 
 	function new(Mode_t mode, DataMode_t datamode);
 		this.mode = mode;
@@ -34,6 +35,8 @@ class SdData;
 
 	task automatic send(virtual ISdCmd.Card ICmd, logic data[$]);
 		aCrc16 crc = 0;		
+
+		this.data = data;
 
 		if (mode == standard) begin
 			data.push_front(0); // startbit

@@ -266,6 +266,8 @@ package Sd is
 	constant cSdACMDArg : aSdCmdArg := cSdDefaultRCA & X"0000"; -- [31:16] RCA
 	constant cSdArgAppCmdPos : natural := 5;
 
+	constant cSdCmdReadSingleBlock : aSdCmdId := std_ulogic_vector(to_unsigned(17, cSdCmdIdHigh));
+
 	constant cSdCmdACMD41 : aSdCmdId := std_ulogic_vector(to_unsigned(41, cSdCmdIdHigh));
 	constant cSdCmdSendSCR : aSdCmdId := std_ulogic_vector(to_unsigned(51, cSdCmdIdHigh));
 	constant cSdCmdSetBusWidth : aSdCmdId := std_ulogic_vector(to_unsigned(6, cSdCmdIdHigh)); -- [31:2] stuff, [1:0] bus width

@@ -10,7 +10,7 @@
 
 architecture Rtl of SdController is
 
-	type aSdControllerState is (startup, init, config, idle, invalidCard);
+	type aSdControllerState is (startup, init, config, idle, invalidCard, read, write);
 	type aCmdRegion is (CMD0, CMD8, ACMD41, CMD2, CMD3, SelectCard, CheckBusWidth, SetBusWidth, CheckSpeed, ChangeSpeed, GetStatus);
 	type aRegion is (idle, send, response, waitstate, senddata, receivedata, checkbusy, waitstatedata);
 
@@ -549,9 +549,8 @@ begin
 								end if;
 
 							when waitstate => 
-								NextRegion    := idle;
-								NextCmdRegion := CheckSpeed;
-								NextState     := idle;
+								NextRegion    := send;
+								NextState     := read;
 
 							when others => 
 								report "Unhandled region" severity error;
@@ -559,6 +558,36 @@ begin
 
 					when others => 
 						report "Unhandled CmdRegion" severity error;
+				end case;
+
+			when read => 
+				NextR.ToSdData.DataMode <= usual;
+
+				case R.Region is
+					when send =>
+						NextR.ToSdCmd.Content.id  <= cSdCmdReadSingleBlock;
+						NextR.ToSdCmd.Content.arg <= (others => '0');
+						NextRegion                := response;
+
+					when response => 
+						if (iSdCmd.Valid = cActivated) then
+							if (iSdCmd.Content.id = cSdCmdReadSingleBlock) then
+								NextR.CardStatus <= iSdCmd.Content.arg;
+								NextR.Region     <= receivedata;
+
+							else
+								NextR.State <= invalidCard;
+							end if;
+						elsif (Timeout = cActivated) then
+							NextR.State <= invalidCard;
+						end if;
+
+					when receivedata => 
+					when waitstatedata => 
+						NextR.State <= idle;
+
+					when others => 
+						report "Unhandled region";
 				end case;
 
 			when idle => 

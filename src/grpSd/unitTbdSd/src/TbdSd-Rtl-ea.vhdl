@@ -301,7 +301,7 @@ begin
 	SDTop_inst : entity work.SdTop(Rtl)
 	generic map (
 		gClkFrequency => cClkFreq,
-		gHighSpeedMode => false
+		gHighSpeedMode => true
 	)
 	port map (
 		iClk                 => iClk,

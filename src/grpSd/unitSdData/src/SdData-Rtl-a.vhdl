@@ -13,7 +13,7 @@ architecture Rtl of SdData is
 	type aRegion is (startbit, data, crc, endbit);
 	subtype aDataOutput is std_ulogic_vector(3 downto 0);
 
-	subtype aBlockCounter is unsigned(LogDualis(16)-1 downto 0);
+	subtype aBlockCounter is unsigned(LogDualis(128)-1 downto 0);
 	subtype aWordCounter is unsigned(LogDualis(4)-1 downto 0);
 	subtype aByteCounter is unsigned(LogDualis(8)-1 downto 0);
 
@@ -108,8 +108,9 @@ begin
 			return (to_integer(word) * 8) + to_integer(byte);
 		end function CalcBitAddrInWord;
 
-		procedure NextCounterAndSaveToRam(constant byteend : natural; constant bytedec : natural) is
+		procedure NextCounterAndSaveToRamWide(constant byteend : natural; constant bytedec : natural) is
 		begin
+
 			if (R.ByteCounter = byteend) then
 				NextR.ByteCounter <= to_unsigned(7, aByteCounter'length);
 
@@ -136,7 +137,41 @@ begin
 			else
 				NextR.ByteCounter <= R.ByteCounter - bytedec;
 			end if;
-	end procedure NextCounterAndSaveToRam;
+
+		end procedure NextCounterAndSaveToRamWide;
+		
+		procedure NextCounterAndSaveToRamUsual(constant byteend : natural; constant bytedec : natural) is
+		begin
+
+			if (R.ByteCounter = byteend) then
+				NextR.ByteCounter <= to_unsigned(7, aByteCounter'length);
+
+				if (R.WordCounter = 3) then
+					NextR.WordCounter <= to_unsigned(0, aWordCounter'length);
+					NextR.FirstSend <= cInactivated;
+
+					-- save word to ram
+					NextR.Ram.We <= cActivated;
+					NextR.Ram.En <= cActivated;
+
+					if (R.BlockCounter = 127) then
+						NextR.BlockCounter <= to_unsigned(0, aBlockCounter'length);
+						NextR.Region <= crc;
+					else 
+						NextR.BlockCounter <= R.BlockCounter + 1;
+					end if;
+				else
+					if (R.WordCounter = 0 and R.FirstSend = cInactivated) then
+						NextR.Ram.Addr <= R.Ram.Addr + 1;
+					end if;
+
+					NextR.WordCounter <= R.WordCounter + 1;
+				end if;
+			else
+				NextR.ByteCounter <= R.ByteCounter - bytedec;
+			end if;
+
+		end procedure NextCounterAndSaveToRamUsual;
 
 		variable temp : std_ulogic_vector(3 downto 0);
 
@@ -155,21 +190,24 @@ begin
 
 				elsif (R.Mode = wide and iData.Data = cSdStartBits) or
 				(R.Mode = standard and iData.Data(0) = cSdStartBit) then
-					NextR.Region <= data;
-					NextR.State <= receive;
+					NextR.Region      <= data;
+					NextR.State       <= receive;
 					NextR.ByteCounter <= to_unsigned(7,aByteCounter'length);
-					NextR.WordCounter <= to_unsigned(3,aWordCounter'length);
-					NextR.Ram.Addr <= iSdDataFromController.StartAddr;
-					NextR.FirstSend <= cActivated;
+					NextR.Ram.Addr    <= iSdDataFromController.StartAddr;
+					NextR.FirstSend   <= cActivated;
 
 					if (iSdDataFromController.DataMode = widewidth) then
+						NextR.WordCounter <= to_unsigned(3,aWordCounter'length);
+
 						if (iSdDataFromController.ExpectBits = ScrBits) then
 							NextR.BlockCounter <= to_unsigned(1, aBlockCounter'length);
 						elsif (iSdDataFromController.ExpectBits = SwitchFunctionBits) then 
 							NextR.BlockCounter <= to_unsigned(15, aBlockCounter'length);
 						end if;
 					else
-						NextR.BlockCounter <= to_unsigned(15, aBlockCounter'length);
+						NextR.BlockCounter <= to_unsigned(0, aBlockCounter'length);
+						NextR.WordCounter  <= to_unsigned(0,aWordCounter'length);
+
 					end if;
 
 			elsif (iSdDataFromController.Valid = cActivated) then
@@ -260,21 +298,37 @@ begin
 				when data => 
 					case iSdDataFromController.DataMode is
 						when usual => 
-							report "usual mode is not implemented" severity error;
+							case R.Mode is
+								when standard => 
+									NextR.Ram.Data(CalcBitAddrInWord(R.WordCounter, R.ByteCounter)) <= iData.Data(0);
+									ShiftIntoCrc("000" & iData.Data(0));
+									NextCounterAndSaveToRamUsual(0,1);
+
+								when wide => 
+									for idx in 0 to 3 loop
+										NextR.Ram.Data(CalcBitAddrInWord(R.WordCounter, R.ByteCounter - idx)) <= iData.Data(3 - idx);
+									end loop;
+
+									ShiftIntoCrc(std_ulogic_vector(iData.Data));
+									NextCounterAndSaveToRamUsual(3,4);
+
+								when others => 
+									report "Unhandled mode" severity error;
+							end case;	
 
 						when widewidth => 
 							case R.Mode is
 								when standard => 
 									NextR.Ram.Data(CalcBitAddrInWord(R.WordCounter, R.ByteCounter)) <= iData.Data(0);
 									ShiftIntoCrc("000" & iData.Data(0));
-									NextCounterAndSaveToRam(0, 1);
+									NextCounterAndSaveToRamWide(0, 1);
 
 								when wide => 
 									for idx in 0 to 3 loop
 										NextR.Ram.Data(CalcBitAddrInWord(R.WordCounter, R.ByteCounter - idx)) <= iData.Data(3 - idx);
 									end loop;
 									ShiftIntoCrc(std_ulogic_vector(iData.Data));
-									NextCounterAndSaveToRam(3, 4);
+									NextCounterAndSaveToRamWide(3, 4);
 
 								when others => 
 									report "Unhandled mode" severity error;
