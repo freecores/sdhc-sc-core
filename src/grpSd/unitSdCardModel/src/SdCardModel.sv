@@ -32,7 +32,7 @@ class SDCard;
 	local rand int datasize; // ram addresses = 2^datasize - 1; 512 byte blocks
 	constraint cdatasize {datasize > 1; datasize <= 32;}
 
-	local logic[512*8-1:0] ram[];
+	local bit[512*8-1:0] ram[];
 	
 	function void post_randomize() ;
 		this.ram = new[2^(datasize-1)];
