@@ -30,7 +30,7 @@ set units {Crc Crc {Rtl}
 set svunits {Sd SdCardModel
 	Sd SdVerificationTestbench}
 
-set sysvlogparams [list +incdir+../../unitSdCardModel/src+../src+../../unitSdWbSlave/src+../../../grpVerification/unitLogger/src/]
+set sysvlogparams [list +incdir+../../unitSdCardModel/src+../src+../../unitSdWbSlave/src+../../../grpVerification/unitLogger/src/+../../../grpSdVerification/unitSdCoreTransactionBFM/src+../../../grpSdVerification/unitSdCoreTransactionSeqGen/src+../../../grpSdVerification/unitSdCoreTransferFunction/src+../../../grpSdVerification/unitSdCoreChecker/src+../../../grpSdVerification/unitSdCoreTransaction/src]
 
 #set tb
 set top Testbed

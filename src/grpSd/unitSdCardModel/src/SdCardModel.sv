@@ -2,7 +2,7 @@
 // file: SdCardModel.sv
 // author: Rainer Kastl
 //
-// Models a SDCard for verification
+// Models a SdCardModel for verification
 // 
 
 `ifndef SDCARDMODEL
@@ -16,9 +16,9 @@ const logic cInactivated = 0;
 `include "SdBFM.sv";
 `include "Logger.sv";
 
-class SDCard;
+class SdCardModel;
 	local SdBFM bfm;
-	local SDCardState state;
+	local SdCardModelState state;
 	local RCA_t rca;
 	local logic CCS;
 	local Mode_t mode;
@@ -301,7 +301,7 @@ class SDCard;
 	
 endclass
 
-class NoSDCard extends SDCard;
+class NoSdCardModel extends SdCardModel;
 
 	function new(SdBFM bfm);
 		super.new(bfm);

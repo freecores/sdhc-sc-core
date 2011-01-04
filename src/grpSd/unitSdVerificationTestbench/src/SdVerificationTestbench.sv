@@ -17,10 +17,10 @@ const logic   cDontCare = 'X;
 typedef logic [2:0] aCTI;
 const aCTI ClassicCycle = "000";
 
-
+`include "Harness.sv";
 `include "SdCardModel.sv";
-`include "SdCmdInterface.sv";
-`include "Wishbone-BFM.sv";
+`include "SdBusInterface.sv";
+`include "WishboneInterface.sv";
 
 `define cCmdCount 1000
 
@@ -28,9 +28,7 @@ const logic[3:0] cSdStandardVoltage = 'b0001; // 2.7-3.6V
 
 program Test(ISdCard ICmd, WishboneInterface BusInterface);
 	initial begin
-	logic[31:0] rd;
-	Wishbone Bus = new(BusInterface.Master);
-	SDCard card = new(ICmd, $root.Testbed.CmdReceived, $root.Testbed.InitDone);
+	SdCardModel card = new(ICmd, $root.Testbed.CmdReceived, $root.Testbed.InitDone);
 	Logger log = new();
 
 	assert(card.randomize());

@@ -14,7 +14,7 @@ program Test(ISdBus SdBus);
 	initial begin
 	SdBusTransToken token;
 	SdBFM SdBfm = new(SdBus);
-	SDCard card = new(SdBfm);
+	SdCardModel card = new(SdBfm);
 	assert(card.randomize());
 
     fork

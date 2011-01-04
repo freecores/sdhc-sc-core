@@ -65,7 +65,7 @@ endclass
 
 class SDCommandR1 extends DefaultSdResponse;
 
-	function new(int id, SDCardState state);
+	function new(int id, SdCardModelState state);
 		super.new(id, state.get());
 	endfunction
 	
@@ -104,7 +104,7 @@ class SDCommandR2 extends SdBusTrans;
 	
 endclass
 
-function SDCommandArg getArgFromRcaAndState(RCA_t rca, SDCardState state);
+function SDCommandArg getArgFromRcaAndState(RCA_t rca, SdCardModelState state);
 	SDCommandArg arg;
 	arg[31:16] = rca; 
 	arg[15] = state.ComCrcError;
@@ -122,7 +122,7 @@ endfunction
 
 class SDCommandR6 extends DefaultSdResponse;
 
-	function new(RCA_t rca, SDCardState state);
+	function new(RCA_t rca, SdCardModelState state);
 		super.new(cSdCmdSendRelAdr, getArgFromRcaAndState(rca, state));
 	endfunction
 

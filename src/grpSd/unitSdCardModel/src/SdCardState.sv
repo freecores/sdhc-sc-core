@@ -2,7 +2,7 @@
 // file: SdCardState.sv
 // author: Rainer Kastl
 //
-// SDCardState class for use in the SdCardModel
+// SdCardModelState class for use in the SdCardModel
 // 
 
 `ifndef SDCARDSTATE
@@ -13,9 +13,9 @@
 typedef enum {
 	idle = 0, ready = 1, ident = 2, stby = 3, trans = 4,
 	data = 5, rcv = 6, prg = 7, dis = 8
-} SDCardStates;
+} SdCardModelStates;
 
-class SDCardState;
+class SdCardModelState;
 	logic OutOfRange;
 	logic AddressError;
 	logic BlockLenError;

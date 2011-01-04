@@ -11,7 +11,7 @@
 
 `include "WishboneInterface.sv";
 
-class Wishbone;
+class WbBFM;
 
 	virtual WishboneInterface.Master Bus;
 
