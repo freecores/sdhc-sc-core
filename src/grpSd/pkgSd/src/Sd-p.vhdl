@@ -112,7 +112,7 @@ package Sd is
 
 	type aSdDataBusMode is (standard, wide);
 	type aSdDataMode is (usual, widewidth);
-	type aSdDataBits is (ScrBits);
+	type aSdDataBits is (ScrBits, SwitchFunctionBits);
 
 	-- Types for entities
 	-- between SdController and SdCmd
@@ -240,6 +240,18 @@ package Sd is
 	constant cSdCmdSetBusWidth : aSdCmdId := std_ulogic_vector(to_unsigned(6, cSdCmdIdHigh)); -- [31:2] stuff, [1:0] bus width
 	constant cSdWideBusWidth : std_ulogic_vector(1 downto 0) := "10";
 	constant cSdStandardBusWidth : std_ulogic_vector(1 downto 0) := "00";
+
+	constant cSdCmdSwitchFunction : aSdCmdId := std_ulogic_vector(to_unsigned(6, cSdCmdIdHigh));
+	-- 31: mode
+	constant cSdCmdCheckMode : std_ulogic := '0';
+	constant cSdCmdSwitchMode : std_ulogic := '1';
+	-- 30:24 reserved
+	-- 23:8 function group 6 - 3
+	-- 7:4 group 2 for command system
+	-- 3:0 group 1 for access mode
+	constant cSdCmdCheckSpeedSupport : aSdCmdArg := X"00FFFFF1";
+	constant cSdHighSpeedFunctionSupportBit : natural := 400;
+	constant cSdHighSpeedFunctionGroupLow : natural := 376;
 
 end package Sd;
 

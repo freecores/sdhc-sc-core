@@ -13,6 +13,7 @@ typedef enum {
 	 cSdCmdAllSendCID = 2,
 	 cSdCmdSendRelAdr = 3,
 	 cSdCmdSetDSR = 4, // [31:16] DSR
+	 cSdCmdSwitchFuntion = 6, 
 	 cSdCmdSelCard = 7, // [31:16] RCA
 	 cSdCmdSendIfCond = 8, // [31:12] reserved, [11:8] supply voltage, [7:0] check pattern
 	 cSdCmdSendCSD = 9, // [31:16] RCA

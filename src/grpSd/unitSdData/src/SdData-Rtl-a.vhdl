@@ -125,7 +125,7 @@ begin
 					if (iSdDataFromController.DataMode = widewidth) then
 						if (iSdDataFromController.ExpectBits = ScrBits) then
 							NextR.ByteCounter <= to_unsigned(63, aByteCounter'length);
-						else 
+						elsif (iSdDataFromController.ExpectBits = SwitchFunctionBits) then 
 							NextR.ByteCounter <= to_unsigned(511, aByteCounter'length);
 						end if;
 					end if;

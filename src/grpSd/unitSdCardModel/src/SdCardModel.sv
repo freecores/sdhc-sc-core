@@ -185,6 +185,25 @@ class SDCard;
 		response = new(cSdCmdSetBusWidth, state);
 		response.send(ICmd);
 
+		sddata.mode = wide;
+
+		// expect CMD6
+		recv();
+		assert(recvcmd.id == cSdCmdSwitchFuntion);
+		assert(recvcmd.arg == 'h00FFFFF1);
+		response.send(ICmd);
+
+		// send status data structure
+		data = {};
+		
+		for (int i = 0; i < 512; i++)
+			data.push_back(0);
+
+		data[511-400] = 1;
+		data[511-376] = 1;
+		sddata.send(ICmd, data);
+		
+
 		-> InitDone;
 
 	endtask
