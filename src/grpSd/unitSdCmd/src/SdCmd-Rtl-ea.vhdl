@@ -71,22 +71,23 @@ begin
 	-- Comb. process
 	NextStateAndOutput : process (iFromController, ioCmd, SerialCrc, State, Counter)
 
-		procedure NextStateWhenAllSent (constant length : in natural; constant toState : in aSdCmdState) is
+		procedure NextStateWhenAllSent (constant nextlength : in natural; constant toState : in aSdCmdState) is
 		begin
-			if (Counter < length-1) then
-				NextCounter <= Counter + 1;
+			if (Counter > 0) then
+				NextCounter <= Counter - 1;
 			else
-				NextCounter <= to_unsigned(0, NextCounter'length);
+				NextCounter <= to_unsigned(nextlength, NextCounter'length);
 				NextState <= toState;
 			end if;
 		end procedure NextStateWhenAllSent;
 
-		procedure SendBitsAndCalcCrc (signal container : in std_ulogic_vector; constant toState : in aSdCmdState) is
+		procedure SendBitsAndCalcCrc (signal container : in std_ulogic_vector;
+		constant toState : in aSdCmdState; constant nextlength : in natural) is
 		begin
-			Output.Cmd <= container(to_integer(NextCounter));		
-			Output.Crc.Data <= container(to_integer(NextCounter));
+			Output.Cmd <= container(to_integer(Counter));		
+			Output.Crc.Data <= container(to_integer(Counter));
 			Output.Crc.DataIn <= cActivated;
-			NextStateWhenAllSent(container'length, toState);
+			NextStateWhenAllSent(nextlength, toState);
 		end procedure SendBitsAndCalcCrc;
 
 	begin
@@ -114,17 +115,20 @@ begin
 				Output.Cmd <= cSdTransBitHost;
 				Output.Crc.DataIn <= cActivated;
 				Output.Crc.Data <= cSdTransBitHost;
+				NextCounter <= to_unsigned(iFromController.Content.id'high,
+							   NextCounter'length);
 				NextState <= cmdid;
 
 			when cmdid => 
-				SendBitsAndCalcCrc(iFromController.Content.id, arg);
+				SendBitsAndCalcCrc(iFromController.Content.id, arg,
+					iFromController.Content.arg'high);
 
 			when arg => 
-				SendBitsAndCalcCrc(iFromController.Content.arg, crc);
+				SendBitsAndCalcCrc(iFromController.Content.arg, crc, crc7'high-1);
 
 			when crc => 
 				Output.Cmd <= SerialCrc;
-				NextStateWhenAllSent(crc7'length-1, endbit);
+				NextStateWhenAllSent(0, endbit);
 
 			when endbit =>
 				Output.Cmd <= cSdEndBit;

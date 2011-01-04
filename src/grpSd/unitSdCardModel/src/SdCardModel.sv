@@ -32,8 +32,8 @@ typedef enum {
 class SDCommandToken;
 	logic startbit;
 	logic transbit;
-	logic[5:0] id;
-	SDCommandArg arg;
+	rand logic[5:0] id;
+	rand SDCommandArg arg;
 	aCrc crc7;
 	logic endbit;
 
@@ -77,6 +77,13 @@ class SDCommandToken;
     	         crc <<= 1;	
 			end
 		return crc;
+	endfunction
+
+	function automatic bit equals(SDCommandToken rhs);
+		if(id == rhs.id && arg == rhs.arg) begin
+			return 1;
+		end
+		return 0;
 	endfunction
 
 endclass

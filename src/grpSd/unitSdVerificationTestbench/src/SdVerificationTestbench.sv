@@ -11,7 +11,7 @@ include "../../unitSdVerificationTestbench/src/SdCmdInterface.sv";
 program Test(ISdCmd ICmd);
 	initial begin
 	SDCard card = new(ICmd, $root.Testbed.CmdReceived);
-	SDCommandToken recvCmd;
+	SDCommandToken recvCmd, sendCmd;
 	bit done = 0;
 
 	ICmd.Clk <= 0;
@@ -25,6 +25,8 @@ program Test(ISdCmd ICmd);
     fork
 		begin // generator
 			@ICmd.cb;
+			sendCmd = new();
+			sendCmd.randomize();
 			-> $root.Testbed.ApplyCommand;
 		end
 
@@ -33,8 +35,8 @@ program Test(ISdCmd ICmd);
 
         begin // driver for SdCmd
 			@$root.Testbed.ApplyCommand;
-			ICmd.CmdId <= 0;
-			ICmd.Arg <= 'h00000000;
+			ICmd.CmdId <= sendCmd.id;
+			ICmd.Arg <= sendCmd.arg;
 			ICmd.Valid <= 1;
 			-> $root.Testbed.CardRecv;
         end
@@ -49,7 +51,10 @@ program Test(ISdCmd ICmd);
 		begin // checker
 			@$root.Testbed.CmdReceived;
 			recvCmd = card.getCmd();
+			recvCmd.display();
+			sendCmd.display();
 			recvCmd.checkFromHost();
+			assert(recvCmd.equals(sendCmd) == 1);
 		end
 
     join;
