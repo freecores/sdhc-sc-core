@@ -31,7 +31,7 @@ begin
 
 	FromController.Content.id <= iCmdId;
 	FromController.Content.arg <= iArg;
-	FromController.Send <= iValid;
+	FromController.Valid <= iValid;
 	oReceiving <= ToController.Receiving;
 
 

@@ -73,7 +73,7 @@ package Sd is
 
 	type aSdCmdFromController is record
 		Content : aSdCmdContent;
-		Send : std_ulogic;
+		Valid : std_ulogic;
 	end record aSdCmdFromController;
 
 	type aSdCmdToController is record

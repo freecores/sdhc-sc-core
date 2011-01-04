@@ -100,7 +100,7 @@ begin
 
 		case State is
 			when idle => 
-				if (iFromController.Send = cActivated) then
+				if (iFromController.Valid = cActivated) then
 					NextState <= startbit;
 				end if;
 

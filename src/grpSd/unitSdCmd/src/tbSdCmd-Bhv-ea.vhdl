@@ -55,7 +55,7 @@ begin
 	Cmd <= 'Z';
 	ToCmd.Content.id <= cSdCmdGoIdleState;
 	ToCmd.Content.arg <= (others => '0');
-	ToCmd.Send <= cActivated;
+	ToCmd.Valid <= cActivated;
 
 	Stimuli : process is
 	begin
