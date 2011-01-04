@@ -1,11 +1,13 @@
--------------------------------------------------
--- file: WbSlave-Rtl-ea.vhdl
--- author: Rainer Kastl
 --
--- Generic implementation of a wishbone slave.
+-- Title: WbSlave
+-- File: WbSlave-Rtl-ea.vhdl
+-- Author: Copyright 2010: Rainer Kastl
+-- Standard: VHDL'93
+-- 
+-- Description: Generic implementation of a wishbone slave.
 -- Wishbone specification revision B.3
 -- Supports synchronous cycle termination.
--------------------------------------------------
+--
 
 library ieee;
 use ieee.std_logic_1164.all;
