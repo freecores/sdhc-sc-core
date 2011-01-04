@@ -13,7 +13,7 @@
 # applicable agreement for further details.
 
 # Quartus II: Generate Tcl File for Project
-# File: CRCsyn.tcl
+# File: SdCmdsyn.tcl
 # Generated on: Wed Jun 23 17:07:05 2010
 
 # Load Quartus II Tcl Project package
@@ -25,16 +25,16 @@ set make_assignments 1
 
 # Check that the right project is open
 if {[is_project_open]} {
-	if {[string compare $quartus(project) "CRCsyn"]} {
-		puts "Project CRCsyn is not open"
+	if {[string compare $quartus(project) "SdCmdsyn"]} {
+		puts "Project SdCmdsyn is not open"
 		set make_assignments 0
 	}
 } else {
 	# Only open if not already open
-	if {[project_exists CRCsyn]} {
-		project_open -revision CRCsyn CRCsyn
+	if {[project_exists SdCmdsyn]} {
+		project_open -revision SdCmdsyn SdCmdsyn
 	} else {
-		project_new -revision CRCsyn CRCsyn
+		project_new -revision SdCmdsyn SdCmdsyn
 	}
 	set need_to_close_project 1
 }
@@ -43,7 +43,7 @@ if {[is_project_open]} {
 if {$make_assignments} {
 	set_global_assignment -name FAMILY "Cyclone II"
 	set_global_assignment -name DEVICE EP2C35F484C8
-	set_global_assignment -name TOP_LEVEL_ENTITY Sd
+	set_global_assignment -name TOP_LEVEL_ENTITY SdCmd
 	set_global_assignment -name ORIGINAL_QUARTUS_VERSION "9.1 SP2"
 	set_global_assignment -name PROJECT_CREATION_TIME_DATE "21:01:43  APRIL 16, 2010"
 	set_global_assignment -name LAST_QUARTUS_VERSION "9.1 SP2"
@@ -52,7 +52,7 @@ if {$make_assignments} {
 	set_global_assignment -name VHDL_FILE "../../../grpSd/pkgSd/src/Sd-p.vhdl"
 	set_global_assignment -name VHDL_FILE "../../../grpCrc/pkgCRCs/src/CRCs-p.vhdl"
 	set_global_assignment -name VHDL_FILE "../../../grpCrc/unitCrc/src/Crc-Rtl-ea.vhdl"
-	set_global_assignment -name VHDL_FILE "../../../grpSd/unitSd/src/Sd-Rtl-ea.vhdl"
+	set_global_assignment -name VHDL_FILE "../../../grpSd/unitSdCmd/src/SdCmd-Rtl-ea.vhdl"
 	set_global_assignment -name PARTITION_NETLIST_TYPE SOURCE -section_id Top
 	set_global_assignment -name PARTITION_COLOR 16764057 -section_id Top
 	set_global_assignment -name SMART_RECOMPILE ON
