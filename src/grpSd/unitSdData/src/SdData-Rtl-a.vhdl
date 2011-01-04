@@ -24,7 +24,7 @@ architecture Rtl of SdData is
 		ByteCounter  : aByteCounter;
 		WordCounter  : aWordCounter;
 		FirstSend    : std_ulogic;
-		Data         : aDataOutput;
+		Data         : aoSdData;
 		Enable       : std_ulogic;
 		Controller   : aSdDataToController;
 		Ram          : aSdDataToRam;
@@ -38,7 +38,7 @@ architecture Rtl of SdData is
 	WordCounter  => to_unsigned(0, aWordCounter'length),
 	ByteCounter  => to_unsigned(7, aByteCounter'length),
 	FirstSend  	 => cInactivated,
-	Data         => "0000",
+	Data         => (Data => "0000", En => "0000"),
 	Enable       => cInactivated,
 	Controller   => cDefaultSdDataToController,
 	Ram          => cDefaultSdDataToRam,
@@ -70,9 +70,7 @@ architecture Rtl of SdData is
 
 begin
 
-	ioData <= "ZZZZ" when R.Enable = cInactivated else 
-			  std_logic_vector(R.Data) when R.Mode = wide else
-			  "ZZZ" & R.Data(0);
+	oData <= R.Data;
 
 	CrcDataIn <= (others => CrcOut.DataIn) when R.Mode = wide else
 				 "000" & CrcOut.DataIn;
@@ -85,19 +83,13 @@ begin
 		if (inResetAsync = cnActivated) then
 			R <= cDefaultReg;
 		elsif (iClk'event and iClk = cActivated) then
-			R <= NextR;
+			if (iStrobe = cActivated) then
+				R <= NextR;
+			end if;
 		end if;
 	end process Regs;
 
-	Comb : process (ioData, iSdDataFromController, CrcIn, iStrobe, R)
-
-		-- variables for state transition (only when iStrobe is active)
-		variable NextState        : aState;
-		variable NextRegion       : aRegion;
-		variable NextBlockCounter : aBlockCounter;
-		variable NextByteCounter  : aByteCounter;
-		variable NextWordCounter  : aWordCounter;
-		variable NextRamAddr      : aAddr;
+	Comb : process (iData.Data, iSdDataFromController, CrcIn, iStrobe, R)
 
 		procedure ShiftIntoCrc (constant data : in std_ulogic_vector(3 downto 0)) is
 		begin
@@ -108,7 +100,7 @@ begin
 		procedure SendBitAndShiftIntoCrc (constant data : in std_ulogic_vector(3 downto 0)) is
 		begin
 			ShiftIntoCrc(data);
-			NextR.Data <= data;
+			NextR.Data.Data <= data;
 		end procedure SendBitAndShiftIntoCrc;
 
 		function CalcBitAddrInWord (constant word : aWordCounter; constant byte : aByteCounter) return integer is
@@ -119,10 +111,10 @@ begin
 		procedure NextCounterAndSaveToRam(constant byteend : natural; constant bytedec : natural) is
 		begin
 			if (R.ByteCounter = byteend) then
-				NextByteCounter := to_unsigned(7, aByteCounter'length);
+				NextR.ByteCounter <= to_unsigned(7, aByteCounter'length);
 
 				if (R.WordCounter = 0) then
-					NextWordCounter := to_unsigned(3, aWordCounter'length);
+					NextR.WordCounter <= to_unsigned(3, aWordCounter'length);
 					NextR.FirstSend <= cInactivated;
 
 					-- save word to ram
@@ -130,19 +122,19 @@ begin
 					NextR.Ram.En <= cActivated;
 
 					if (R.BlockCounter = 0) then
-						NextRegion := crc;
+						NextR.Region <= crc;
 					else 
-						NextBlockCounter := R.BlockCounter - 1;
+						NextR.BlockCounter <= R.BlockCounter - 1;
 					end if;
 				else
 					if (R.WordCounter = 3 and R.FirstSend = cInactivated) then
-						NextRamAddr  := R.Ram.Addr + 1;
+						NextR.Ram.Addr <= R.Ram.Addr + 1;
 					end if;
 
-					NextWordCounter := R.WordCounter - 1;
+					NextR.WordCounter <= R.WordCounter - 1;
 				end if;
 			else
-				NextByteCounter := R.ByteCounter - bytedec;
+				NextR.ByteCounter <= R.ByteCounter - bytedec;
 			end if;
 	end procedure NextCounterAndSaveToRam;
 
@@ -155,40 +147,34 @@ begin
 		NextR.Ram.We     <= cInactivated;
 		NextR.Ram.En     <= cInactivated;
 		CrcOut           <= cDefaultCrcOut;
-		NextState        := R.State;
-		NextRegion       := R.Region;
-		NextBlockCounter := R.BlockCounter;
-		NextByteCounter  := R.ByteCounter;
-		NextWordCounter  := R.WordCounter;
-		NextRamAddr      := R.Ram.Addr;
 
 		case R.State is
 			when idle => 
-				if (iSdDataFromController.CheckBusy = cActivated and ioData(0) = cInactivated) then
+				if (iSdDataFromController.CheckBusy = cActivated and iData.Data(0) = cInactivated) then
 					NextR.Controller.Busy <= cActivated;
 
-				elsif (R.Mode = wide and ioData = std_logic_vector(cSdStartBits)) or
-				(R.Mode = standard and ioData(0) = cSdStartBit) then
-					NextRegion      := data;
-					NextState       := receive;
-					NextByteCounter := to_unsigned(7,aByteCounter'length);
-					NextWordCounter := to_unsigned(3,aWordCounter'length);
-					NextRamAddr     := iSdDataFromController.StartAddr;
+				elsif (R.Mode = wide and iData.Data = cSdStartBits) or
+				(R.Mode = standard and iData.Data(0) = cSdStartBit) then
+					NextR.Region <= data;
+					NextR.State <= receive;
+					NextR.ByteCounter <= to_unsigned(7,aByteCounter'length);
+					NextR.WordCounter <= to_unsigned(3,aWordCounter'length);
+					NextR.Ram.Addr <= iSdDataFromController.StartAddr;
 					NextR.FirstSend <= cActivated;
 
 					if (iSdDataFromController.DataMode = widewidth) then
 						if (iSdDataFromController.ExpectBits = ScrBits) then
-							NextBlockCounter := to_unsigned(1, aBlockCounter'length);
+							NextR.BlockCounter <= to_unsigned(1, aBlockCounter'length);
 						elsif (iSdDataFromController.ExpectBits = SwitchFunctionBits) then 
-							NextBlockCounter := to_unsigned(15, aBlockCounter'length);
+							NextR.BlockCounter <= to_unsigned(15, aBlockCounter'length);
 						end if;
 					else
-						NextBlockCounter := to_unsigned(15, aBlockCounter'length);
+						NextR.BlockCounter <= to_unsigned(15, aBlockCounter'length);
 					end if;
 
 			elsif (iSdDataFromController.Valid = cActivated) then
-				NextState  := send;
-				NextRegion := startbit;
+				NextR.State <= send;
+				NextR.Region <= startbit;
 			else 
 				NextR.Mode <= iSdDataFromController.Mode; 
 			end if;
@@ -200,7 +186,7 @@ begin
 --			case R.Region is
 --				when startbit => 
 --					SendBitAndShiftIntoCrc(cSdStartBits);
---					NextRegion := data;
+--					NextR.Region <= data;
 --
 --				when data => 
 --					case R.Mode is
@@ -212,18 +198,18 @@ begin
 --							SendBitAndShiftIntoCrc(temp);
 --
 --							if (R.ByteCounter = 3) then
---								NextByteCounter := to_unsigned(7, aByteCounter'length);
+--								NextR.ByteCounter <= to_unsigned(7, aByteCounter'length);
 --
 --								if (R.BlockCounter = 511) then
---									NextBlockCounter := to_unsigned(0, aBlockCounter'length);
---									NextRegion      := crc;
+--									NextR.BlockCounter <= to_unsigned(0, aBlockCounter'length);
+--									NextR.Region <= crc;
 --
 --								else
---									NextBlockCounter := R.BlockCounter + 1;
+--									NextR.BlockCounter <= R.BlockCounter + 1;
 --								end if;
 --
 --							else
---								NextByteCounter := R.ByteCounter - 4;
+--								NextR.ByteCounter <= R.ByteCounter - 4;
 --							end if;
 --
 --						when standard => 
@@ -231,18 +217,18 @@ begin
 --							SendBitAndShiftIntoCrc(temp);
 --
 --							if (R.ByteCounter = 0) then
---								NextByteCounter := to_unsigned(7, aByteCounter'length);
+--								NextR.ByteCounter <= to_unsigned(7, aByteCounter'length);
 --
 --								if (R.BlockCounter = 511) then
---									NextBlockCounter := to_unsigned(0, aBlockCounter'length);
---									NextRegion := crc;
+--									NextR.BlockCounter <= to_unsigned(0, aBlockCounter'length);
+--									NextR.Region <= crc;
 --
 --								else 
---									NextBlockCounter := R.BlockCounter + 1;
+--									NextR.BlockCounter <= R.BlockCounter + 1;
 --								end if;
 --
 --							else
---								NextByteCounter := R.ByteCounter - 1;
+--								NextR.ByteCounter <= R.ByteCounter - 1;
 --							end if;
 --
 --						when others => 
@@ -253,17 +239,17 @@ begin
 --					NextR.data <= CrcIn.Serial;
 --
 --					if (R.BlockCounter = 15) then
---						NextBlockCounter := to_unsigned(0, aBlockCounter'length);
---						NextRegion      := endbit;
+--						NextR.BlockCounter <= to_unsigned(0, aBlockCounter'length);
+--						NextR.Region <= endbit;
 --
 --					else
---						NextBlockCounter := R.BlockCounter + 1;
+--						NextR.BlockCounter <= R.BlockCounter + 1;
 --					end if;
 --
 --				when endbit => 
 --					NextR.Controller.Ack <= cActivated;
 --					NextR.Data           <= cSdEndBits;
---					NextState            := idle;
+--					NextR.State <= idle;
 --
 --				when others => 
 --					report "Region not handled" severity error;
@@ -279,15 +265,15 @@ begin
 						when widewidth => 
 							case R.Mode is
 								when standard => 
-									NextR.Ram.Data(CalcBitAddrInWord(R.WordCounter, R.ByteCounter)) <= ioData(0);
-									ShiftIntoCrc("000" & ioData(0));
+									NextR.Ram.Data(CalcBitAddrInWord(R.WordCounter, R.ByteCounter)) <= iData.Data(0);
+									ShiftIntoCrc("000" & iData.Data(0));
 									NextCounterAndSaveToRam(0, 1);
 
 								when wide => 
 									for idx in 0 to 3 loop
-										NextR.Ram.Data(CalcBitAddrInWord(R.WordCounter, R.ByteCounter - idx)) <= ioData(3 - idx);
+										NextR.Ram.Data(CalcBitAddrInWord(R.WordCounter, R.ByteCounter - idx)) <= iData.Data(3 - idx);
 									end loop;
-									ShiftIntoCrc(std_ulogic_vector(ioData));
+									ShiftIntoCrc(std_ulogic_vector(iData.Data));
 									NextCounterAndSaveToRam(3, 4);
 
 								when others => 
@@ -301,10 +287,10 @@ begin
 				when crc =>
 					case R.Mode is
 						when standard => 
-							ShiftIntoCrc("000" & ioData(0));
+							ShiftIntoCrc("000" & iData.Data(0));
 
 						when wide => 
-							ShiftIntoCrc(std_ulogic_vector(ioData));
+							ShiftIntoCrc(std_ulogic_vector(iData.Data));
 
 						when others => 
 							report "Unhandled mode" severity error;
@@ -312,9 +298,9 @@ begin
 
 
 					if (R.BlockCounter = 15) then
-						NextRegion := endbit;
+						NextR.Region <= endbit;
 					else
-						NextBlockCounter := R.BlockCounter + 1;
+						NextR.BlockCounter <= R.BlockCounter + 1;
 					end if;
 
 				when endbit => 
@@ -327,9 +313,9 @@ begin
 
 					end if;
 
-					NextBlockCounter := to_unsigned(0, aBlockCounter'length);
-					NextRegion      := startbit;
-					NextState       := idle;
+					NextR.BlockCounter <= to_unsigned(0, aBlockCounter'length);
+					NextR.Region <= startbit;
+					NextR.State <= idle;
 
 				when others => 
 					report "Region not handled" severity error;
@@ -339,14 +325,6 @@ begin
 			report "State not handled" severity error;
 	end case;
 
-	if (iStrobe = cActivated) then
-		NextR.State        <= NextState;
-		NextR.Region       <= NextRegion;
-		NextR.BlockCounter <= NextBlockCounter;
-		NextR.ByteCounter  <= NextByteCounter;
-		NextR.WordCounter  <= NextWordCounter;
-		NextR.Ram.Addr     <= NextRamAddr;
-	end if;
 end process Comb;
 
 crcs: for idx in 3 downto 0 generate

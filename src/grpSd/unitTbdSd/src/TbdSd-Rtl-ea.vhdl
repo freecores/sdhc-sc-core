@@ -17,7 +17,7 @@ use work.Sd.all;
 
 entity TbdSd is
 	generic (
-		gClkFreq : natural := 50E6;
+		gClkFreq : natural := 100E6;
 		gDebug : boolean := false
 	);
 	port (
@@ -278,9 +278,30 @@ begin
 		);
 	end generate;
 
+	Gen100MHz: if gClkFreq = 100E6 generate
+	-- Configure clock to 100MHz
+		Ics307Configurator_inst : entity work.Ics307Configurator(Rtl)
+		generic map(
+			gCrystalLoadCapacitance_C   => cCrystalLoadCapacitance_C_100MHz,
+			gReferenceDivider_RDW       => cReferenceDivider_RDW_100MHz,
+			gVcoDividerWord_VDW         => cVcoDividerWord_VDW_100MHz,
+			gOutputDivide_S             => cOutputDivide_S_100MHz,
+			gClkFunctionSelect_R        => cClkFunctionSelect_R_100MHz,
+			gOutputDutyCycleVoltage_TTL => cOutputDutyCycleVoltage_TTL_100MHz
+		)
+		port map(
+			iClk         => iClk,
+			inResetAsync => inResetAsync,
+			oSclk        => oIcs307Sclk,
+			oData        => oIcs307Data,
+			oStrobe      => oIcs307Strobe
+		);
+	end generate;
+
 	SDTop_inst : entity work.SdTop(Rtl)
 	generic map (
-		gClkFrequency => cClkFreq
+		gClkFrequency => cClkFreq,
+		gHighSpeedMode => false
 	)
 	port map (
 		iClk                 => iClk,

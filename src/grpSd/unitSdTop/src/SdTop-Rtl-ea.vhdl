@@ -33,16 +33,6 @@ entity SdTop is
 		oLedBank              : out aLedBank
 	);
 
-	begin
-
-		assert (gClkFrequency = 25E6 or gClkFrequency = 50E6)
-		report "invalid clock frequency"
-		severity failure;
-
-		assert ((gHighSpeedMode = true and gClkFrequency = 50E6) or gHighSpeedMode = false)
-		report "High speed mode needs 50 MHz clock"
-		severity note;
-
 end entity SdTop;
 
 architecture Rtl of SdTop is
@@ -57,13 +47,93 @@ architecture Rtl of SdTop is
 	signal SdControllerFromDataRam : aSdControllerFromRam;
 	signal SdStrobe                : std_ulogic;
 	signal SdStrobe25MHz           : std_ulogic;
+	signal SdStrobe50MHz           : std_ulogic;
 	signal HighSpeed               : std_ulogic;
+
+	signal iCmd : aiSdCmd;
+	signal oCmd : aoSdCmd;
+	signal iData : aiSdData;
+	signal oData : aoSdData;
+
+	signal Sclk : std_ulogic;
+	signal Counter : natural range 0 to 3;
 
 begin
 
+	Reg : process (iClk, inResetAsync)
+	begin
+		if (inResetAsync = cnActivated) then
+			iCmd.Cmd   <= '1';
+			iData.Data <= (others => '1');
+		elsif (rising_edge(iClk)) then
+			iCmd.Cmd   <= ioCmd;
+			iData.Data <= std_ulogic_vector(ioData);
+		end if;
+	end process Reg;
+
+	ioCmd <= oCmd.Cmd when oCmd.En = cActivated else 'Z';
+	Gen_data : for i in 0 to 3 generate
+		ioData(i) <= oData.Data(i) when oData.En(i) = cActivated else 'Z';
+	end generate;
+
+	Sclk100MHz:  if gClkFrequency = 100E6 generate
+
+		ClkDivider : process (iClk, inResetAsync)
+		begin
+			if (inResetAsync = cnActivated) then
+				Counter <= 0;
+				Sclk <= cInactivated;
+
+			elsif (rising_edge(iClk)) then
+				if (HighSpeed = cActivated) then
+					if (Counter = 0 or Counter = 2) then
+						Sclk <= cActivated;
+					else
+						Sclk <= cInactivated;
+					end if;
+				else
+					if (Counter = 0 or Counter = 1) then
+						Sclk <= cActivated;
+					else
+						Sclk <= cInactivated;
+					end if;
+				end if;
+
+				if (Counter < 3) then
+					Counter <= Counter + 1;
+				else 
+					Counter <= 0;
+				end if;
+			end if;
+		end process ClkDivider;
+
+		oSclk    <= not Sclk;
+		SdStrobe <= SdStrobe25MHz when HighSpeed = cInactivated else SdStrobe50MHz;
+	
+		SdStrobe_inst25: entity work.StrobeGen(Rtl)
+		generic map (
+			gClkFrequency    => gClkFrequency,
+			gStrobeCycleTime => 1 sec / 25E6)
+		port map (
+			iClk         => iClk,
+			inResetAsync => inResetAsync,
+			oStrobe      => SdStrobe25MHz);
+	
+		SdStrobe_inst50: entity work.StrobeGen(Rtl)
+		generic map (
+			gClkFrequency    => gClkFrequency,
+			gStrobeCycleTime => 1 sec / 50E6)
+		port map (
+			iClk         => iClk,
+			inResetAsync => inResetAsync,
+			oStrobe      => SdStrobe50MHz);
+	
+	end generate;
+
 	Sclk50Mhz: if gClkFrequency = 50E6 generate
 
-		oSclk    <= SdStrobe25MHz when HighSpeed = cInactivated else iClk;
+		oSclk <= not Sclk;
+		Sclk    <= SdStrobe25MHz when HighSpeed = cInactivated else iClk;
 		SdStrobe <= SdStrobe25MHz when HighSpeed = cInactivated else cActivated;
 	
 		SdStrobe_inst: entity work.StrobeGen(Rtl)
@@ -79,7 +149,7 @@ begin
 
 	Sclk25MHz: if gClkFrequency = 25E6 generate
 
-		oSclk    <= iClk;
+		oSclk    <= not iClk;
 		SdStrobe <= cActivated;
 
 	end generate;
@@ -113,7 +183,8 @@ begin
 		iStrobe         => SdStrobe,
 		iFromController => SdCmdFromController,
 		oToController   => SdCmdToController,
-		ioCmd           => ioCmd
+		iCmd            => iCmd,
+		oCmd            => oCmd
 	);
 
 	SdData_inst: entity work.SdData 
@@ -124,8 +195,9 @@ begin
 		iSdDataFromController => SdDataFromController,
 		oSdDataToController   => SdDataToController,
 		iSdDataFromRam        => SdDataFromRam,
-		oSdDataToRam		  => SdDataToRam,
-		ioData                => ioData
+		oSdDataToRam          => SdDataToRam,
+		iData                 => iData,
+		oData                 => oData
 	);
 
 	DataRam_inst: entity work.SimpleDualPortedRam
@@ -134,7 +206,7 @@ begin
 		gAddrWidth => 7
 	)
 	port map (
-		iClk  => iClk,
+		iClk    => iClk,
 		iAddrRW => SdDataToRam.Addr,
 		iDataRW => SdDataToRam.Data,
 		iWeRW   => SdDataToRam.We,

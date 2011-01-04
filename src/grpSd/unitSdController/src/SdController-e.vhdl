@@ -48,12 +48,8 @@ entity SdController is
 		report "gStartupTimeout has to be smaller than the read timeout"
 		severity error;
 
-		assert (gClkFrequency = 25E6 or gClkFrequency = 50E6)
-		report "invalid clock frequency"
-		severity failure;
-
-		assert ((gHighSpeedMode = true and gClkFrequency = 50E6) or gHighSpeedMode = false)
-		report "High speed Mode needs 50 MHz clock"
+		assert ((gHighSpeedMode = true and gClkFrequency >= 50E6) or gHighSpeedMode = false)
+		report "High speed Mode needs at least 50 MHz clock"
 		severity error;
 
 end entity SdController;

@@ -1,60 +1,35 @@
 onerror {resume}
 quietly WaveActivateNextPane {} 0
-add wave -noupdate -format Logic /Testbed/top/sdtop_inst/sdcontroller_inst/iclk
-add wave -noupdate -format Logic /Testbed/top/sdtop_inst/sdcontroller_inst/inresetasync
-add wave -noupdate -format Logic /Testbed/top/sdtop_inst/sdcontroller_inst/ohighspeed
-add wave -noupdate -format Literal /Testbed/top/sdtop_inst/sdcontroller_inst/isdcmd
-add wave -noupdate -format Literal /Testbed/top/sdtop_inst/sdcontroller_inst/osdcmd
-add wave -noupdate -format Literal /Testbed/top/sdtop_inst/sdcontroller_inst/isddata
-add wave -noupdate -format Literal /Testbed/top/sdtop_inst/sdcontroller_inst/osddata
-add wave -noupdate -format Literal -expand /Testbed/top/sdtop_inst/sdcontroller_inst/idataram
-add wave -noupdate -format Literal /Testbed/top/sdtop_inst/sdcontroller_inst/odataram
-add wave -noupdate -format Literal /Testbed/top/sdtop_inst/sdcontroller_inst/oledbank
-add wave -noupdate -format Literal /Testbed/top/sdtop_inst/sdcontroller_inst/r
-add wave -noupdate -format Literal /Testbed/top/sdtop_inst/sdcontroller_inst/nextr
-add wave -noupdate -format Logic /Testbed/top/sdtop_inst/sdcontroller_inst/timeoutenable
-add wave -noupdate -format Logic /Testbed/top/sdtop_inst/sdcontroller_inst/timeoutdisable
-add wave -noupdate -format Logic /Testbed/top/sdtop_inst/sdcontroller_inst/timeout
-add wave -noupdate -format Literal /Testbed/top/sdtop_inst/sdcontroller_inst/timeoutmax
-add wave -noupdate -divider dataram
-add wave -noupdate -format Literal /Testbed/top/sdtop_inst/dataram_inst/memory
-add wave -noupdate -format Literal /Testbed/top/sdtop_inst/dataram_inst/odatar
-add wave -noupdate -format Literal /Testbed/top/sdtop_inst/dataram_inst/iaddrr
-add wave -noupdate -format Literal /Testbed/top/sdtop_inst/dataram_inst/odatarw
-add wave -noupdate -format Logic /Testbed/top/sdtop_inst/dataram_inst/iwerw
-add wave -noupdate -format Literal /Testbed/top/sdtop_inst/dataram_inst/idatarw
-add wave -noupdate -format Literal /Testbed/top/sdtop_inst/dataram_inst/iaddrrw
-add wave -noupdate -format Logic /Testbed/top/sdtop_inst/dataram_inst/iclk
-add wave -noupdate -divider sdcmd
-add wave -noupdate -format Logic /Testbed/top/sdtop_inst/sdcmd_inst/iclk
-add wave -noupdate -format Logic /Testbed/top/sdtop_inst/sdcmd_inst/inresetasync
-add wave -noupdate -format Logic /Testbed/top/sdtop_inst/sdcmd_inst/istrobe
-add wave -noupdate -format Literal /Testbed/top/sdtop_inst/sdcmd_inst/ifromcontroller
-add wave -noupdate -format Literal /Testbed/top/sdtop_inst/sdcmd_inst/otocontroller
-add wave -noupdate -format Logic /Testbed/top/sdtop_inst/sdcmd_inst/iocmd
-add wave -noupdate -format Logic /Testbed/top/sdtop_inst/sdcmd_inst/serialcrc
-add wave -noupdate -format Logic /Testbed/top/sdtop_inst/sdcmd_inst/crccorrect
-add wave -noupdate -format Literal /Testbed/top/sdtop_inst/sdcmd_inst/crcout
-add wave -noupdate -format Literal /Testbed/top/sdtop_inst/sdcmd_inst/r
-add wave -noupdate -format Literal /Testbed/top/sdtop_inst/sdcmd_inst/nextr
-add wave -noupdate -format Literal /Testbed/top/sdtop_inst/sdcmd_inst/o
-add wave -noupdate -format Literal /Testbed/top/sdtop_inst/sdcmd_inst/nexto
-add wave -noupdate -divider sddata
-add wave -noupdate -format Logic /Testbed/top/sdtop_inst/sddata_inst/iclk
-add wave -noupdate -format Logic /Testbed/top/sdtop_inst/sddata_inst/inresetasync
-add wave -noupdate -format Logic /Testbed/top/sdtop_inst/sddata_inst/istrobe
-add wave -noupdate -format Literal /Testbed/top/sdtop_inst/sddata_inst/isddatafromcontroller
-add wave -noupdate -format Literal /Testbed/top/sdtop_inst/sddata_inst/osddatatocontroller
-add wave -noupdate -format Literal /Testbed/top/sdtop_inst/sddata_inst/isddatafromram
-add wave -noupdate -format Literal /Testbed/top/sdtop_inst/sddata_inst/osddatatoram
-add wave -noupdate -format Literal /Testbed/top/sdtop_inst/sddata_inst/iodata
-add wave -noupdate -format Literal /Testbed/top/sdtop_inst/sddata_inst/crcin
-add wave -noupdate -format Literal /Testbed/top/sdtop_inst/sddata_inst/crcout
-add wave -noupdate -format Literal /Testbed/top/sdtop_inst/sddata_inst/crcdatain
-add wave -noupdate -format Literal /Testbed/top/sdtop_inst/sddata_inst/r
-add wave -noupdate -format Literal /Testbed/top/sdtop_inst/sddata_inst/nextr
+add wave -noupdate -format Logic /Testbed/top/sdtop_inst/iclk
+add wave -noupdate -format Logic /Testbed/top/sdtop_inst/inresetasync
+add wave -noupdate -format Logic /Testbed/top/sdtop_inst/iocmd
+add wave -noupdate -format Logic /Testbed/top/sdtop_inst/osclk
+add wave -noupdate -format Literal /Testbed/top/sdtop_inst/iodata
+add wave -noupdate -format Literal /Testbed/top/sdtop_inst/oreceivedcontent
+add wave -noupdate -format Logic /Testbed/top/sdtop_inst/oreceivedcontentvalid
+add wave -noupdate -format Literal /Testbed/top/sdtop_inst/oreceiveddata
+add wave -noupdate -format Logic /Testbed/top/sdtop_inst/oreceiveddatavalid
+add wave -noupdate -format Literal /Testbed/top/sdtop_inst/oledbank
+add wave -noupdate -format Literal /Testbed/top/sdtop_inst/sdcmdtocontroller
+add wave -noupdate -format Literal /Testbed/top/sdtop_inst/sdcmdfromcontroller
+add wave -noupdate -format Literal /Testbed/top/sdtop_inst/sddatatocontroller
+add wave -noupdate -format Literal /Testbed/top/sdtop_inst/sddatafromcontroller
+add wave -noupdate -format Literal /Testbed/top/sdtop_inst/sddatafromram
+add wave -noupdate -format Literal /Testbed/top/sdtop_inst/sddatatoram
+add wave -noupdate -format Literal /Testbed/top/sdtop_inst/sdcontrollertodataram
+add wave -noupdate -format Literal /Testbed/top/sdtop_inst/sdcontrollerfromdataram
+add wave -noupdate -format Logic /Testbed/top/sdtop_inst/sdstrobe
+add wave -noupdate -format Logic /Testbed/top/sdtop_inst/sdstrobe25mhz
+add wave -noupdate -format Logic /Testbed/top/sdtop_inst/sdstrobe50mhz
+add wave -noupdate -format Logic /Testbed/top/sdtop_inst/highspeed
+add wave -noupdate -format Literal /Testbed/top/sdtop_inst/icmd
+add wave -noupdate -format Literal /Testbed/top/sdtop_inst/ocmd
+add wave -noupdate -format Literal /Testbed/top/sdtop_inst/idata
+add wave -noupdate -format Literal /Testbed/top/sdtop_inst/odata
+add wave -noupdate -format Logic /Testbed/top/sdtop_inst/sclk
+add wave -noupdate -format Literal /Testbed/top/sdtop_inst/counter
 TreeUpdate [SetDefaultTree]
-WaveRestoreCursors {{Cursor 1} {5026264 ns} 0}
+WaveRestoreCursors {{Cursor 1} {13244864 ns} 0}
 configure wave -namecolwidth 150
 configure wave -valuecolwidth 100
 configure wave -justifyvalue left
@@ -69,4 +44,4 @@ configure wave -griddelta 40
 configure wave -timeline 0
 configure wave -timelineunits ns
 update
-WaveRestoreZoom {5025749 ns} {5027814 ns}
+WaveRestoreZoom {13244389 ns} {13246454 ns}

@@ -30,7 +30,8 @@ entity SdData is
 		oSdDataToRam   : out aSdDataToRam;
 
 		-- Card
-		ioData : inout std_logic_vector(3 downto 0)
+		iData : in aiSdData;
+		oData : out aoSdData
 	);
 end entity SdData;
 

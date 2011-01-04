@@ -285,6 +285,24 @@ package Sd is
 	constant cSdHighSpeedFunctionSupportBit : natural   := 400;
 	constant cSdHighSpeedFunctionGroupLow   : natural   := 376;
 
+	type aiSdCmd is record
+		Cmd : std_ulogic;
+	end record aiSdCmd;
+
+	type aoSdCmd is record
+		Cmd : std_ulogic;
+		En : std_ulogic;
+	end record aoSdCmd;
+
+	type aiSdData is record
+		Data : std_ulogic_vector(3 downto 0);
+	end record aiSdData;
+
+	type aoSdData is record
+		Data : std_ulogic_vector(3 downto 0);
+		En : std_ulogic_vector(3 downto 0);
+	end record aoSdData;
+
 end package Sd;
 
 package body Sd is
