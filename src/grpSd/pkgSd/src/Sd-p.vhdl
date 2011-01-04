@@ -109,8 +109,40 @@ package Sd is
 	constant cSdArgAppCmdPos : natural := 5;
 
 	constant cSdCmdACMD41 : aSdCmdId := std_ulogic_vector(to_unsigned(41, cSdCmdIdHigh));
-	constant cVoltageWindow : std_ulogic_vector(23 downto 0) :=
-	"111111111000000000000000";
-	
+
+	subtype aVoltageWindow is std_ulogic_vector(23 downto 15);
+	constant cVoltageWindow : aVoltageWindow := (others => '1');
+	constant cSdR3Id : aSdCmdId := (others => '1');
+
+	type aSdRegOCR is record
+		voltagewindow : aVoltageWindow;
+		ccs : std_ulogic;
+		nBusy : std_ulogic;
+	end record aSdRegOCR;
+
+	function OCRToArg (ocr : in aSdRegOCR) return aSdCmdArg;
+	function ArgToOcr (arg : in aSdCmdArg) return aSdRegOCR;
+
 end package Sd;
+
+package body Sd is
+
+	function OCRToArg (ocr : in aSdRegOCR) return aSdCmdArg is
+		variable temp : aSdCmdArg;
+	begin
+		temp := ocr.nBusy & ocr.ccs & "000000" & ocr.voltagewindow &
+		"000000000000000";
+		return temp;
+	end function OCRtoArg;
+
+	function ArgToOcr (arg : in aSdCmdArg) return aSdRegOCR is
+		variable ocr : aSdRegOCR;
+	begin
+		ocr.nBusy := arg(31);
+		ocr.ccs := arg(30);
+		ocr.voltagewindow := arg(23 downto 15);
+		return ocr;
+	end function ArgToOcr;
+
+end package body Sd;
 

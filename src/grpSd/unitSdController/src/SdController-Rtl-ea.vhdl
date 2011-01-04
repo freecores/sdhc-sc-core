@@ -26,7 +26,7 @@ end entity SdController;
 architecture Rtl of SdController is
 
 	type aSdControllerState is (CMD0, CMD8Ws, CMD8, CMD8Response, CMD55,
-	CMD55Response, ACMD41, ACMD41Response, idle,
+	CMD55Response, ACMD41, ACMD41Response, CMD2, idle,
 	invalidCard);
 	constant cDefaultControllerState : aSdControllerState := CMD0;
 	constant cDefaultoSdCmd : aSdCmdFromController := ((id => (others => '0'),
@@ -57,6 +57,8 @@ begin
 	end process Regs;
 
 	Comb : process (iSdCmd, State, Reg)
+		variable ocr : aSdRegOCR;
+		variable arg : aSdCmdArg;
 	begin
 		-- default assignments
 		oSdCmd <= cDefaultoSdCmd; 
@@ -122,17 +124,30 @@ begin
 
 			when ACMD41 => 
 				oSdCmd.Content.id <= cSdCmdACMD41;
-				oSdCmd.Content.arg(31) <= '0';
-				oSdCmd.Content.arg(30) <= Reg.HCS;
-				oSdCmd.Content.arg(29 downto 24) <= (others => '0');
-				oSdCmd.Content.arg(23 downto 0) <= cVoltageWindow;
+				ocr.nBusy := cnActivated;
+				ocr.ccs := Reg.HCS;
+				ocr.voltagewindow := cVoltageWindow;
+				oSdCmd.Content.arg <= OCRToArg(ocr);
 				oSdCmd.Valid <= cActivated;
 				if (iSdCmd.Ack = cActivated) then
 					NextState <= ACMD41Response;
 				end if;
 
 			when ACMD41Response => 
-				null; -- TODO
+				if (iSdCmd.Valid = cActivated) then
+					NextState <= CMD55;
+					if (iSdCmd.Content.id = cSdR3Id) then
+						ocr := ArgToOcr(iSdCmd.Content.arg);					   
+						if (ocr.nBusy = cnInactivated) then
+							-- TODO: check voltage
+							NextReg.CCS <= ocr.ccs;
+							NextState <= CMD2;
+						end if;
+					end if;
+				end if;
+
+			when CMD2 => 
+				null;
 
 			when others => 
 				report "SdController: State not handled" severity error;

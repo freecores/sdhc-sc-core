@@ -108,6 +108,26 @@ class SDCard;
 		ocr = new(CCS, cSdVoltageWindow);
 		acmd41response = new(ocr);
 		acmd41response.send(ICmd);		
+		
+		// expect CMD55 with default RCA
+		recv();
+		assert(recvcmd.id == cSdCmdNextIsACMD);
+		assert(recvcmd.arg == 0);
+		state.recvCMD55();
+
+		// respond with R1
+		response = new(cSdCmdNextIsACMD, state);
+		response.send(ICmd);	
+
+		// expect ACMD41 with HCS = 1
+		recv();
+		assert(recvcmd.id == cSdCmdACMD41);
+		assert(recvcmd.arg == cSdArgACMD41HCS);
+
+		// respond with R3
+		ocr.setBusy(cOCRDone);
+		acmd41response = new(ocr);
+		acmd41response.send(ICmd);		
 
 		-> InitDone;
 
