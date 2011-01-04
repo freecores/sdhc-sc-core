@@ -1,24 +1,43 @@
-proc compileUnit {grp en arch} {
+
+proc compileWithPsl {fname grp en psl} {
+	upvar $psl mpsl
+
+	if [info exists mpsl($en)] {
+		set pslfile "../../../grp$grp/unit$en/src/$mpsl($en).psl"
+		if [file isfile $pslfile] {
+			vcom $fname -pslfile $pslfile
+		} else {
+			echo "pslfile $pslfile not found"
+			vcom $fname
+		}
+	} else {
+		vcom $fname
+	}
+};
+
+proc compileUnit {grp en arch tpsl} {
+	upvar $tpsl psl
 	set prefix ../../../grp$grp/unit$en/src
 	if [file isfile $prefix/$en-e.vhdl] {
-		vcom "$prefix/$en-e.vhdl"
+		compileWithPsl "$prefix/$en-e.vhdl" $grp $en psl
 		if [file isfile $prefix/$en-$arch-a.vhdl] {
 			vcom "$prefix/$en-$arch-a.vhdl"
 		}
 	} elseif [file isfile $prefix/$en-$arch-ea.vhdl] {
-		vcom "$prefix/$en-$arch-ea.vhdl"
+		compileWithPsl "$prefix/$en-$arch-ea.vhdl" $grp $en psl
 	} else {
 		echo "Unit $grp $en $arch not found!"
 	}
 };
 
+
 proc compileTb {grp en arch} {
 	set prefix ../../../grp$grp/unit$en/src
 		if [file isfile $prefix/tb$en-e.vhdl] {
 			vcom "$prefix/tb$en-e.vhdl"
-					if [file isfile $prefix/tb$en-$arch-a.vhdl] {
-						vcom "$prefix/tb$en-$arch-a.vhdl"
-					}
+			if [file isfile $prefix/tb$en-$arch-a.vhdl] {
+				vcom "$prefix/tb$en-$arch-a.vhdl"
+			}
 		} elseif [file isfile $prefix/tb$en-$arch-ea.vhdl] {
 			vcom "$prefix/tb$en-$arch-ea.vhdl"
 		} else {
@@ -48,9 +67,11 @@ if [info exists pkgs] {
 
 if [info exists units] {
 	foreach {grp en arch} $units {
-		compileUnit $grp $en $arch
+		compileUnit $grp $en $arch psl
 	}
 }
+
+
 
 if [info exists tbunits] {
 	foreach {grp en arch} $tbunits {
