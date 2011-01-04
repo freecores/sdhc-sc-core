@@ -58,7 +58,7 @@ begin
 					-- calculate CRC
 					input := iData xor regs(regs'high);
 
-					regs(0) <= input
+					regs(0) <= input;
 
 					for idx in 1 to regs'high loop
 						if (gPolynom(idx) = '1') then
