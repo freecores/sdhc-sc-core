@@ -1,7 +1,7 @@
 # Recursive makefile for simulations
 
 SIMS = grpCrc/unitCrc grpWishbone/unitWbSlave grpSd/unitSdCmd
-SYNS = grpCrc/unitCrc
+SYNS = grpCrc/unitCrc grpSd/unitSd
 
 sim:
 	for i in $(SIMS); do make -C src/$$i/sim; done
