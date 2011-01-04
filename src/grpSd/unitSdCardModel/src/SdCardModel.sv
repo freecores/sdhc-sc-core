@@ -29,8 +29,12 @@ typedef enum {
 } SDCardState;
 
 class SDCommandToken;
+	logic startbit;
+	logic transbit;
 	SDCommandId id;
 	SDCommandArg arg;
+	logic[6:0] crc7;
+	logic endbit;
 endclass
 
 class SDCommandResponse;
