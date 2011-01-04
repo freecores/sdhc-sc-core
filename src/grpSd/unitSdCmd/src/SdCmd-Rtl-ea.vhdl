@@ -51,7 +51,8 @@ architecture Rtl of SdCmd is
 
 	constant cDefaultOut : aSdCmdOut := ((cInactivated, cInactivated,cInactivated),
    	(Ack => cInactivated, Receiving => cInactivated, Valid => cInactivated,
-	CmdContent => (id => (others => '0'), arg => (others => '0'))), 'Z');
+	Content => (id => (others => '0'), arg => (others => '0')), Err => 
+	cInactivated), 'Z');
 
 	signal ReceivedToken, NextReceivedToken : aSdCmdToken;
 
@@ -115,7 +116,7 @@ begin
 		NextCounter <= Counter;
 		NextReceivedToken <= ReceivedToken;
 		Output <= cDefaultOut;
-		Output.Controller.CmdContent <= ReceivedToken.content;
+		Output.Controller.Content <= ReceivedToken.content;
 
 		case State is
 			when idle => 
@@ -192,8 +193,10 @@ begin
 			   NextReceivedToken.endbit <= ioCmd;
 
 				-- check 
-			   if (CrcCorrect = cActivated) then
+			   if (CrcCorrect = cActivated and ReceivedToken.transbit = cSdTransBitSlave) then
 				   Output.Controller.Valid <= cActivated;
+			   else
+				   Output.Controller.Err <= cActivated;
 			   end if;
 			   NextState <= idle;
 

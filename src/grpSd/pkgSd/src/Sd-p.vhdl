@@ -46,10 +46,16 @@ package Sd is
 		Ack : std_ulogic; -- Gets asserted when crc was sent, but endbit was
 		-- not. This way we can minimize the wait time between sending 2 cmds.
 		Receiving : std_ulogic;
-		CmdContent : aSdCmdContent;
+		Content : aSdCmdContent;
 		Valid : std_ulogic; -- gets asserted when CmdContent is valid (therefore
 		-- a cmd was received)
+		Err : std_ulogic; -- gets asserted when an error occurred during
+		-- receiving a cmd
 	end record aSdCmdToController;
+
+	-- constants for Controller
+	subtype aRCA is std_ulogic_vector(15 downto 0);
+	constant cSdDefaultRCA : aRCA := (others => '0');
 
 	-- command ids
 	-- abbreviations:
@@ -97,5 +103,14 @@ package Sd is
 	constant cSdCmdSendStatus : aSdCmdId := std_ulogic_vector(to_unsigned(13,
 	cSdCmdIdHigh)); -- [31:16] RCA
 
+	constant cSdNextIsACMD : aSdCmdId := std_ulogic_vector(to_unsigned(55,
+	cSdCmdIdHigh));
+	constant cSdACMDArg : aSdCmdArg := cSdDefaultRCA & X"0000"; -- [31:16] RCA
+	constant cSdArgAppCmdPos : natural := 5;
+
+	constant cSdCmdACMD41 : aSdCmdId := std_ulogic_vector(to_unsigned(41, cSdCmdIdHigh));
+	constant cVoltageWindow : std_ulogic_vector(23 downto 0) :=
+	"111111111000000000000000";
+	
 end package Sd;
 

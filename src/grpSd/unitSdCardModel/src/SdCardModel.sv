@@ -22,12 +22,53 @@ typedef enum {
 	 cSdCmdSendCSD = 9, // [31:16] RCA
 	 cSdCmdSendCID = 10, // [31:16] RCA
 	 cSdCmdStopTrans = 12,
-	 cSdCmdSendStatus = 13 // [31:16] RCA
+	 cSdCmdSendStatus = 13, // [31:16] RCA
+	 cSdCmdNextIsACMD = 55 // [31:16] RCA
 } SDCommandId;
 
 typedef enum {
-	idle
-} SDCardState;
+	cSdCmdACMD41 = 41
+} SDAppCommandId;
+
+const SDCommandArg cSdArgACMD41HCS = 'b01000000111111111000000000000000;
+
+typedef enum {
+	idle = 0, ready = 1, ident = 2, stby = 3, trans = 4,
+	data = 5, rcv = 6, prg = 7, dis = 8
+} SDCardStates;
+
+class SDCardState;
+	local logic OutOfRange;
+	local logic AddressError;
+	local logic BlockLenError;
+
+	local logic[3:0] state;	
+
+	local logic AppCmd;
+
+	function new();
+		OutOfRange = 0;
+		AddressError = 0;
+		BlockLenError = 0;
+		state = idle;
+		AppCmd = 0;
+	endfunction	
+
+	function void recvCMD55();
+		AppCmd = 1;
+	endfunction
+
+	function automatic SDCommandArg get();
+		SDCommandArg temp = 0;
+		temp[31] = OutOfRange;
+		temp[30] = AddressError;
+		temp[29] = BlockLenError;
+		temp[12:9] = state;
+		temp[5] = AppCmd;
+		return temp;
+	endfunction
+
+endclass
 
 class SDCommandToken;
 	logic startbit;
@@ -158,6 +199,18 @@ class SDCommandR7 extends SDCommandResponse;
 
 endclass
 
+class SDCommandR1 extends SDCommandResponse;
+
+	function new(SDCommandId id, SDCardState state);
+		startbit = 0;
+		transbit = 0;
+		this.id = id;
+		this.arg = state.get(); 
+		endbit = 1;
+	endfunction
+
+endclass
+
 class SDCard;
 	local virtual ISdCmd.Card ICmd;
 
@@ -168,13 +221,12 @@ class SDCard;
 
 	function new(virtual ISdCmd CmdInterface, event CmdReceived, event InitDone);
 		ICmd = CmdInterface;
-		state = idle;
+		state = new();
 		this.CmdReceived = CmdReceived;
 		this.InitDone = InitDone;
 	endfunction
 
 	task reset();
-		state = idle;
 	endtask
 
 	// Receive a command token and handle it
@@ -218,7 +270,7 @@ class SDCard;
 
 	task automatic init();
 		SDCommandR7 voltageresponse;
-		SDCommandResponse response;
+		SDCommandR1 response;
 		
 		// expect CMD0 so that state is clear
 		recv();
@@ -232,8 +284,22 @@ class SDCard;
 		// respond with R7: we are SD 2.00 compatible and compatible to the
 		// voltage
 		voltageresponse = new(recvcmd.arg);
-		response = voltageresponse;
-		response.send(ICmd);
+		voltageresponse.send(ICmd);
+
+		// expect CMD55 with default RCA
+		recv();
+		assert(recvcmd.id == cSdCmdNextIsACMD);
+		assert(recvcmd.arg == 0);
+		state.recvCMD55();
+
+		// respond with R1
+		response = new(cSdCmdNextIsACMD, state);
+		response.send(ICmd);	
+
+		// expect ACMD41 with HCS = 1
+		recv();
+		assert(recvcmd.id == cSdCmdACMD41);
+		assert(recvcmd.arg == cSdArgACMD41HCS);
 
 		-> InitDone;
 
