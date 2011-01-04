@@ -232,15 +232,32 @@ class SDCard;
 
 	endtask
 
-	task read();
+	task run();
+		this.init();
+
+		forever begin
+			SdBusTransToken token;
+			this.bfm.receive(token);
+
+			case (token.id)
+				cSdCmdWriteSingleBlock:	this.write(token);
+				cSdCmdReadSingleBlock: this.read(token);
+				default: begin
+						string msg;
+						$swrite(msg, "Token not handled, ID: %b", token.id);
+						log.error(msg);
+				end
+			endcase
+		end
+	endtask
+
+	task read(SdBusTransToken token);
 		SDCommandR1 response;
 		logic data[$];
 		logic[31:0] addr;
 		SdData sddata = new(mode, usual);
-		SdBusTransToken token;
 
 		// expect Read
-		this.bfm.receive(token);
 		assert(token.id == cSdCmdReadSingleBlock);
 		addr = token.arg[0];
 		assert(addr < ram.size());
@@ -257,15 +274,13 @@ class SDCard;
 		sddata.send(ICard, data);
 	endtask
 
-	task write();
+	task write(SdBusTransToken token);
 		SDCommandR1 response;
 		SdData sddata = new(this.mode, widewidth);
 		logic rddata[$];
 		logic[31:0] addr;
-		SdBusTransToken token;
 
 		// expect Write
-		this.bfm.receive(token);
 		assert(token.id == cSdCmdWriteSingleBlock);
 		addr = token.arg[0];
 		assert(addr < ram.size());

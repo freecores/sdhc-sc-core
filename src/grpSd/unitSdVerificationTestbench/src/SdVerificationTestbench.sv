@@ -31,7 +31,7 @@ program Test(ISdCard ICmd, WishboneInterface BusInterface);
 	logic[31:0] rd;
 	Wishbone Bus = new(BusInterface.Master);
 	SDCard card = new(ICmd, $root.Testbed.CmdReceived, $root.Testbed.InitDone);
-	int c = 0;
+	Logger log = new();
 
 	assert(card.randomize());
 	BusInterface.RST_I <= 1;
@@ -48,9 +48,7 @@ program Test(ISdCard ICmd, WishboneInterface BusInterface);
 	    end
 
         begin // driver for SdCardModel
-			card.init();
-			card.write();
-			card.read();
+			card.run();
 
 			/*for (int i = 0; i < `cCmdCount; i++) begin
 				@$root.Testbed.CardRecv;
@@ -85,6 +83,9 @@ program Test(ISdCard ICmd, WishboneInterface BusInterface);
 				Bus.Read('b011, rd);
 				$display("Read: %h", rd);
 			end
+
+			log.terminate();
+			$finish;
 
 		end
 

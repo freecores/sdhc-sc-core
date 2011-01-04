@@ -22,7 +22,7 @@ set units {Crc Crc {Rtl}
 	Synchronization Synchronizer {Rtl}
 	StrobesClocks EdgeDetector {Rtl}
 	StrobesClocks StrobeGen {Rtl}
-	Sd SdControllerSync {Rtl}
+	Sd SdWbSdControllerSync {Rtl}
 	Sd TestWbMaster {Rtl}
 	Rs232 Rs232Tx {Rtl}
 	Components Ics307Configurator {Rtl}

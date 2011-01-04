@@ -46,7 +46,7 @@ class SdData;
 			wait(ICard.cb.Data == 'b0000);
 			
 			$display("Startbits: %t", $time);
-			for (int j = 0; j < 512*2; j++) begin
+			for (int j = 0; j <= 512*2; j++) begin
 				@ICard.cb;
 				for(int i = 0; i < 4; i++) begin
 					rddata.push_back(ICard.cb.Data[i]);
@@ -54,13 +54,14 @@ class SdData;
 			end
 
 			// crc
-			
 			for (int j = 0; j < 16; j++) begin
 				@ICard.cb;
 				for(int i = 0; i < 4; i++) begin
 					crc[i] = ICard.cb.Data[i];
 				end
 			end
+
+			// TODO: check crc
 
 			// end bits
 			@ICard.cb;
