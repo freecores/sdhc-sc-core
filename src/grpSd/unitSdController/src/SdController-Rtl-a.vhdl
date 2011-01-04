@@ -1,16 +1,18 @@
--------------------------------------------------
--- file: SdController-Rtl-ea.vhdl
--- author: Rainer Kastl
 --
--- Main statemachine for a SDHC compatible SD Controller
+-- Title: SdController
+-- File: SdController-Rtl-a.vhdl
+-- Author: Copyright 2010: Rainer Kastl
+-- Standard: VHDL'93
+-- 
+-- Description: Main statemachine for a SDHC compatible SD Controller
 -- Simplified Physical Layer Spec. 2.00
--------------------------------------------------
+--
 
 architecture Rtl of SdController is
 
 	type aSdControllerState is (startup, init, config, idle, invalidCard);
 	type aCmdRegion is (CMD0, CMD8, CMD55, ACMD41, CMD2, CMD3, SelectCard);
-	type aRegion is (idle, send, receive, waitstate);
+	type aRegion is (idle, send, response, waitstate, senddata, receivedata, checkbusy, waitstatedata);
 	
 	constant cDefaultToSdCmd : aSdCmdFromController := (
 	(id       => (others        => '0'),
@@ -117,9 +119,9 @@ begin
 							when send => 
 								NextR.ToSdCmd.Content.id  <= cSdCmdSendIfCond;
 								NextR.ToSdCmd.Content.arg <= cSdArgVoltage;
-								NextRegion                := receive;
+								NextRegion                := response;
 
-							when receive => 
+							when response => 
 								if (iSdCmd.Valid = cActivated) then
 									if (iSdCmd.Content.id = cSdCmdSendIfCond and iSdCmd.Content.arg = cSdArgVoltage) then
 										NextR.Region <= waitstate;
@@ -157,9 +159,9 @@ begin
 								
 								NextR.ToSdCmd.Content.id  <= cSdCmdACMD41;
 								NextR.ToSdCmd.Content.arg <= OCRToArg(ocr);
-								NextRegion                := receive;
+								NextRegion                := response;
 
-							when receive => 
+							when response => 
 								NextR.ToSdCmd.CheckCrc <= cInactivated;
 
 								if (iSdCmd.Valid = cActivated) then
@@ -200,9 +202,9 @@ begin
 								NextR.ToSdCmd.Content.id <= cSdCmdAllSendCID;
 								NextR.ToSdCmd.Valid      <= cActivated;
 
-								NextRegion := receive;
+								NextRegion := response;
 
-							when receive => 
+							when response => 
 								NextR.ToSdCmd.ExpectCID <= cActivated;
 
 								if (iSdCmd.Valid = cActivated) then
@@ -232,9 +234,9 @@ begin
 								NextR.ToSdCmd.Content.id <= cSdCmdSendRelAdr;
 								NextR.ToSdCmd.Valid      <= cActivated;
 
-								NextRegion := receive;
+								NextRegion := response;
 
-							when receive => 
+							when response => 
 								if (iSdCmd.Valid = cActivated) then
 									if (iSdCmd.Content.id = cSdCmdSendRelAdr) then
 										NextR.RCA    <= iSdCmd.Content.arg(31 downto 16);
@@ -267,19 +269,29 @@ begin
 								NextR.ToSdCmd.Content.id  <= cSdCmdSelCard;
 								NextR.ToSdCmd.Content.arg <= R.RCA & X"0000";
 
-								NextRegion := receive;
+								NextRegion := response;
 
-							when receive => -- Response R1b: with busy!
+							when response => -- Response R1b: with busy!
 								if (iSdCmd.Valid = cActivated) then
 									if (iSdCmd.Content.id = cSdCmdSelCard) then
 										NextR.CardStatus <= iSdCmd.Content.arg;
-										NextR.State      <= idle;
+
+										if (iSdCmd.Content.arg(cSdStatusReadyForDataBit) = cActivated) then
+											NextR.Region <= waitstatedata;
+										else
+											NextR.Region <= waitstate;
+										end if;
+
 									end if;
 								elsif (Timeout = cActivated) then
 									NextR.State <= invalidCard;
 								end if;
 
 							when waitstate => 
+								NextRegion := checkbusy;
+
+							when waitstatedata => 
+								NextState     := idle;
 
 							when others => 
 								report "Unhandled Region" severity error;
@@ -308,8 +320,8 @@ begin
 
 				if (R.CmdRegion = CMD55) then
 					NextR.ToSdCmd.Content.id  <= cSdNextIsACMD;
-					NextR.ToSdCmd.Content.arg <= cSdACMDArg;
-					NextRegion                := receive;
+					NextR.ToSdCmd.Content.arg <= R.RCA & X"0000";
+					NextRegion                := response;
 				end if;
 
 				if (iSdCmd.Ack = cActivated) then
@@ -317,7 +329,7 @@ begin
 					NextR.Region        <= NextRegion;
 				end if;
 
-			when receive => 
+			when response => 
 				oLedBank(0)   <= cActivated;
 				TimeoutEnable <= cActivated;
 
@@ -354,6 +366,19 @@ begin
 					NextR.State			 <= NextState;
 				end if;
 
+			when checkbusy => 
+
+
+			when waitstatedata => 
+				NextCmdTimeoutEnable <= cActivated;
+				
+				if (NextCmdTimeout = cActivated) then
+					NextCmdTimeoutEnable <= cInactivated;
+					NextR.Region         <= NextRegion;
+					NextR.CmdRegion      <= NextCmdRegion;
+					NextR.State			 <= NextState;
+				end if;
+
 			when others => 
 				report "Unhandled region" severity error;
 		end case;
@@ -362,7 +387,7 @@ begin
 	TimeoutGenerator_inst: entity work.TimeoutGenerator
 	generic map (
 		gClkFrequency => 25E6,
-		gTimeoutTime  => 10 ms
+		gTimeoutTime  => 100 ms
 	)
 	port map (
 		iClk => iClk,

@@ -45,6 +45,7 @@ class SDCardState;
 		temp[30] = AddressError;
 		temp[29] = BlockLenError;
 		temp[12:9] = state;
+		temp[8] = ReadyForData;
 		temp[5] = AppCmd;
 		return temp;
 	endfunction

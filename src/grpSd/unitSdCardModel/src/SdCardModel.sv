@@ -130,6 +130,7 @@ class SDCard;
 		recv();
 		assert(recvcmd.id == cSdCmdACMD41);
 		assert(recvcmd.arg == cSdArgACMD41HCS);
+		state.AppCmd = 0;
 
 		// respond with R3
 		ocr.setBusy(cOCRDone);
@@ -157,8 +158,10 @@ class SDCard;
 		assert(recvcmd.id == cSdCmdSelCard);
 		assert(recvcmd.arg[31:16] == rca);
 
-		// respond with R1b
-		
+		// respond with R1, no busy
+		state.ReadyForData = 1;
+		response = new(cSdCmdSelCard, state);
+		response.send(ICmd);
 
 		-> InitDone;
 

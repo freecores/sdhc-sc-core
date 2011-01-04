@@ -61,6 +61,7 @@ package Sd is
 	end record aSdRegOCR;
 
 	subtype aSdCardStatus is std_ulogic_vector(31 downto 0);
+	constant cSdStatusReadyForDataBit : natural := 8;
 	constant cDefaultSdCardStatus : aSdCardStatus := (others => '0');
 	
 	constant cSdOCRQuery : aSdRegOCR := (
