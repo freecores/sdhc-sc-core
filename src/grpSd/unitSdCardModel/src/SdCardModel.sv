@@ -15,6 +15,7 @@ class SDCard;
 
 	local SDCardState state;
 	local SDCommandToken recvcmd;
+	local logic CCS;
 
 	local event CmdReceived, InitDone;
 
@@ -23,6 +24,7 @@ class SDCard;
 		state = new();
 		this.CmdReceived = CmdReceived;
 		this.InitDone = InitDone;
+		this.CCS = 1;
 	endfunction
 
 	task reset();
@@ -70,6 +72,8 @@ class SDCard;
 	task automatic init();
 		SDCommandR7 voltageresponse;
 		SDCommandR1 response;
+		SDCommandR3 acmd41response;
+		SDOCR ocr;
 		
 		// expect CMD0 so that state is clear
 		recv();
@@ -99,6 +103,11 @@ class SDCard;
 		recv();
 		assert(recvcmd.id == cSdCmdACMD41);
 		assert(recvcmd.arg == cSdArgACMD41HCS);
+
+		// respond with R3
+		ocr = new(CCS, cSdVoltageWindow);
+		acmd41response = new(ocr);
+		acmd41response.send(ICmd);		
 
 		-> InitDone;
 

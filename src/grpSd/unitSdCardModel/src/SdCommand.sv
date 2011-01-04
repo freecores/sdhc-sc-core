@@ -171,3 +171,16 @@ class SDCommandR1 extends SDCommandResponse;
 
 endclass
 
+include "../../unitSdCardModel/src/SDOCR.sv";
+class SDCommandR3 extends SDCommandResponse;
+
+	function new(SDOCR ocr);
+		startbit = 0;
+		transbit = 0;
+		this.id = 'b111111;
+		this.arg = ocr.get(); 
+		endbit = 1;
+	endfunction
+
+endclass
+
