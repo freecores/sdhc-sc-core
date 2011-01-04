@@ -70,7 +70,7 @@ if {$make_assignments} {
 	export_assignments
 
 	# Compile project
-	if {[catch {execute_flow -compile} result]} {
+	if {[catch {execute_flow -analysis_and_elaboration} result]} {
 		puts "\nResult: $result\n"
 		puts "ERROR: Compilation failed. See report files.\n"
 	} else {
