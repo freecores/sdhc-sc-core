@@ -429,12 +429,12 @@ begin
 									end if;
 
 								when waitstate => 
+									NextR.ToSdData.Mode <= wide;
 
 									if gHighSpeedMode = true then
 
 										NextRegion          := send;
 										NextCmdRegion       := CheckSpeed;
-										NextR.ToSdData.Mode <= wide;
 
 									else
 
