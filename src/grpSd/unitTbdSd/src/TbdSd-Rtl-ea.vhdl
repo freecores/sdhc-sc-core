@@ -43,7 +43,7 @@ end entity TbdSd;
 architecture Rtl of TbdSd is
 
 	constant cClkFreq  : natural := 25E6;
-	constant cBaudRate : natural := 9600;
+	constant cBaudRate : natural := 115200;
 
 	signal iRs232Tx : aiRs232Tx;
 	signal oRs232Tx : aoRs232Tx;
@@ -53,7 +53,7 @@ begin
 	oDigitAdr              <= "101"; -- DIGIT_6
 	oTx                    <= oRs232Tx.Tx;
 	iRs232Tx.Transmit      <= cActivated;
-	iRs232Tx.Data          <= "10101010";
+	iRs232Tx.Data          <= X"A1";
 	iRs232Tx.DataAvailable <= cActivated;
 	
 	SDTop_inst : entity work.SdTop(Rtl)
