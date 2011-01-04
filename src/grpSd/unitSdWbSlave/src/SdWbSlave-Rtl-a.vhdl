@@ -106,7 +106,7 @@ begin
 				end if;
 
 			when readreq => 
-			-- readreq was sent, data is available next cylce
+			-- readreq was sent, data is available next cycle
 				NxR.oReadFifo.rdreq <= cInactivated;
 				NxR.ReadBufferState <= latchdata;
 
