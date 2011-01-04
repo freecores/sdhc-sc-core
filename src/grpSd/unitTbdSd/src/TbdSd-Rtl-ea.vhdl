@@ -49,36 +49,55 @@ architecture Rtl of TbdSd is
 	signal iRs232Tx : aiRs232Tx;
 	signal oRs232Tx : aoRs232Tx;
 
-	type aState is (id, arg, waitforchange, data, crc);
+	type aReadState is (waitforchange, send);
+	type aWriteState is (idle, id, arg, data, crc);
+	type aRamMode is (read, write);
+
 	type aReg is record
-		State : aState;
-		Counter : natural;
-		ReceivedContent : aSdCmdContent;
-		ValidContent : aSdCmdContent;
-		Data : std_ulogic_vector(7 downto 0);
+		ReadState     : aReadState;
+		ReadCounter   : natural;
+		WriteState    : aWriteState;
+		WriteCounter  : natural;
+		RamMode		  : aRamMode;
+		Data          : std_ulogic_vector(7 downto 0);
+		RamBuffer	  : std_ulogic_vector(31 downto 0);
 		DataAvailable : std_ulogic;
+		RamReadAddr   : natural range 0 to 2**8-1;
+		RamAddr       : natural range 0 to 2**8-1;
+		RamWriteAddr  : natural range 0 to 2**8-1;
+		RamWe         : std_ulogic;
+		RamData       : std_ulogic_vector(31 downto 0);
 	end record aReg;
 
 	constant cDefaultReg : aReg := (
-		State           => id,
-		Counter         => 3,
-		ReceivedContent => cDefaultSdCmdContent,
-		ValidContent    => cDefaultSdCmdContent,
-		Data            => (others               => '0'),
-		DataAvailable   => cInactivated);
+	ReadState     => waitforchange,
+	ReadCounter   => 0,
+	WriteState    => idle,
+	WriteCounter  => 0,
+	RamMode		  => read,
+	Data          => (others => '0'),
+	RamBuffer     => (others => '0'),
+	DataAvailable => cInactivated,
+	RamReadAddr   => 0,
+	RamAddr		  => 0,
+	RamWriteAddr  => 0,
+	RamWe         => cInactivated,
+	RamData       => (others       => '0')
+);
 
-	signal R                     : aReg                             := cDefaultReg;
-	signal NextR                 : aReg;
-	signal ReceivedContent       : aSdCmdContent;
-	signal oReceivedContentValid : std_ulogic;
-	signal ReceivedData          : std_ulogic_vector(511 downto 0);
-	signal ReceivedDataValid     : std_ulogic;
-	signal ReceivedCrc           : std_ulogic_vector(15 downto 0);
+signal R                     : aReg                             := cDefaultReg;
+signal NextR                 : aReg;
+signal ReceivedContent       : aSdCmdContent;
+signal oReceivedContentValid : std_ulogic;
+signal ReceivedData          : std_ulogic_vector(511 downto 0);
+signal ReceivedDataValid     : std_ulogic;
+signal ReceivedCrc           : std_ulogic_vector(15 downto 0);
+signal RamData               : std_ulogic_vector(31 downto 0);
 
 begin
 
-	oDigitAdr <= "101"; -- DIGIT_6
-	oTx       <= oRs232Tx.Tx;
+	oDigitAdr              <= "101"; -- DIGIT_6
+	oTx                    <= oRs232Tx.Tx;
 
 	iRs232Tx.Transmit      <= cActivated;
 	iRs232Tx.Data          <= R.Data;
@@ -92,89 +111,103 @@ begin
 
 		elsif (iClk'event and iClk = cActivated) then
 			R <= NextR;
-			
+
 		end if;
 	end process Rs232_Send;
 
-	Rs232_comb : process (oRs232Tx.DataWasRead, ReceivedContent, oReceivedContentValid, ReceivedDataValid, ReceivedData, ReceivedCrc, R)
+	Rs232_comb : process (oRs232Tx.DataWasRead, ReceivedContent, oReceivedContentValid, ReceivedDataValid, ReceivedData, ReceivedCrc, RamData, R)
+		variable NextWrite : std_ulogic;
+
 	begin
-		NextR <= R;
+		NextR       <= R;
+		NextR.RamWe <= cInactivated;
+		NextWrite := cActivated;
+		
+		case R.WriteState is
+			when idle => 
+				NextR.WriteCounter <= 0;
+				NextWrite := cInactivated;
 
-		case R.State is
-			when waitforchange => 
-				NextR.DataAvailable <= cInactivated;
-
-				if (R.ReceivedContent /= R.ValidContent) then
-					NextR.ReceivedContent <= R.ValidContent;
-					NextR.State <= id;
+				if (ReceivedDataValid = cActivated) then
+					NextR.WriteState <= data;
+				elsif (oReceivedContentValid = cActivated) then
+					NextR.WriteState <= id;
 				end if;
-
---				if (ReceivedDataValid = cActivated) then
---					NextR.Counter <= 63;
---					NextR.State <= data;
---				end if;
 
 			when id => 
-				NextR.DataAvailable <= cActivated;
-				NextR.Data <= "00" & R.ReceivedContent.id;
-
-				if (oRs232Tx.DataWasRead = cActivated) then
-					NextR.DataAvailable <= cInactivated;
-					NextR.State <= arg;
-				end if;
+				NextR.RamWriteAddr <= R.RamWriteAddr + 1;
+				NextR.RamAddr      <= R.RamWriteAddr + 1;
+				NextR.RamData      <= X"000000" & "00" & ReceivedContent.id;
+				NextR.RamWe        <= cActivated;
+				NextR.WriteState   <= arg;
 
 			when arg => 
-				NextR.DataAvailable <= cActivated;
-				NextR.Data <= R.ReceivedContent.arg(R.Counter * 8 + 7 downto R.Counter * 8);
-
-				if (oRs232Tx.DataWasRead = cActivated) then
-					NextR.DataAvailable <= cInactivated;
-					if (R.Counter = 0) then
-						NextR.Counter <= 3;
-						NextR.State <= waitforchange;
-					else
-						NextR.Counter <= R.Counter - 1;
-					end if;
-				end if;
+				NextR.RamWriteAddr <= R.RamWriteAddr + 1;
+				NextR.RamAddr      <= R.RamWriteAddr + 1;
+				NextR.RamData      <= ReceivedContent.arg;
+				NextR.RamWe        <= cActivated;
+				NextR.WriteState   <= idle;
 
 			when data => 
-				NextR.DataAvailable <= cActivated;
-				NextR.Data <= ReceivedData(R.Counter * 8 + 7 downto R.Counter * 8);
-				
-				if (oRs232Tx.DataWasRead = cActivated) then
-					NextR.DataAvailable <= cInactivated;
-					if (R.Counter = 0) then
-						NextR.Counter <= 1;
-						NextR.State <= crc;
-					else
-						NextR.Counter <= R.Counter - 1;
-					end if;
+				NextR.RamWriteAddr <= R.RamWriteAddr + 1;
+				NextR.RamAddr      <= R.RamWriteAddr + 1;
+				NextR.RamData      <= ReceivedData((15-R.WriteCounter) * 32 + 31 downto (15 - R.WriteCounter) * 32);
+				NextR.RamWe        <= cActivated;
+
+				if (R.WriteCounter = 15) then
+					NextR.WriteState   <= crc;
+				else
+					NextR.WriteCounter <= R.WriteCounter + 1;
 				end if;
 
 			when crc => 
-				NextR.DataAvailable <= cActivated;
-				NextR.Data <= ReceivedCrc(R.Counter * 8 + 7 downto R.Counter * 8);
-				
-				if (oRs232Tx.DataWasRead = cActivated) then
-					NextR.DataAvailable <= cInactivated;
-					if (R.Counter = 0) then
-						NextR.Counter <= 0;
-						NextR.State <= waitforchange;
-					else
-						NextR.Counter <= R.Counter - 1;
-					end if;
-				end if;
+				NextR.RamWriteAddr <= R.RamWriteAddr + 1;
+				NextR.RamAddr      <= R.RamWriteAddr + 1;
+				NextR.RamData      <= X"0000" & ReceivedCrc;
+				NextR.RamWe        <= cActivated;
+				NextR.WriteState   <= idle;
 
 			when others => 
 				report "Unhandled state" severity error;
 		end case;
 
-		if (oReceivedContentValid = cActivated) then
-			NextR.ValidContent <= ReceivedContent;
-		end if;
+		case R.ReadState is
+			when waitforchange => 
+				NextR.DataAvailable <= cInactivated;
+
+				if (R.RamReadAddr /= R.RamWriteAddr and NextWrite = cInactivated) then
+					NextR.RamReadAddr <= R.RamReadAddr + 1;
+					NextR.RamAddr <= R.RamReadAddr + 1;
+					NextR.ReadCounter <= 0;
+					NextR.ReadState   <= send;
+				end if;
+
+			when send =>
+				NextR.DataAvailable <= cActivated;
+
+				if (R.ReadCounter = 0) then
+					NextR.Data <= RamData((3-R.ReadCounter)*8 + 7 downto (3-R.ReadCounter)*8);
+					NextR.RamBuffer <= RamData;
+				else
+					NextR.Data <= R.RamBuffer((3-R.ReadCounter)*8 + 7 downto (3-R.ReadCounter)*8);
+				end if;
+
+				if (oRs232Tx.DataWasRead = cActivated) then
+					NextR.DataAvailable <= cInactivated;
+
+					if (R.ReadCounter = 3) then
+						NextR.ReadState <= waitforchange;
+					else
+						NextR.ReadCounter <= R.ReadCounter + 1;
+					end if;
+				end if;
+
+			when others => 
+				report "Invalid state" severity error;
+		end case;
 
 	end process Rs232_comb;
-		
+
 	SDTop_inst : entity work.SdTop(Rtl)
 	generic map (
 		gClkFrequency => cClkFreq
@@ -209,8 +242,21 @@ begin
 		inResetAsync => inResetAsync,
 		oStrobe      => iRs232Tx.BitStrobe);
 
+	Ram_inst : entity work.Ram
+	generic map(
+		gDataWidth => 32,
+		gAddrWidth => 7
+	)
+	port map (
+		iClk  => iClk,
+		iAddr => R.RamAddr,
+		iData => R.RamData,
+		iWe   => R.RamWe,
+		oData => RamData
+	);
 
-	-- Configure clock to 25MHz, it could be configured differently!
+
+	-- Configure clock to 50MHz
 	Ics307Configurator_inst : entity work.Ics307Configurator(Rtl)
 	generic map(
 		gCrystalLoadCapacitance_C   => cCrystalLoadCapacitance_C_50MHz,

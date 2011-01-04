@@ -48,10 +48,17 @@ add wave -noupdate -format Literal /Testbed/top/sdtop_inst/sddata_inst/crcout
 add wave -noupdate -format Literal /Testbed/top/sdtop_inst/sddata_inst/crcdatain
 add wave -noupdate -format Literal /Testbed/top/sdtop_inst/sddata_inst/r
 add wave -noupdate -format Literal /Testbed/top/sdtop_inst/sddata_inst/nextr
+add wave -noupdate -divider ram
+add wave -noupdate -format Literal /Testbed/top/ram_inst/iaddr
+add wave -noupdate -format Logic /Testbed/top/ram_inst/iclk
+add wave -noupdate -format Literal /Testbed/top/ram_inst/idata
+add wave -noupdate -format Logic /Testbed/top/ram_inst/iwe
+add wave -noupdate -format Literal /Testbed/top/ram_inst/memory
+add wave -noupdate -format Literal /Testbed/top/ram_inst/odata
 add wave -noupdate -divider rs232
 add wave -noupdate -format Literal /Testbed/top/rs232tx_inst/r
 TreeUpdate [SetDefaultTree]
-WaveRestoreCursors {{Cursor 1} {1970 ns} 0}
+WaveRestoreCursors {{Cursor 1} {188696 ns} 0}
 configure wave -namecolwidth 150
 configure wave -valuecolwidth 100
 configure wave -justifyvalue left
@@ -66,4 +73,4 @@ configure wave -griddelta 40
 configure wave -timeline 0
 configure wave -timelineunits ns
 update
-WaveRestoreZoom {1616 ns} {2766 ns}
+WaveRestoreZoom {0 ns} {2179769 ns}

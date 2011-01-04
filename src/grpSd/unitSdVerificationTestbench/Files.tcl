@@ -10,6 +10,7 @@ set units {Crc Crc {Rtl}
 	StrobesClocks Counter {Rtl}
 	Sd SdController {Rtl}
 	Sd SdData {Rtl}
+	Memory Ram {Rtl}
 	Sd SdTop {Rtl}
 	Rs232 Rs232Tx {Rtl}
 	Components Ics307Configurator {Rtl}

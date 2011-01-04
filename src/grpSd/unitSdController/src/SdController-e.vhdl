@@ -19,7 +19,7 @@ use work.Sd.all;
 entity SdController is
 	generic (
 		gClkFrequency   : natural := 25E6;
-		gStartupTimeout : time    := 10 ms;-- 1 sec / 25E6 * 8;
+		gStartupTimeout : time    := 15 ms;
 		gReadTimeout    : time    := 100 ms
 	);
 	port (
