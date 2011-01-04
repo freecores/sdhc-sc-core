@@ -58,7 +58,10 @@ class RamModel;
 			end
 		end
 
-		RamActionOutMb.put(action);
+		if (RamActionOutMb != null)	
+		begin
+			RamActionOutMb.put(action);
+		end
 	endtask
 
 	task setDataBlock(logic[31:0] addr, SdDataBlock block);

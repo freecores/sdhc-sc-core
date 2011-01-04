@@ -37,12 +37,17 @@ architecture Rtl of TestWbMaster is
 		Counter : aCounter;
 		WbState : aWbState;
 		Err : std_ulogic;
+		ReadData : unsigned(31 downto 0);
+		StartAddr: unsigned(31 downto 0);
 
 	end record aReg;
 
 	signal R, NxR : aReg;
 
 begin
+
+	LEDBANK_O(7) <= R.Err;
+	LEDBANK_O(2 downto 0) <= std_ulogic_vector(R.StartAddr(2 downto 0));
 
 	Regs : process (CLK_I)
 	begin
@@ -54,6 +59,8 @@ begin
 				R.Counter <= (others => '0');
 				R.WbState <= write;
 				R.Err     <= '0';
+				R.ReadData <= (others => '0');
+				R.StartAddr <= X"00000000";
 
 			else
 				R <= NxR;
@@ -68,7 +75,6 @@ begin
 
 		-- default assignment
 		NxR <= R;
-		ERR_O <= R.Err;
 		CTI_O <= "000";
 		CYC_O <= '0';
 		WE_O  <= '0';
@@ -77,7 +83,7 @@ begin
 		ADR_O <= "000";
 		DAT_O <= (others => '0');
 		BTE_O <= "00";
-		DON_O <= '0';
+		LEDBANK_O(6 downto 3) <= (others => '0');
 
 		-- we don´t care for errors or retrys
 		if (ERR_I = '1' or RTY_I = '1') then
@@ -112,20 +118,6 @@ begin
 				SEL_O <= "1";
 				STB_O <= '1';
 
-				if (ACK_I = '1') then
-					-- check data
-					--if to_unsigned(to_integer(DAT_I),32) /= to_unsigned(R.Counter, 32) then
-					--	NxR.Err <= '1';
-					--end if;
-
-					if (R.Counter = 128) then
-						NxR.Counter <= (others => '0');
-						NxR.WbState <= idle;
-					else
-						NxR.Counter <= R.Counter + 1;
-					end if;
-				end if;
-
 			when others => 
 				report "Invalid wbState" severity error;
 		end case;
@@ -133,35 +125,47 @@ begin
 		case R.State is
 			when startAddr => 
 				ADR_O <= "001";
-				DAT_O <= X"00000004";
+				DAT_O <= std_ulogic_vector(R.startAddr);
 
 				if (ACK_I = '1') then
-					NxR.State <= writeBuffer;
+					NxR.State <= read;
 					NxR.Counter <= (others => '0');
 					NxR.WbState <= write;
 				end if;
 
 			when writeBuffer => 
 				ADR_O <= "100"; -- write data
-				DAT_O <= std_ulogic_vector(R.Counter) & std_ulogic_vector(R.Counter) &
-						 std_ulogic_vector(R.Counter) & std_ulogic_vector(R.Counter);
+				DAT_O <= std_ulogic_vector(R.ReadData + 1);
 
-				if (R.Counter = 128) then
-					NxR.State   <= write;
-					NxR.Counter <= to_unsigned(128, aCounter'length);
-					NxR.WbState <= write;
+				if (ACK_I = '1') then
+					if (R.Counter = 128) then
+						NxR.State   <= write;
+						NxR.Counter <= to_unsigned(128, aCounter'length);
+						NxR.WbState <= write;
+					else
+						NxR.State <= readBuffer;
+						NxR.WbState <= read;
+					end if;
 				end if;
 
 			when write => 
+				LEDBANK_O(3) <= '1';
 				ADR_O <= "000"; 
 				DAT_O <= X"00000010"; -- start write operation
 
 				if (ACK_I = '1') then
-					NxR.State   <= done;
+					NxR.State   <= startAddr;
+					NxR.WbState <= write;
+					NxR.startAddr <= R.startAddr + 1;
+				end if;
+
+				if (R.StartAddr = 4) then
+					NxR.State <= done;
 					NxR.WbState <= idle;
 				end if;
 
 			when read => 
+				LEDBANK_O(4) <= '1';
 				ADR_O <= "000"; 
 				DAT_O <= X"00000001"; -- start read operation
 
@@ -171,16 +175,18 @@ begin
 				end if;
 				
 			when readBuffer => 
+				LEDBANK_O(5) <= '1';
 				ADR_O <= "011"; -- read data
 				
-				if (R.Counter = 128) then
-					NxR.Counter <= (others => '0');
-					NxR.State   <= done;
-					NxR.WbState <= idle;
+				if (ACK_I = '1') then
+					NxR.ReadData <= unsigned(DAT_I);
+					NxR.State <= writeBuffer;
+					NxR.WbState <= write;
 				end if;
 
 			when done => 
-				DON_O <= '1';
+				LEDBANK_O(6) <= '1';
+				report "End of Simulation" severity failure;
 
 			when others => 
 				report "Invalid state" severity error;

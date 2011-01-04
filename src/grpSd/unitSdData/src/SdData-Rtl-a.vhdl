@@ -26,9 +26,11 @@
 
 architecture Rtl of SdData is
 
-	type aState is (idle, send, receive, checkbusy); -- overall states
+	type aState is (idle, send, receive, crcstatus, checkbusy); -- overall states
 	type aRegion is (startbit, data, crc, endbit); -- regions in send and receive state
 	subtype aCounter is unsigned(LogDualis(512*8)-1 downto 0); -- bit counter
+
+	subtype aCrcStatus is std_ulogic_vector(2 downto 0);
 
 	-- all registers
 	type aReg is record
@@ -47,6 +49,7 @@ architecture Rtl of SdData is
 		ReadWriteFifo : aoReadFifo;
 		WriteReadFifo : aoWriteFifo;
 		DisableSdClk  : std_ulogic;
+		CrcStatus     : aCrcStatus;
 	end record aReg;
 
 	-- default value for registers
@@ -61,7 +64,8 @@ architecture Rtl of SdData is
 	Controller    => cDefaultSdDataToController,
 	ReadWriteFifo => cDefaultoReadFifo,
 	WriteReadFifo => cDefaultoWriteFifo,
-	DisableSdClk  => cInactivated);
+	DisableSdClk  => cInactivated,
+	CrcStatus     => (others => '0'));
 
 	type aCrcOut is record
 		DataIn  : std_ulogic;
@@ -266,11 +270,9 @@ begin
 			when idle => 
 				-- check if card signals that it is busy (the controller has to enable this check)
 				if (iSdDataFromController.CheckBusy = cActivated) then
-					if (iData.Data(0) = cInactivated) then
-						-- NextR.Controller.Busy <= cActivated;
-					end if;
-
-					NextR.State <= checkbusy;
+					NextR.State <= crcstatus;
+					NextR.Region <= startbit;
+					NextR.Counter <= (others => '0');
 
 				elsif (R.Mode = wide and iData.Data = cSdStartBits) or (R.Mode = standard and iData.Data(0) = cSdStartBit) then
 					-- start receiving
@@ -312,6 +314,32 @@ begin
 					-- switch between standard and wide mode only if nothing else is going on
 					NextR.Mode <= iSdDataFromController.Mode; 
 				end if;
+
+			when crcstatus =>		
+				case R.Region is
+					when startbit => 
+						if (iData.Data(0) = cSdStartBit) then
+							NextR.Region <= data;
+						end if;
+
+					when data => 
+						NextR.CrcStatus(to_integer(R.Counter)) <= iData.Data(0);
+						NextR.Counter <= R.Counter + 1;
+
+						if (R.Counter = 2) then
+							NextR.Region <= endbit;
+						end if;
+
+					when endbit => 
+						if (R.CrcStatus /= "010") then
+							NextR.Controller.Err <= cActivated;
+							NextR.State <= idle;
+						else
+							NextR.State <= checkbusy;
+						end if;
+					when others => 
+						report "Invalid state reached" severity error;
+				end case;
 
 			when checkbusy => 
 				NextR.Controller.Busy <= cActivated;

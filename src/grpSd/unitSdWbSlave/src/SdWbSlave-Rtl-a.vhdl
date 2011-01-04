@@ -52,7 +52,7 @@ architecture Rtl of SdWbSlave is
 	SdIntState                         => idle,
 	OperationBlock                     => cDefaultOperationBlock,
 	ReqOperation                       => cInactivated,
-	oWbDat                             => (Dat                             => (others => '0')),
+	oWbDat                             => (Dat                             => (others => 'X')),
 	oWbCtrl                            => cDefaultWbSlaveCtrlOutput,
 	oController                        => cDefaultSdWbSlaveToSdController,
 	oWriteFifo                         => cDefaultoWriteFifo,
@@ -234,6 +234,8 @@ begin
 
 						when others => 
 							report "Write to an invalid address" severity warning;
+							NxR.oWbCtrl.Err <= cActivated;
+							NxR.oWbCtrl.Ack <= cInactivated;
 					end case;
 				end if;
 

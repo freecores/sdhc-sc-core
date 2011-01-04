@@ -56,6 +56,7 @@ architecture Rtl of SdController is
 		ToSdWbSlave    : aSdControllerToSdWbSlave;
 		HighSpeed      : std_ulogic;
 		OperationBlock : aOperationBlock;
+		LedBank		   : std_ulogic_vector(7 downto 0);
 	end record aSdControllerReg;
 
 	constant cDefaultSdControllerReg : aSdControllerReg := (
@@ -74,22 +75,25 @@ architecture Rtl of SdController is
 	ToDataRam      => cDefaultSdControllerToRam,
 	ToSdWbSlave    => cDefaultSdControllerToSdWbSlave,
 	HighSpeed      => cInactivated,
-	OperationBlock => cDefaultOperationBlock);
+	OperationBlock => cDefaultOperationBlock,
+	LedBank        => (others => '0'));
 
 	signal R, NextR       : aSdControllerReg;
 
 	constant cReadTimeoutNat    : natural := gClkFrequency / (1 sec / gReadTimeout) - 1;
+	constant cWriteTimeoutNat   : natural := gClkFrequency / (1 sec / gWriteTimeout) - 1;
 	constant cNcrTimeoutNatLow  : natural := gClkFrequency / (1 sec / (1 sec / 25E6 * 8)) - 1;
 	constant cNcrTimeoutNatHigh : natural := gClkFrequency / (1 sec / (1 sec / 50E6 * 8)) - 1;
 	constant cStartupTimeoutNat : natural := gClkFrequency / (1 sec / gStartupTimeout) - 1;
 
-	constant cMaxTimeoutBitWidth : natural := LogDualis(cReadTimeoutNat);
+	constant cMaxTimeoutBitWidth : natural := LogDualis(cWriteTimeoutNat);
 	subtype aTimeoutValue is unsigned(cMaxTimeoutBitWidth - 1 downto 0);
 
 	constant cNcrTimeoutLow  : aTimeoutValue := to_unsigned(cNcrTimeoutNatLow, aTimeoutValue'length);
 	constant cNcrTimeoutHigh : aTimeoutValue := to_unsigned(cNcrTimeoutNatHigh, aTimeoutValue'length);
 	constant cStartupTimeout : aTimeoutValue := to_unsigned(cStartupTimeoutNat, aTimeoutValue'length);
 	constant cReadTimeout    : aTimeoutValue := to_unsigned(cReadTimeoutNat, aTimeoutValue'length);
+	constant cWriteTimeout   : aTimeoutValue := to_unsigned(cWriteTimeoutNat, aTimeoutValue'length);
 
 	signal TimeoutEnable  : std_ulogic;
 	signal TimeoutDisable : std_ulogic;
@@ -102,6 +106,7 @@ begin
 	oSdData    <= R.ToSdData;
 	oSdWbSlave <= R.ToSdWbSlave;
 	oHighSpeed <= R.HighSpeed;
+	oLedBank   <= R.LedBank;
 
 	Regs : process (iClk, iRstSync)
 	begin
@@ -142,19 +147,6 @@ begin
 		NextRegion     := R.Region;
 		NextCmdRegion  := R.CmdRegion;
 		NextState      := R.State;
-
-		-- Status
-		oLedBank    <= (others => cInactivated);
-		if (R.ToSdData.Mode = wide) then
-			oLedBank(5) <= cActivated;
-		else
-			oLedBank(5) <= cInactivated;
-		end if;
-		if (R.HighSpeed = cActivated) then
-			oLedBank(4) <= cActivated;
-		else
-			oLedBank(4) <= cInactivated;
-		end if;
 
 		case R.State is
 			when startup =>
@@ -219,8 +211,6 @@ begin
 
 					when ACMD41 => 
 						if (R.SendCMD55 = cInactivated) then
-							oLedBank(2) <= cActivated;
-
 							case R.Region is
 								when send => 
 									ocr.nBusy                 := '0';
@@ -257,7 +247,6 @@ begin
 								when waitstate => 
 									NextCmdRegion := CMD2;
 									NextRegion    := send;
-
 
 								when others => 
 									report "SdController: Unhandled state" severity error;
@@ -324,9 +313,7 @@ begin
 						report "SdController: Unhandled CmdRegion" severity error;
 				end case;
 
-			when config => 
-				oLedBank(3) <= cActivated;
-
+			when config =>
 				case R.CmdRegion is
 					when SelectCard => 
 						case R.Region is
@@ -433,8 +420,9 @@ begin
 										NextR.State <= invalidCard;
 									end if;
 
-								when waitstate => 
+									when waitstate => 
 									NextR.ToSdData.Mode <= wide;
+									-- NextR.LedBank(4) <= cActivated;
 
 									if gHighSpeedMode = true then
 
@@ -525,6 +513,7 @@ begin
 										NextR.HighSpeed <= cActivated;
 										NextRegion      := send;
 										NextCmdRegion   := GetStatus;
+										--NextR.LedBank(5)<= cActivated;
 									else
 										NextRegion := idle;
 										NextState  := requestnewoperation;
@@ -576,10 +565,10 @@ begin
 
 			when read => 
 				NextR.ToSdData.DataMode <= usual;
-				oLedBank(0) <= cActivated;	
 
 				case R.Region is
 					when send =>
+						NextR.LedBank(0) <= cActivated;	
 						-- send a read command
 						NextR.ToSdCmd.Content.id  <= cSdCmdReadSingleBlock;
 						
@@ -598,6 +587,8 @@ begin
 						NextRegion                := response;
 
 					when response => 
+						NextR.LedBank(1) <= cActivated;
+
 						-- wait for the response and handle it
 						if (iSdCmd.Valid = cActivated) then
 							if (iSdCmd.Content.id = cSdCmdReadSingleBlock) then
@@ -612,10 +603,12 @@ begin
 						end if;
 
 					when receivedata => 
+						NextR.LedBank(2) <= cActivated;
 
 					when waitstatedata => 
-						NextR.Region <= idle;
-						NextR.State  <= requestnewoperation;
+						NextR.LedBank(3) <= cActivated;
+						NextRegion := idle;
+						NextState  := requestnewoperation;
 
 					when others => 
 						report "Unhandled region";
@@ -623,7 +616,6 @@ begin
 
 			when write => 
 				NextR.ToSdData.DataMode <= usual;
-				oLedBank(1) <= cActivated;
 
 				case R.Region is
 					when send =>
@@ -657,15 +649,11 @@ begin
 						elsif (Timeout = cActivated) then
 							NextR.State <= invalidCard;
 						end if;
-					
+
 					when senddata => 
 						NextRegion := checkbusy;
 
-					when checkbusy => 
-						null;
-
-					when receivedata => 
-						NextRegion := waitstatedata;
+					when checkbusy => null;
 
 					when waitstatedata => 
 						NextRegion := idle;
@@ -676,13 +664,13 @@ begin
 				end case;
 
 			when requestnewoperation => 
-
+				NextR.LedBank <= (others => '0');
 				NextR.ToSdData.DisableRb       <= cInactivated;
 				NextR.ToSdWbSlave.ReqOperation <= not R.ToSdWbSlave.ReqOperation;
 				NextR.State                    <= idle;
 
 			when idle => 
-				oLedBank(6) <= cActivated;
+				NextR.LedBank(6) <= cActivated;
 
 				-- wait for next operation
 				if (iSdWbSlave.AckOperation = cActivated) then
@@ -707,10 +695,11 @@ begin
 							report "Unknown operation" severity error;
 					end case;
 
+					NextR.LedBank(6) <= cInactivated;
 				end if;
 
 			when invalidCard => 
-				oLedBank(7) <= cActivated;
+				NextR.LedBank(7) <= cActivated;
 
 			when others => 
 				report "SdController: Unhandled state" severity error;
@@ -735,7 +724,7 @@ begin
 				end if;
 
 			when response => 
-				oLedBank(0)   <= cActivated;
+				-- oLedBank(0)   <= cActivated;
 				TimeoutEnable <= cActivated;
 				TimeoutMax    <= cReadTimeout;
 
@@ -789,10 +778,13 @@ begin
 
 			when checkbusy => 
 				NextR.ToSdData.CheckBusy <= cActivated;
+				TimeoutEnable <= cActivated;
+				TimeoutMax    <= cWriteTimeout;
 
-				if (iSdData.Busy = cActivated) then
-					NextR.Region <= receivedata;
+				if (iSdData.Valid = cActivated) then
+					NextR.Region <= waitstatedata;
 					NextR.ToSdData.CheckBusy <= cInactivated;
+					TimeoutDisable <= cActivated;
 				end if;
 
 			when receivedata => 
@@ -809,6 +801,7 @@ begin
 
 				elsif (Timeout = cActivated) then
 					NextR.State <= invalidCard;
+					NextR.LedBank(5) <= cActivated;
 				end if;
 
 

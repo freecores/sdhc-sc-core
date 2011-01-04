@@ -129,11 +129,26 @@ task SdBFM::sendWideDataBlock(logic data[$]);
 endtask
 
 task SdBFM::sendBusy();
+	repeat (2) @ICard.cb;
+
 	@ICard.cb;
-		
-	// 10 busy cycles
 	ICard.cb.Data[0] <= 0;
-	
+
+	// send valid status
+	@ICard.cb;
+	ICard.cb.Data[0] <= 0;
+	@ICard.cb;
+	ICard.cb.Data[0] <= 1;
+	@ICard.cb;
+	ICard.cb.Data[0] <= 0;
+
+	// endbit
+	@ICard.cb;
+	ICard.cb.Data[0] <= 1;
+
+	// 10 busy cycles
+	@ICard.cb;
+	ICard.cb.Data[0] <= 0;
 	repeat (10) @ICard.cb;
 	ICard.cb.Data[0] <= 1;
 

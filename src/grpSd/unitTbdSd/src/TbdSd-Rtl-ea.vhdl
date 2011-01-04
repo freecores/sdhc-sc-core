@@ -78,12 +78,12 @@ architecture Rtl of TbdSd is
 	signal oErr  : std_ulogic;
 	signal oRty  : std_ulogic;
 
-	signal ErrorLed, DoneLed : std_ulogic;
 	signal LedBank : std_ulogic_vector(7 downto 0);
+	signal LedBank2 : std_ulogic_vector(7 downto 0);
 
 begin
 
-	oLedBank <= LedBank(7 downto 1) & DoneLed;
+	oLedBank <= LedBank;
 
 	Reg : process (iClk) is
 	begin
@@ -164,8 +164,7 @@ begin
 		ADR_O => iAdr,
 		DAT_O => iDat,
 		SEL_O => iSel,
-		ERR_O => ErrorLed,
-		DON_O => DoneLed
+		LEDBANK_O => LedBank2
 	);
 
 end architecture Rtl;

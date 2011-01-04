@@ -37,7 +37,8 @@ entity SdController is
 		gClkFrequency   : natural := 25E6;
 		gHighSpeedMode  : boolean := true;
 		gStartupTimeout : time    := 1 ms;
-		gReadTimeout    : time    := 100 ms
+		gReadTimeout    : time    := 100 ms;
+		gWriteTimeout   : time    := 250 ms
 	);
 	port (
 		iClk         : in std_ulogic; -- rising edge

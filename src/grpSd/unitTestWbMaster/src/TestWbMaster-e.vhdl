@@ -51,8 +51,7 @@ entity TestWbMaster is
 		SEL_O : out std_ulogic_vector(0 downto 0);
 
 		-- status signal
-		ERR_O : out std_ulogic;
-		DON_O : out std_ulogic
+		LEDBANK_O : out std_ulogic_vector(7 downto 0)
 	);
 end entity TestWbMaster;
 
