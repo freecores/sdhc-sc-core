@@ -54,6 +54,7 @@ architecture Rtl of SdCmd is
 begin
 
 	ioCmd <= Output.Cmd;
+	oToController.Receiving <= cInactivated;
 
 	-- State register
 	CmdStateReg : process (iClk, inResetAsync)
