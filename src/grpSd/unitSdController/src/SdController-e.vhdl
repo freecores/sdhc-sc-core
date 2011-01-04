@@ -21,7 +21,7 @@ entity SdController is
 	generic (
 		gClkFrequency   : natural := 25E6;
 		gHighSpeedMode  : boolean := true;
-		gStartupTimeout : time    := 10 ms;
+		gStartupTimeout : time    := 1 ms;
 		gReadTimeout    : time    := 100 ms
 	);
 	port (

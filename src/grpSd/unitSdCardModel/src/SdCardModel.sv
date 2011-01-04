@@ -24,12 +24,17 @@ class SDCard;
 
 	local event CmdReceived, InitDone;
 
+	local rand int datasize; // ram addresses = 2^datasize - 1; 512 byte blocks
+	constraint cdatasize {datasize > 1; datasize <= 32;}
+
+	local logic[0:512*8-1] ram[];
+
 	function new(virtual ISdCard CardInterface, event CmdReceived, event InitDone);
 		ICard = CardInterface;
 		state = new();
 		this.CmdReceived = CmdReceived;
 		this.InitDone = InitDone;
-		this.CCS = 0;
+		this.CCS = 1;
 		rca = 0;
 		mode = standard;
 		ICard.cbcard.Data <= 'z;
@@ -89,6 +94,9 @@ class SDCard;
 		SDCommandR6 rcaresponse;
 		logic data[$];
 		SdData sddata;
+
+		// create ram
+		ram = new[2^(datasize-1)];
 		
 		// expect CMD0 so that state is clear
 		recv();
@@ -253,21 +261,39 @@ class SDCard;
 
 	task write();
 		SDCommandR1 response;
+		SdData sddata = new(this.mode, widewidth);
+		logic rddata[$];
+		logic[31:0] addr;
 
 		// expect Write
 		recv();
 		assert(recvcmd.id == cSdCmdWriteSingleBlock);
-		// recvcmd.arg = address
+		addr = recvcmd.arg;
+		assert(addr < ram.size());
 		response = new(cSdCmdWriteSingleBlock, state);
 		response.send(ICard);
 
-		// TODO: receive data
+		// recv data
+		sddata.recv(ICard, rddata);
+		$display("rddata: %p", rddata);
+
+		$display("datasize: %h", datasize);
+		$display("Address: %h", addr);
+
+		// write into ram
+		for (int i = 0; i < 512; i++) begin
+			for (int j = 7; j >= 0; j--) begin
+				ram[addr][i * 8 + j] = rddata.pop_front();
+			end
+		end
+
+		$display("Ram at write address: %h", ram[addr]);
 
 	endtask
 
 	task recvCMD55(RCA_t rca);
 		SDCommandR1 response;
-
+		
 		// expect CMD55
 		recv();
 		assert(recvcmd.id == cSdCmdNextIsACMD);

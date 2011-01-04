@@ -33,6 +33,43 @@ class SdData;
 			data.push_back(crc[i]);
 	endfunction
 
+	task automatic recv(virtual ISdCard.Card ICard, ref logic rddata[$]);
+		aCrc16 crc[4];
+		ICard.cbcard.Data <= 'bzzzz;
+
+		if (mode == wide) begin
+
+			// startbits
+			wait(ICard.cbcard.Data == 'b0000);
+			
+			$display("Startbits: %t", $time);
+			for (int j = 0; j < 512*2; j++) begin
+				@ICard.cbcard;
+				for(int i = 0; i < 4; i++) begin
+					rddata.push_back(ICard.cbcard.Data[i]);
+				end
+			end
+
+			// crc
+			
+			for (int j = 0; j < 16; j++) begin
+				@ICard.cbcard;
+				for(int i = 0; i < 4; i++) begin
+					crc[i] = ICard.cbcard.Data[i];
+				end
+			end
+
+			// end bits
+			@ICard.cbcard;
+			$display("Endbits: %t", $time);
+			assert(ICard.cbcard.Data == 'b1111);
+
+			$display("%b", ICard.cbcard.Data);
+
+		end
+
+	endtask
+
 	task automatic send(virtual ISdCard.Card ICmd, logic data[$]);
 		aCrc16 crc = 0;		
 

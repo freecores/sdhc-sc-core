@@ -29,6 +29,7 @@ begin
 				else
 					if (iDisable = cActivated) then
 						SdClk <= cActivated;
+						Counter <= 0;
 					else
 
 						if (iHighSpeed = cActivated) then
@@ -67,7 +68,7 @@ begin
 
 					if (iDisable = cActivated) then
 						oSdCardClk <= cInactivated;
-						oSdStrobe <= cInactivated;
+						oSdStrobe  <= cInactivated;
 
 					else
 						

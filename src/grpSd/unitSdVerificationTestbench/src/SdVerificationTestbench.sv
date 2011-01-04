@@ -31,6 +31,7 @@ program Test(ISdCard ICmd, WishboneInterface BusInterface);
 	SDCommandToken recvCmd, sendCmd;
 	int c = 0;
 
+	assert(card.randomize());
 	ICmd.nResetAsync <= 0;
 	BusInterface.RST_I <= 1;
 	#10;
@@ -61,7 +62,7 @@ program Test(ISdCard ICmd, WishboneInterface BusInterface);
 		begin // driver for wishbone interface
 			@$root.Testbed.InitDone;
 
-			Bus.Write('b100, 'h01010101);
+			Bus.Write('b100, 'h04030201);
 			Bus.Write('b100, 'h02020202);
 			Bus.Write('b100, 'h03030303);
 			Bus.Write('b100, 'h04040404);
@@ -73,7 +74,8 @@ program Test(ISdCard ICmd, WishboneInterface BusInterface);
 			Bus.Write('b000, 'h00000010);
 
 			#10000;
-			Bus.Write('b100, 'h09090909);
+			for (int i = 0; i < 512; i++)
+				Bus.Write('b100, 'h09090909);
 
 		end
 
