@@ -9,12 +9,12 @@
 
 library ieee;
 use ieee.std_logic_1164.all;
-use work.pcrc.all;
+use work.CRCs.all;
 
-entity tb_crc is
-end entity tb_crc;
+entity tbCrc is
+end entity tbCrc;
 
-architecture bhv of tb_crc is
+architecture bhv of tbCrc is
     signal Clk, nResetAsync : std_ulogic := '0';
     signal CRC_7 : std_ulogic_vector(6 downto 0);
     signal CRC_16 : std_ulogic_vector(15 downto 0);

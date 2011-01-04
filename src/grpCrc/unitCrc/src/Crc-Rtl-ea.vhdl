@@ -13,7 +13,7 @@
 
 library ieee;
 use ieee.std_logic_1164.all;
-use work.pcrc.all;
+use work.CRCs.all;
 
 entity crc is
     generic (
