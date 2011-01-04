@@ -49,7 +49,10 @@ class SDCard;
 	endtask
 
 	task recvCmd(input SDCommandToken cmd, output SDCommandResponse response);
-
+		case (cmd.id)
+			cSdCmdGoIdleState: reset();
+			default: $display("SDCard: CmdId %d not implemented", cmd.id);
+		endcase
 	endtask
 
 endclass
