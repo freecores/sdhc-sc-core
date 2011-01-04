@@ -1,3 +1,5 @@
+set libs {altera_mf cycloneii}
+
 set pkgs {Global Global
 	Sd Sd
 	Crc CRCs
@@ -19,12 +21,14 @@ set units {Crc Crc {Rtl}
 	Sd SdCardSynchronizer {Rtl}
 	Synchronization Synchronizer {Rtl}
 	StrobesClocks EdgeDetector {Rtl}
-	Sd SdWbSdControllerSync {Rtl}
-	Sd SdTop {Rtl}
+	StrobesClocks StrobeGen {Rtl}
+	Sd SdControllerSync {Rtl}
+	Sd TestWbMaster {Rtl}
 	Rs232 Rs232Tx {Rtl}
 	Components Ics307Configurator {Rtl}
-	StrobesClocks StrobeGen {Rtl}
-	Sd TestWbMaster {Rtl}
+	Sd SdTop {Rtl}
 	Sd TbdSd {Rtl}}
+
+set tb {Sd TbdSd {Bhv}}
 
 
