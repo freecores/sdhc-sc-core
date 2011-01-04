@@ -18,18 +18,20 @@ entity SdClockMaster is
 		gClkFrequency : natural := 100E6
 	);
 	port (
-		iClk       : in std_ulogic;
-		iRstSync   : in std_ulogic;
-		iHighSpeed : in std_ulogic;
-		iDisable   : in std_ulogic;
-		oSdStrobe  : out std_ulogic;
-		oSdCardClk : out std_ulogic
+		iClk       : in std_ulogic; -- Clock active high
+		iRstSync   : in std_ulogic; -- Synchronous reset active high
+
+		iHighSpeed : in std_ulogic; -- Switches between High-Speed (50 MHz) and default mode (25 MHz)
+		iDisable   : in std_ulogic; -- Disables the clock output
+
+		oSdStrobe  : out std_ulogic; -- strobe signal to enable SdCmd and SdData
+		oSdCardClk : out std_ulogic -- clock output to SD card
 	);
 
 	begin
 
 		assert (gClkFrequency = 100E6)
-		report "SdCore needs an SdClk with 100 MHz"
+		report "SdCore needs a SdClk with 100 MHz"
 		severity failure;
 
 end entity SdClockMaster;

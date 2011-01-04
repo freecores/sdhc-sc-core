@@ -9,106 +9,92 @@
 
 architecture Rtl of SdClockMaster is
 
-	signal SdClk         : std_ulogic;
-	signal Counter       : natural range 0 to 3;
-	signal SdStrobe25MHz : std_ulogic;
-	signal SdStrobe50MHz : std_ulogic;
-	signal Disable 		 : std_ulogic;
+	subtype aCounter is unsigned(1 downto 0); -- maximal division through 4
+
+	type aRegSet is record
+		Counter   : aCounter;
+		Clk       : std_ulogic;
+		Strobe    : std_ulogic;
+		HighSpeed : std_ulogic;
+	end record aRegSet;
+
+	signal R,NxR : aRegSet;
 
 begin
 
-	SdClk100MHz:  if gClkFrequency = 100E6 generate
+	-- connect outputs with registers
+	oSdCardClk <= R.Clk;
+	oSdStrobe  <= R.Strobe;
 
-		ClkDivider : process (iClk, iRstSync)
-		begin
-			if (rising_edge(iClk)) then
+	Regs : process (iClk, iRstSync)
+	begin
+		if (rising_edge(iClk)) then
 
-				-- synchronous reset
-				if (iRstSync = cActivated) then
-					Counter <= 0;
-					SdClk <= cInactivated;
-				else
-					if (iDisable = cActivated and SdClk = cInactivated) then
-						Disable <= cActivated;
-					else
+			-- synchronous reset
+			if (iRstSync = cActivated) then
 
-						if (Disable = cActivated and iDisable = cInactivated) then
-							Disable <= cInactivated;
-						else
+				R.Counter   <= to_unsigned(0, R.Counter'length);
+				R.Clk       <= cInactivated;
+				R.Strobe    <= cInactivated;
+				R.HighSpeed <= cInactivated;
 
-							if (iHighSpeed = cActivated) then
-								if (Counter = 0 or Counter = 2) then
-									SdClk <= cActivated;
-								else
-									SdClk <= cInactivated;
-								end if;
-							else
-								if (Counter = 0 or Counter = 1) then
-									SdClk <= cActivated;
-								else
-									SdClk <= cInactivated;
-								end if;
-							end if;
+			else 
+				R <= NxR;
 
-							if (Counter < 3) then
-								Counter <= Counter + 1;
-							else 
-								Counter <= 0;
-							end if;
-						end if;
-					end if;
-				end if;
 			end if;
-		end process ClkDivider;
+		end if;
+	end process Regs;
 
+	Comb : process (R, iHighSpeed, iDisable)
+	begin
 
-		RegSdStrobe : process (iClk, iRstSync)
-		begin
-			if (rising_edge(iClk)) then
-				-- synchronous reset
-				if (iRstSync = cActivated) then
-					oSdCardClk <= cInactivated;
-					oSdStrobe <= cInactivated;
-				else
+		-- defaults
 
-					if (iDisable = cActivated) then
-						oSdCardClk <= cInactivated;
-						oSdStrobe  <= cInactivated;
+		NxR         <= R;
+		NxR.Counter <= R.Counter + 1;
 
-					else
+		-- generate clock and strobe
+		case R.HighSpeed is
+			when cInactivated => -- default mode
+				NxR.Clk <= R.Counter(1);
 
-						oSdCardClk <= not SdClk;
+				case R.Counter is
+					when "00" | "01" | "11" => 
+						NxR.Strobe <= cInactivated;
 
-						if (iHighSpeed = cInactivated) then
-							oSdStrobe <= SdStrobe25MHz;
-						else 
-							oSdStrobe <= SdStrobe50MHz;
-						end if;
+					when "10" => 
+						NxR.Strobe <= cActivated;
 
-					end if;
+					when others => 
+						NxR.Strobe <= 'X';
+				end case;
+
+			when cActivated => -- High-Speed mode
+				NxR.Clk <= R.Counter(0);
+				NxR.Strobe  <= not R.Counter(0);
+
+			when others => 
+				NxR.Clk <= 'X';
+		end case;
+
+		-- switch speeds
+		case R.HighSpeed is
+			when cInactivated => 
+				if (R.Counter = 3) then
+					NxR.HighSpeed <= iHighSpeed;
 				end if;
-			end if;
-		end process RegSdStrobe;
 
-		SdStrobe_inst25: entity work.StrobeGen(Rtl)
-		generic map (
-			gClkFrequency    => gClkFrequency,
-			gStrobeCycleTime => 1 sec / 25E6)
-		port map (
-			iClk     => iClk,
-			iRstSync => iRstSync,
-			oStrobe  => SdStrobe25MHz);
+			when cActivated => 
+				if (R.Counter(0) = '1') then
+					NxR.HighSpeed <= iHighSpeed;
+				end if;
 
-		SdStrobe_inst50: entity work.StrobeGen(Rtl)
-		generic map (
-			gClkFrequency    => gClkFrequency,
-			gStrobeCycleTime => 1 sec / 50E6)
-		port map (
-			iClk     => iClk,
-			iRstSync => iRstSync,
-			oStrobe  => SdStrobe50MHz);
+			when others => 
+				NxR.HighSpeed <= 'X';
+		end case;
 
-	end generate;
+	end process Comb;
+
 
 end architecture Rtl;
 
