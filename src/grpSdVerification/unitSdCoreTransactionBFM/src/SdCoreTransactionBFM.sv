@@ -3,6 +3,7 @@
 
 `include "SdCoreTransaction.sv";
 `include "WbTransaction.sv";
+`include "WbTransactionReadSingleBlock.sv";
 
 class SdCoreTransactionBFM;
 
@@ -23,9 +24,29 @@ class SdCoreTransactionBFM;
 	task run();
 		while (StopAfter != 0) begin
 			SdCoreTransaction trans;
+			WbTransactionSequence seq;
 
 			SdTransInMb.get(trans);
-			Log.note("TransBFM transaction received: TODO: split up and send");
+
+			case (trans.kind)
+				SdCoreTransaction::readSingleBlock:
+					begin
+						WbTransactionSequenceReadSingleBlock tmp = new(trans.startAddr, trans.endAddr);
+						seq = tmp;
+					end
+				default:
+					begin
+						string msg;
+						$swrite(msg, "Transaction kind %s not handled.", trans.kind.name());
+						Log.error(msg);
+					end
+			endcase
+
+			assert (seq.randomize()) else Log.error("Randomizing WbTransactionSequence seq failed.");
+			seq.display();
+
+			foreach(seq.transactions[i])
+				WbTransOutMb.put(seq.transactions[i]);
 
 			if (StopAfter > 0) StopAfter--;
 		end

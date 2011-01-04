@@ -24,12 +24,17 @@ program Test(ISdBus SdBus, IWishboneBus WbBus);
 	initial begin
 		SdCardModel card;
 		Harness harness;
+		Logger log;
 
+		log = new();
 		card = new();
 		harness = new(SdBus, WbBus);
 		harness.Card = card;
 
 		harness.start();
+		#1ms;
+
+		log.terminate();
     end	
 endprogram
 

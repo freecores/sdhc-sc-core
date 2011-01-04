@@ -15,6 +15,9 @@ class WbTransaction;
 	rand WbAddr Addr;
 	rand WbData Data;
 
+	function void display();
+		$display("Transaction: %s, %s, %b, %b", Type.name(), Kind.name(), Addr, Data);
+	endfunction
 endclass
 
 class WbTransactionSequence;
@@ -26,16 +29,23 @@ class WbTransactionSequence;
 		transactions.size() == size;
 
 		foreach(transactions[i]) {
-			if (i > 0)
-				if (transactions[i-1].Type == WbTransaction::Burst)
+			if (i > 0) {
+				if (transactions[i].Type == WbTransaction::Burst)
 					transactions[i].Type == WbTransaction::Burst || WbTransaction::End;
+			}
 		}
 
-		if (transactions[size - 1].Type == WbTransaction::Burst)
-			transactions[size].Type == WbTransaction::End;
+		if (transactions[size - 2].Type == WbTransaction::Burst)
+			transactions[size - 1].Type == WbTransaction::End;
 	};
 
+	function void display();
+		foreach(transactions[i])
+			transactions[i].display();
+	endfunction
+
 endclass
+
 
 typedef mailbox #(WbTransaction) WbTransMb;
 

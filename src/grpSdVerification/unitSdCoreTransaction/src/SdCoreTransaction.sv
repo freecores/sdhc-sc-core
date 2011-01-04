@@ -1,7 +1,7 @@
 `ifndef SDCORETRANSACTION_SV
 `define SDCORETRANSACTION_SV
 
-typedef bit[511:0] DataBlock;
+typedef bit[0:511][7:0] DataBlock;
 
 class SdCoreTransaction;
 
@@ -23,6 +23,8 @@ class SdCoreTransaction;
 		else {
 			data.size() == 0;
 		}
+
+		kind == readSingleBlock;
 	};
 
 endclass
