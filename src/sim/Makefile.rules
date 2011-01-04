@@ -1,0 +1,5 @@
+# Common rules for all makefiles
+
+# Target for simulating tcl files.
+%.sim: %.tcl
+	$(SIM) -c -do $<
