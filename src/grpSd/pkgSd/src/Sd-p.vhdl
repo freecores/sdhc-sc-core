@@ -228,6 +228,7 @@ package Sd is
 	constant cSdArgAppCmdPos : natural := 5;
 
 	constant cSdCmdACMD41 : aSdCmdId := std_ulogic_vector(to_unsigned(41, cSdCmdIdHigh));
+	constant cSdCmdSendSCR : aSdCmdId := std_ulogic_vector(to_unsigned(51, cSdCmdIdHigh));
 
 end package Sd;
 

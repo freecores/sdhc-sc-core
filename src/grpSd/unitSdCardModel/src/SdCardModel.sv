@@ -163,6 +163,24 @@ class SDCard;
 		response = new(cSdCmdSelCard, state);
 		response.send(ICmd);
 
+		// expect CMD55
+		recv();
+		assert(recvcmd.id == cSdCmdNextIsACMD);
+		assert(recvcmd.arg[31:16] == rca);
+		state.recvCMD55();
+
+		// respond with R1
+		response = new(cSdCmdNextIsACMD, state);
+		response.send(ICmd);	
+
+		// expect ACMD51
+		recv();
+		assert(recvcmd.id == cSdCmdSendSCR);
+
+		// respond with R1
+		response = new(cSdCmdSendSCR, state);
+		response.send(ICmd);
+
 		-> InitDone;
 
 	endtask

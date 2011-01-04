@@ -24,7 +24,8 @@ typedef enum {
 } SDCommandId;
 
 typedef enum {
-	cSdCmdACMD41 = 41
+	cSdCmdACMD41 = 41,
+	cSdCmdSendSCR = 51
 } SDAppCommandId;
 
 const SDCommandArg cSdArgACMD41HCS = 'b01000000111111111000000000000000;
@@ -140,14 +141,14 @@ endclass
 
 class SDCommandR1 extends SDCommandResponse;
 
-	function new(SDCommandId id, SDCardState state);
+	function new(int id, SDCardState state);
 		startbit = 0;
 		transbit = 0;
 		this.id = id;
 		this.arg = state.get(); 
 		endbit = 1;
 	endfunction
-
+	
 endclass
 
 include "../../unitSdCardModel/src/SDOCR.sv";
