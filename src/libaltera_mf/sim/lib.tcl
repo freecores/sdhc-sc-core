@@ -32,9 +32,21 @@
 # Links       : 
 # 
 
+# use an error code which is not used by modelsim
+set errcode 88
+set errors 0
+onerror "quit -code $errcode"
+onbreak {incr errors; cont}
+
 vlib altera_mf
 vmap altera_mf altera_mf
 
 vcom -work altera_mf ../src/altera_mf_components.vhd
 vcom -work altera_mf ../src/altera_mf.vhd
+
+if {$errors == 0} {
+	exit
+} else {
+	quit -code $errcode
+}
 

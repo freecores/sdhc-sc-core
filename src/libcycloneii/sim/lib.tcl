@@ -32,9 +32,21 @@
 # Links       : 
 # 
 
+# use an error code which is not used by modelsim
+set errcode 88
+set errors 0
+onerror "quit -code $errcode"
+onbreak {incr errors; cont}
+
 vlib cycloneii
 vmap cycloneii cycloneii
 
 vcom -work cycloneii ../src/cycloneii_atoms.vhd
 vcom -work cycloneii ../src/cycloneii_components.vhd
+
+if {$errors == 0} {
+	exit
+} else {
+	quit -code $errcode
+}
 
