@@ -19,7 +19,7 @@ architecture Bhv of tbSdCmd is
 
 	signal Clk : std_ulogic := cInactivated;
 	signal Finished : std_ulogic := cInactivated;
-	signal nResetAsync : std_ulogic;
+	signal nResetAsync : std_ulogic := cnActivated;
 	signal ToCmd : aSdCmdFromController;
 	signal FromCmd : aSdCmdToController;
 	signal Cmd : std_logic;
@@ -40,7 +40,7 @@ begin
 
 	Finished <= cActivated after 53*gClkPeriod;
 
-	save <= cActivated after 36 ns;
+	save <= cActivated after 46 ns;
 	SaveCmd : process (Clk, save)
 	begin
 		if (Clk'event and Clk = cActivated and save = cActivated) then

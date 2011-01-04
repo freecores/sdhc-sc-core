@@ -41,6 +41,13 @@ package Sd is
 		endbit : std_ulogic; --cSdEndBit
 	end record aSdCmdToken;
 
+	constant cDefaultSdCmdToken : aSdCmdToken := (
+	startbit => cActivated,
+	transbit => cActivated,
+	content  => cDefaultSdCmdContent,
+	crc7     => (others => '0'),
+	endbit   => cInactivated);
+
 	-- SD Card Regs
 	subtype aVoltageWindow is std_ulogic_vector(23 downto 15);
 	constant cVoltageWindow : aVoltageWindow := (others => '1');
@@ -52,6 +59,11 @@ package Sd is
 		ccs : std_ulogic;
 		nBusy : std_ulogic;
 	end record aSdRegOCR;
+	
+	constant cSdOCRQuery : aSdRegOCR := (
+	voltagewindow => (others => '0'),
+	ccs => '0',
+	nBusy => '0');
 
 	function OCRToArg (ocr : in aSdRegOCR) return aSdCmdArg;
 	function ArgToOcr (arg : in aSdCmdArg) return aSdRegOCR;
@@ -75,12 +87,12 @@ package Sd is
 	constant cCIDLength : natural := 127;
 
 	constant cDefaultSdRegCID : aSdRegCID := (
-	mid => (others => '0'),
-	oid => (others => '0'),
-	name => (others => '0'),
-	revision => (others => '0'),
+	mid          => (others => '0'),
+	oid          => (others => '0'),
+	name         => (others => '0'),
+	revision     => (others => '0'),
 	serialnumber => (others => '0'),
-	date =>	(others => '0'));
+	date         => (others => '0'));
 
 	function UpdateCID(icid : in aSdRegCID; data : in std_ulogic; pos : in
 	natural) return aSdRegCID;

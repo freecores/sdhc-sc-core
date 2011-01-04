@@ -70,7 +70,7 @@ module Testbed();
 
 	SdTop top(CmdInterface.Clk, CmdInterface.nResetAsync, CmdInterface.Cmd);
 
-	always #10 CmdInterface.Clk <= ~CmdInterface.Clk;
+	always #20 CmdInterface.Clk <= ~CmdInterface.Clk;
 
 	Test tb(CmdInterface);
 

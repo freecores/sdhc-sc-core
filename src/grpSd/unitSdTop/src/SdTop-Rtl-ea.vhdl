@@ -18,8 +18,11 @@ entity SdTop is
 
 		-- SD Card
 		ioCmd : inout std_logic; -- Cmd line to and from card
-		oClk : out std_ulogic;
-		ioData : inout std_logic_vector(3 downto 0)
+		oSclk : out std_ulogic;
+		ioData : inout std_logic_vector(3 downto 0);
+
+		-- Status
+		oLedBank : out aLedBank
 	);
 end entity SdTop;
 
@@ -30,13 +33,16 @@ architecture Rtl of SdTop is
 
 begin
 	ioData <= "ZZZZ";
-	oClk <= iClk;
+	oSclk <= iClk;
 
 	SdController_inst: entity work.SdController(Rtl)
-	port map (iClk => iClk,
-			  inResetAsync => inResetAsync,
-			  iSdCmd => ToController,
-			  oSdCmd => FromController);
+	port map (
+		iClk         => iClk,
+		inResetAsync => inResetAsync,
+		iSdCmd       => ToController,
+		oSdCmd       => FromController,
+		oLedBank     => oLedBank
+	);
 
 
 	SdCmd_inst: entity work.SdCmd(Rtl)

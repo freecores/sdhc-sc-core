@@ -29,213 +29,248 @@ end entity SdCmd;
 
 architecture Rtl of SdCmd is
 
-	type aSdCmdState is (idle, startbit, transbit, cmdid, arg, crc, endbit,
-	recvtransbit, recvcmdid, recvarg, recvcid, recvcrc, recvendbit, recvcrcerror);
+	type aSdCmdState is (idle, sending, receiving);
+	type aRegion is (startbit, transbit, cmdid, arg, cid, crc, endbit);
+	subtype aCounter is unsigned(integer(log2(real(128))) - 1 downto 0);
+
+	type aRegSet is record
+		State         : aSdCmdState;
+		Region        : aRegion;
+		Counter       : aCounter;
+		ReceivedToken : aSdCmdToken;
+		Cid           : aSdRegCID;
+	end record aRegSet;
+
+	constant cDefaultRegSet : aRegSet := (
+	State         => idle,
+	Region        => startbit,
+	Counter       => to_unsigned(0, aCounter'length),
+	ReceivedToken => cDefaultSdCmdToken,
+	Cid           => cDefaultSdRegCID);
+
+	type aOutputRegSet is record
+		Controller    : aSdCmdToController;
+		Cmd           : std_ulogic;
+		En            : std_ulogic;
+	end record aOutputRegSet;
+
+	constant cDefaultOutputRegSet : aOutputRegSet := (
+	Controller => cDefaultSdCmdToController,
+	Cmd        => '0',
+	En         => '0');
 
 	type aCrcOut is record 
-		Clear : std_ulogic;
+		Clear  : std_ulogic;
 		DataIn : std_ulogic;
-		Data : std_ulogic;
+		Data   : std_ulogic;
 	end record aCrcOut;
 
 	constant cDefaultCrcOut : aCrcOut := (
-	Clear => cInactivated,
+	Clear  => cInactivated,
 	DataIn => cInactivated,
-	Data => cInactivated);
+	Data   => cInactivated);
 
-	type aSdCmdOut is record
-		Crc : aCrcOut;
-		Controller : aSdCmdToController;
-		Cmd : std_logic;
-	end record aSdCmdOut;
-
-	constant cDefaultOut : aSdCmdOut := (
-	Crc => cDefaultCrcOut,	
-	Controller => cDefaultSdCmdToController,
-	Cmd => 'Z');
-
-
-	signal State, NextState : aSdCmdState;
 	signal SerialCrc, CrcCorrect : std_ulogic;
-	signal Counter, NextCounter : unsigned(integer(log2(real(128))) - 1 downto 0);
-	signal Output : aSdCmdOut;
+	signal CrcOut : aCrcOut;
 
-	signal ReceivedToken, NextReceivedToken : aSdCmdToken;
-	signal Cid, NextCid : aSdRegCID;
+	signal R, NextR : aRegSet;
+	signal O, NextO : aOutputRegSet;
 
 begin
 
-	ioCmd <= Output.Cmd;
-	oToController <= Output.Controller;
+	ioCmd         <= O.Cmd when O.En = cActivated else 'Z';
+	oToController <= O.Controller;
 
 	-- State register
 	CmdStateReg : process (iClk, inResetAsync)
 	begin
 		if inResetAsync = cInactivated then
-			State <= idle;
-			Counter <= to_unsigned(0, Counter'length);
+			R <= cDefaultRegSet;
+			O <= cDefaultOutputRegSet;
+
 		elsif iClk'event and iClk = cActivated then
-			State <= NextState;
-			Counter <= NextCounter;
-			ReceivedToken <= NextReceivedToken;
-			Cid <= NextCid;
+			R <= NextR;
+			O <= NextO;
+
 		end if;
 	end process CmdStateReg;
 
 	-- Comb. process
 	NextStateAndOutput : process (iFromController, ioCmd, SerialCrc, CrcCorrect,
-		State, Counter, ReceivedToken, Cid)
+		R)
 
-		procedure NextStateWhenAllSent (constant nextlength : in natural; constant toState : in aSdCmdState) is
+		procedure NextStateWhenAllSent (constant nextlength : in natural; constant toRegion : in aRegion) is
 		begin
-			if (Counter > 0) then
-				NextCounter <= Counter - 1;
+			if (R.Counter > 0) then
+				NextR.Counter <= R.Counter - 1;
 			else
-				NextCounter <= to_unsigned(nextlength, NextCounter'length);
-				NextState <= toState;
+				NextR.Counter <= to_unsigned(nextlength, NextR.Counter'length);
+				NextR.Region  <= toRegion;
 			end if;
 		end procedure NextStateWhenAllSent;
 
 		procedure ShiftIntoCrc(constant data : in std_ulogic) is
 		begin
-			Output.Crc.DataIn <= cActivated;
-			Output.Crc.Data <= data;
+			CrcOut.DataIn <= cActivated;
+			CrcOut.Data   <= data;
 		end procedure;
 
-		procedure SendBitsAndCalcCrc (signal container : in std_ulogic_vector;
-		constant toState : in aSdCmdState; constant nextlength : in natural) is
+		procedure SendBitsAndCalcCrc (signal container : in std_ulogic_vector; constant toRegion : in aRegion; constant nextlength : in natural) is
 		begin
-			Output.Cmd <= container(to_integer(Counter));		
-			ShiftIntoCrc(container(to_integer(Counter)));
-			NextStateWhenAllSent(nextlength, toState);
+			NextO.En  <= cActivated;
+			NextO.Cmd <= container(to_integer(R.Counter));
+
+			ShiftIntoCrc(container(to_integer(R.Counter)));
+			NextStateWhenAllSent(nextlength, toRegion);
 		end procedure SendBitsAndCalcCrc;
 
-		procedure RecvBitsAndCalcCrc (signal container : out std_ulogic_vector;
-		constant toState : in aSdCmdState; constant nextlength : in natural) is
+		procedure RecvBitsAndCalcCrc (signal container : out std_ulogic_vector;	constant toRegion : in aRegion; constant nextlength : in natural) is
 		begin
-			container(to_integer(Counter)) <= ioCmd;		
+			container(to_integer(R.Counter)) <= ioCmd;		
 			ShiftIntoCrc(ioCmd);
-			NextStateWhenAllSent(nextlength, toState);
+			NextStateWhenAllSent(nextlength, toRegion);
 		end procedure RecvBitsAndCalcCrc;
 
 
 	begin
 		-- defaults
-		NextState <= State;
-		NextCounter <= Counter;
-		NextReceivedToken <= ReceivedToken;
-		NextCid <= Cid;
-		Output <= cDefaultOut;
-		Output.Controller.Content <= ReceivedToken.content;
-		Output.Controller.Cid <= Cid;
+		NextR                    <= R;
+		NextO                    <= cDefaultOutputRegSet;
+		NextO.Controller.Content <= R.ReceivedToken.content;
+		NextO.Controller.Cid     <= R.Cid;
+		CrcOut                   <= cDefaultCrcOut;
 
-		case State is
+		case R.State is
 			when idle => 
 				-- Start receiving or start transmitting
 				if (ioCmd = cSdStartBit) then
 					ShiftIntoCrc(ioCmd);
-					NextReceivedToken.startbit <= ioCmd;
-					NextState <= recvtransbit;
+					NextR.ReceivedToken.startbit <= ioCmd;
+					NextR.State <= receiving;
+					NextR.Region <= transbit;
 				elsif (iFromController.Valid = cActivated) then
-					NextState <= startbit;
+					NextR.State <= sending;
+					NextR.Region <= startbit;
 				end if;
 
-			when startbit =>
-				Output.Cmd <= cSdStartBit;
-				ShiftIntoCrc(cSdStartBit);
-				NextState <= transbit;
+			when sending => 
+				NextO.En <= cActivated;
 
-			when transbit => 
-				Output.Cmd <= cSdTransBitHost;
-				ShiftIntoCrc(cSdTransBitHost);
-				NextCounter <= to_unsigned(iFromController.Content.id'high,
-							   NextCounter'length);
-				NextState <= cmdid;
+				case R.Region is
+					when startbit =>
+						NextO.Cmd    <= cSdStartBit;
+						NextR.Region <= transbit;
+						ShiftIntoCrc(cSdStartBit);
 
-			when cmdid => 
-				SendBitsAndCalcCrc(iFromController.Content.id, arg,
-					iFromController.Content.arg'high);
+					when transbit => 
+						NextO.Cmd     <= cSdTransBitHost;
+						NextR.Counter <= to_unsigned(iFromController.Content.id'high, aCounter'length);
+						NextR.Region  <= cmdid;
+						ShiftIntoCrc(cSdTransBitHost);
 
-			when arg => 
-				SendBitsAndCalcCrc(iFromController.Content.arg, crc, crc7'high-1);
+					when cmdid => 
+						SendBitsAndCalcCrc(iFromController.Content.id, arg,
+						iFromController.Content.arg'high);
 
-			when crc => 
-				Output.Cmd <= SerialCrc;
-				if (Counter > 0) then
-					NextCounter <= Counter - 1;
-				else
-					NextState <= endbit;
-					Output.Controller.Ack <= cActivated;
-				end if;
+					when arg => 
+						SendBitsAndCalcCrc(iFromController.Content.arg, crc, crc7'high-1);
 
-			when endbit =>
-				Output.Cmd <= cSdEndBit;
-				NextState <= idle; -- todo: receive response
+					when crc => 
+						NextO.Cmd <= SerialCrc;
 
-			when recvtransbit => 
-				Output.Controller.Receiving <= cActivated;
-				ShiftIntoCrc(ioCmd);
-				NextReceivedToken.transbit <= ioCmd;
-				NextCounter <= to_unsigned(NextReceivedToken.Content.id'high,
-							   NextCounter'length);
-				NextState <= recvcmdid;
+						if (R.Counter > 0) then
+							NextR.Counter <= R.Counter - 1;
 
-			when recvcmdid => 
-				Output.Controller.Receiving <= cActivated;
-				if (iFromController.ExpectCID = cInactivated) then
-					RecvBitsAndCalcCrc(NextReceivedToken.Content.id, recvarg,
-					NextReceivedToken.Content.arg'high);
-				elsif (iFromController.ExpectCID = cActivated) then
-					RecvBitsAndCalcCrc(NextReceivedToken.Content.id, recvcid,
-					cCIDLength-8);
-					Output.Crc.Clear <= cActivated;
-				end if;
+						else
+							NextR.Region         <= endbit;
+							NextO.Controller.Ack <= cActivated;
+						end if;
 
-			when recvarg => 
-				Output.Controller.Receiving <= cActivated;
-				RecvBitsAndCalcCrc(NextReceivedToken.Content.arg, recvcrc,
-				crc7'high-1);
+					when endbit => 
+						NextO.Cmd    <= cSdEndBit;
+						NextR.State  <= idle;
+						NextR.Region <= startbit;
 
-			when recvcid => 
-				Output.Controller.Receiving <= cActivated;
-				NextCid <= UpdateCID(cid, ioCmd, to_integer(Counter)+8);
-				ShiftIntoCrc(ioCmd);
-				NextStateWhenAllSent(crc7'high-1, recvcrc);
+					when others => 
+						report "SdCmd: Region not handled" severity error;
 
-			when recvcrc => 
-				NextReceivedToken.crc7(to_integer(Counter)) <= ioCmd;
-				ShiftIntoCrc(ioCmd);
+				end case;
 
-				if (Counter > 0) then
-					NextCounter <= Counter - 1;
-				else
-					NextState <= recvendbit;
-				end if;
+			when receiving => 
+				NextO.Controller.Receiving   <= cActivated;
 
-			when recvendbit => 
-			   NextReceivedToken.endbit <= ioCmd;
+				case R.Region is
+					when transbit => 
+						NextR.ReceivedToken.transbit <= ioCmd;
+						NextR.Counter                <= to_unsigned(NextR.ReceivedToken.Content.id'high, NextR.Counter'length);
+						NextR.Region                 <= cmdid;
+						ShiftIntoCrc(ioCmd);
 
-				-- check 
-			   if (CrcCorrect = cActivated and ReceivedToken.transbit = cSdTransBitSlave) then
-				   Output.Controller.Valid <= cActivated;
-			   else
-				   Output.Controller.Err <= cActivated;
-			   end if;
-			   NextState <= idle;
+					when cmdid => 
+						if (iFromController.ExpectCID = cInactivated) then
+							RecvBitsAndCalcCrc(NextR.ReceivedToken.Content.id, arg, NextR.ReceivedToken.Content.arg'high);
 
-			when others =>
+						elsif (iFromController.ExpectCID = cActivated) then
+							RecvBitsAndCalcCrc(NextR.ReceivedToken.Content.id, cid, cCIDLength-8);
+							CrcOut.Clear <= cActivated;
+
+						end if;
+
+					when arg => 
+						RecvBitsAndCalcCrc(NextR.ReceivedToken.Content.arg, crc, crc7'high-1);
+
+					when cid => 
+						NextR.Cid <= UpdateCID(R.Cid, ioCmd, to_integer(R.Counter)+8);
+						ShiftIntoCrc(ioCmd);
+						NextStateWhenAllSent(crc7'high-1, crc);
+
+					when crc => 
+						NextR.ReceivedToken.crc7(to_integer(R.Counter)) <= ioCmd;
+						ShiftIntoCrc(ioCmd);
+
+						if (R.Counter > 0) then
+							NextR.Counter <= R.Counter - 1;
+						else
+							NextR.Region <= endbit;
+						end if;
+
+					when endbit => 
+						NextR.ReceivedToken.endbit <= ioCmd;
+
+						-- check 
+						if (CrcCorrect = cActivated and R.ReceivedToken.transbit = cSdTransBitSlave) then
+							NextO.Controller.Valid <= cActivated;
+
+						else
+							NextO.Controller.Err <= cActivated;
+
+						end if;
+						
+						NextR.State <= idle;
+						NextR.Region <= startbit;
+
+					when others => 
+						report "SdCmd : Region not handled" severity error;
+
+				end case;
+
+			when others => 
 				report "SdCmd: State not handled" severity error;
+
 		end case;
+
 	end process NextStateAndOutput;
 
 	CRC7_inst: entity work.Crc
-	generic map(gPolynom => crc7)
-	port map(iClk => iClk,
-			 inResetAsync => inResetAsync,
-			 iClear => Output.Crc.Clear,
-			 iDataIn => Output.Crc.DataIn,
-			 iData => Output.Crc.Data,
-			 oIsCorrect => CrcCorrect,
-			 oSerial => SerialCrc);
+	generic map(
+		gPolynom => crc7)
+	port map(
+		iClk         => iClk,
+		inResetAsync => inResetAsync,
+		iClear       => CrcOut.Clear,
+		iDataIn      => CrcOut.DataIn,
+		iData        => CrcOut.Data,
+		oIsCorrect   => CrcCorrect,
+		oSerial      => SerialCrc);
 
 end architecture Rtl;	
