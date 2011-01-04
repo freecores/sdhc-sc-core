@@ -19,7 +19,10 @@ entity SdCmd is
 		iClk : in std_ulogic; -- Clk, rising edge
 		inResetAsync : in std_ulogic; -- Reset, asynchronous active low
 
-		iCmdContent: in aSdCmdContent; -- Content to send to card
+		iFromController : in aSdCmdFromController;
+		oToController : out aSdCmdToController;	
+
+		-- SDCard
 		ioCmd : inout std_logic -- Cmd line to and from card
 	);
 end entity SdCmd;
@@ -27,12 +30,30 @@ end entity SdCmd;
 architecture Rtl of SdCmd is
 
 	type aSdCmdState is (idle, startbit, transbit, cmdid, arg, crc, endbit);
+
+	type aCrcOut is record 
+		Clear : std_ulogic;
+		DataIn : std_ulogic;
+		Data : std_ulogic;
+	end record aCrcOut;
+	
+	type aSdCmdOut is record
+		Crc : aCrcOut;
+		Controller : aSdCmdToController;
+		Cmd : std_logic;
+	end record aSdCmdOut;
+
 	signal State, NextState : aSdCmdState;
-	signal CrcClear, CrcDataIn : std_ulogic;
-	signal CrcData, SerialCrc : std_ulogic;
+	signal SerialCrc : std_ulogic;
 	signal Counter, NextCounter : unsigned(integer(log2(real(32))) - 1 downto 0);
+	signal Output : aSdCmdOut;
+
+	constant cDefaultOut : aSdCmdOut := ((cInactivated, cInactivated,
+	cInactivated), (Receiving => cInactivated), 'Z');
 
 begin
+
+	ioCmd <= Output.Cmd;
 
 	-- State register
 	CmdStateReg : process (iClk, inResetAsync)
@@ -47,7 +68,7 @@ begin
 	end process CmdStateReg;
 
 	-- Comb. process
-	NextStateAndOutput : process (iCmdContent, State, Counter)
+	NextStateAndOutput : process (iFromController, ioCmd, State, Counter)
 
 		procedure NextStateWhenAllSent (constant length : in natural; constant toState : in aSdCmdState) is
 		begin
@@ -66,57 +87,55 @@ begin
 		-- defaults
 		NextState <= State;
 		NextCounter <= Counter;
-		ioCmd <= 'Z';
-		CrcClear <= cInactivated;
-		CrcDataIn <= cInactivated;
-		CrcData <= cInactivated;
-
+		Output <= cDefaultOut;
+		
 		case State is
 			when idle => 
-				-- todo: implement Sync. with host
-				NextState <= startbit;
-				CrcDataIn <= cActivated;
-				CrcData <= cSdStartBit;
+				if (iFromController.Send = cActivated) then
+					NextState <= startbit;
+					Output.Crc.DataIn <= cActivated;
+					Output.Crc.Data <= cSdStartBit;
+				end if;
 
 			when startbit =>
-				ioCmd <= cSdStartBit;
+				Output.Cmd <= cSdStartBit;
 				NextState <= transbit;
-				CrcDataIn <= cActivated;
-				CrcData <= cSdTransBitHost;
+				Output.Crc.DataIn <= cActivated;
+				Output.Crc.Data <= cSdTransBitHost;
 
 			when transbit => 
-				ioCmd <= cSdTransBitHost;
+				Output.Cmd <= cSdTransBitHost;
 				NextState <= cmdid;
-				CrcDataIn <= cActivated;
-				CrcData <= iCmdContent.id(0);
+				Output.Crc.DataIn <= cActivated;
+				Output.Crc.Data <= iFromController.Content.id(0);
 
 			when cmdid => 
-				ioCmd <= iCmdContent.id(to_integer(NextCounter));
-				if (NextCounter < iCmdContent.id'length-2) then
-					CrcData <= iCmdContent.id(to_integer(NextCounter)+1);
+				Output.Cmd <= iFromController.Content.id(to_integer(NextCounter));
+				if (NextCounter < iFromController.Content.id'length-2) then
+					Output.Crc.Data <= iFromController.Content.id(to_integer(NextCounter)+1);
 				else 
-					CrcData <= iCmdContent.arg(0);
+					Output.Crc.Data <= iFromController.Content.arg(0);
 				end if;
-				CrcDataIn <= cActivated;
-				NextStateWhenAllSent(iCmdContent.id'length, arg);
+				Output.Crc.DataIn <= cActivated;
+				NextStateWhenAllSent(iFromController.Content.id'length, arg);
 
 
 			when arg => 
-				ioCmd <= iCmdContent.arg(to_integer(NextCounter));
-				if (NextCounter < iCmdContent.arg'length-2) then
-					CrcData <= iCmdContent.arg(to_integer(NextCounter)+1);
-					CrcDataIn <= cActivated;
+				Output.Cmd <= iFromController.Content.arg(to_integer(NextCounter));
+				if (NextCounter < iFromController.Content.arg'length-2) then
+					Output.Crc.Data <= iFromController.Content.arg(to_integer(NextCounter)+1);
+					Output.Crc.DataIn <= cActivated;
 				else 
-					CrcDataIn <= cInactivated;
+					Output.Crc.DataIn <= cInactivated;
 				end if;
-				NextStateWhenAllSent(iCmdContent.arg'length, crc);
+				NextStateWhenAllSent(iFromController.Content.arg'length, crc);
 
 			when crc => 
-				ioCmd <= SerialCrc;
+				Output.Cmd <= SerialCrc;
 				NextStateWhenAllSent(crc7'length-1, endbit);
 
 			when endbit =>
-				ioCmd <= cSdEndBit;
+				Output.Cmd <= cSdEndBit;
 				NextState <= idle; -- todo: receive response
 
 			when others =>
@@ -128,9 +147,9 @@ begin
 	generic map(gPolynom => crc7)
 	port map(iClk => iClk,
 			 inResetAsync => inResetAsync,
-			 iClear => CrcClear,
-			 iDataIn => CrcDataIn,
-			 iData => CrcData,
+			 iClear => Output.Crc.Clear,
+			 iDataIn => Output.Crc.DataIn,
+			 iData => Output.Crc.Data,
 			 oSerial => SerialCrc);
 
 end architecture Rtl;	

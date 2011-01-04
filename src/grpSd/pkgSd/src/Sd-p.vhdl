@@ -71,5 +71,14 @@ package Sd is
 	constant cSdCmdSendStatus : aSdCmdId := std_ulogic_vector(to_unsigned(13,
 	cSdCmdIdHigh)); -- [31:16] RCA
 
+	type aSdCmdFromController is record
+		Content : aSdCmdContent;
+		Send : std_ulogic;
+	end record aSdCmdFromController;
+
+	type aSdCmdToController is record
+		Receiving : std_ulogic;
+	end record aSdCmdToController;
+
 end package Sd;
 

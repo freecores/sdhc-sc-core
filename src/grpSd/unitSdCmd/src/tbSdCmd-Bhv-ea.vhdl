@@ -20,7 +20,8 @@ architecture Bhv of tbSdCmd is
 	signal Clk : std_ulogic := cInactivated;
 	signal Finished : std_ulogic := cInactivated;
 	signal nResetAsync : std_ulogic;
-	signal CmdContent : aSdCmdContent;
+	signal ToCmd : aSdCmdFromController;
+	signal FromCmd : aSdCmdToController;
 	signal Cmd : std_logic;
 
 	signal sentCmd : std_ulogic_vector(47 downto 0) := (others => 'U');
@@ -52,8 +53,9 @@ begin
 
 	-- Stimuli:
 	Cmd <= 'Z';
-	CmdContent.id <= cSdCmdGoIdleState;
-	CmdContent.arg <= (others => '0');
+	ToCmd.Content.id <= cSdCmdGoIdleState;
+	ToCmd.Content.arg <= (others => '0');
+	ToCmd.Send <= cActivated;
 
 	Stimuli : process is
 	begin
@@ -67,7 +69,8 @@ begin
 	port map(
 		iClk => Clk,
 		inResetAsync => nResetAsync,
-		iCmdContent => CmdContent,
+		iFromController => ToCmd,
+		oToController => FromCmd,
 		ioCmd => Cmd
 	);
 
