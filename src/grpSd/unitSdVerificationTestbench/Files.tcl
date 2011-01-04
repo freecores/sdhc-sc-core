@@ -60,6 +60,7 @@ set units {Crc Crc {Rtl}
 	Sd SdWbSdControllerSync {Rtl}
 	Cyclone2 WriteDataFifo {Syn}
 	Sd SdClkDomain {Rtl}
+	Sd WbClkDomain {Rtl}
 	Sd SdTop {Rtl}}
 
 set svunits {Sd SdCardModel
