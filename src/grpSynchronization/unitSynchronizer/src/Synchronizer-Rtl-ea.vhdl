@@ -38,7 +38,7 @@ begin
 	SyncReg : process (iToClk, inResetAsync)
 	begin
 		-- asynchronous reset
-		if (inResetAsync = cActivated) then
+		if (inResetAsync = cnActivated) then
 			Sync <= (others => '0');
 
 		elsif (rising_edge(iToClk)) then

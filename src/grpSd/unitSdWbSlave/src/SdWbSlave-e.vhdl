@@ -31,7 +31,11 @@ entity SdWbSlave is
 
 		-- To write fifo
 		oWriteFifo : out aoWriteFifo;
-		iWriteFifo : in aiWriteFifo
+		iWriteFifo : in aiWriteFifo;
+		
+		-- To read fifo
+		oReadFifo : out aoReadFifo;
+		iReadFifo : in aiReadFifo
 	);
 end entity;
 

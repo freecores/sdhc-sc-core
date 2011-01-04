@@ -27,7 +27,7 @@ class SDCard;
 	local rand int datasize; // ram addresses = 2^datasize - 1; 512 byte blocks
 	constraint cdatasize {datasize > 1; datasize <= 32;}
 
-	local logic[0:512*8-1] ram[];
+	local logic[512*8-1:0] ram[];
 
 	function new(virtual ISdCard CardInterface, event CmdReceived, event InitDone);
 		ICard = CardInterface;
@@ -208,7 +208,7 @@ class SDCard;
 		for (int i = 0; i < 512; i++)
 			data.push_back(0);
 
-		data[511-400] = 1;
+		data[511-401] = 1;
 		data[511-376] = 1;
 		sddata.send(ICard, data);
 
@@ -224,7 +224,7 @@ class SDCard;
 		for (int i = 0; i < 512; i++)
 			data.push_back(0);
 
-		data[511-400] = 1;
+		data[511-401] = 1;
 		data[511-376] = 1;
 		sddata.send(ICard, data);
 
@@ -243,18 +243,23 @@ class SDCard;
 	task read();
 		SDCommandR1 response;
 		logic data[$];
+		logic[31:0] addr;
 		SdData sddata = new(mode, usual);
 
 		// expect Read
 		recv();
 		assert(recvcmd.id == cSdCmdReadSingleBlock);
-		// recvcmd.arg = address
+		addr = recvcmd.arg;
+		assert(addr < ram.size());
 		response = new(cSdCmdReadSingleBlock, state);
 		response.send(ICard);
 
 		data = {};
-		for(int i = 0; i < (512 * 8); i++)
-			data.push_back(1);
+		for (int i = 0; i < 512; i++) begin
+			for (int j = 7; j >= 0; j--) begin
+				data.push_back(ram[addr][i*8 + j]);
+			end
+		end
 
 		sddata.send(ICard, data);
 	endtask

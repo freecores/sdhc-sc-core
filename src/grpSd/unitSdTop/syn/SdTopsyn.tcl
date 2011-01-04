@@ -18,7 +18,7 @@
 package require ::quartus::project
 package require ::quartus::flow
 
-project_new TbdSdsyn -revision TbdSdSyn -overwrite
+project_new SdTopsyn -revision SdTopSyn -overwrite
 
 set_global_assignment -name FAMILY "Cyclone II"
 set_global_assignment -name DEVICE EP2C35F484C8

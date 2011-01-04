@@ -33,7 +33,8 @@ source ../../../syn/syn.tcl
 set_global_assignment -name PARTITION_NETLIST_TYPE SOURCE -section_id Top
 set_global_assignment -name PARTITION_COLOR 16764057 -section_id Top
 set_global_assignment -name SMART_RECOMPILE ON
-set_global_assignment -name FMAX_REQUIREMENT "100 MHz" -section_id Clock
+set_global_assignment -name FMAX_REQUIREMENT "100 MHz" -section_id SdClock
+set_global_assignment -name FMAX_REQUIREMENT "100 MHz" -section_id WbClock
 set_global_assignment -name ENABLE_DRC_SETTINGS OFF
 set_global_assignment -name SYNTH_TIMING_DRIVEN_SYNTHESIS OFF
 set_global_assignment -name USE_CONFIGURATION_DEVICE ON
@@ -44,7 +45,8 @@ set_global_assignment -name ON_CHIP_BITSTREAM_DECOMPRESSION OFF
 
 source ../Pins.tcl
 
-set_instance_assignment -name CLOCK_SETTINGS Clock -to iClk
+set_instance_assignment -name CLOCK_SETTINGS SdClock -to iSdClk
+set_instance_assignment -name CLOCK_SETTINGS WbClock -to iWbClk
 set_instance_assignment -name PARTITION_HIERARCHY root_partition -to | -section_id Top
 
 # Commit assignments

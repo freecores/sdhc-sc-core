@@ -13,6 +13,7 @@ architecture Rtl of SdClockMaster is
 	signal Counter       : natural range 0 to 3;
 	signal SdStrobe25MHz : std_ulogic;
 	signal SdStrobe50MHz : std_ulogic;
+	signal Disable 		 : std_ulogic;
 
 begin
 
@@ -27,29 +28,33 @@ begin
 					Counter <= 0;
 					SdClk <= cInactivated;
 				else
-					if (iDisable = cActivated) then
-						SdClk <= cActivated;
-						Counter <= 0;
+					if (iDisable = cActivated and SdClk = cInactivated) then
+						Disable <= cActivated;
 					else
 
-						if (iHighSpeed = cActivated) then
-							if (Counter = 0 or Counter = 2) then
-								SdClk <= cActivated;
-							else
-								SdClk <= cInactivated;
-							end if;
+						if (Disable = cActivated and iDisable = cInactivated) then
+							Disable <= cInactivated;
 						else
-							if (Counter = 0 or Counter = 1) then
-								SdClk <= cActivated;
-							else
-								SdClk <= cInactivated;
-							end if;
-						end if;
 
-						if (Counter < 3) then
-							Counter <= Counter + 1;
-						else 
-							Counter <= 0;
+							if (iHighSpeed = cActivated) then
+								if (Counter = 0 or Counter = 2) then
+									SdClk <= cActivated;
+								else
+									SdClk <= cInactivated;
+								end if;
+							else
+								if (Counter = 0 or Counter = 1) then
+									SdClk <= cActivated;
+								else
+									SdClk <= cInactivated;
+								end if;
+							end if;
+
+							if (Counter < 3) then
+								Counter <= Counter + 1;
+							else 
+								Counter <= 0;
+							end if;
 						end if;
 					end if;
 				end if;
@@ -71,7 +76,7 @@ begin
 						oSdStrobe  <= cInactivated;
 
 					else
-						
+
 						oSdCardClk <= not SdClk;
 
 						if (iHighSpeed = cInactivated) then

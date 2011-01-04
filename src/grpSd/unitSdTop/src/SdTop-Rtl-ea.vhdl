@@ -15,7 +15,7 @@ use work.SdWb.all;
 
 entity SdTop is
 	generic (
-		gUseSameClocks : boolean := true;
+		gUseSameClocks : boolean := false;
 		gClkFrequency  : natural := 100E6;
 		gHighSpeedMode : boolean := true
 	);
@@ -77,10 +77,15 @@ architecture Rtl of SdTop is
 	signal iWbDat                       : aSdWbSlaveDataInput;
 	signal oWbDat                       : aSdWbSlaveDataOutput;
 	signal SdWbSlaveToWriteFifo         : aoWriteFifo;
+	signal SdWbSlaveToReadFifo          : aoReadFifo;
 	signal WriteFifoToSdWbSlave         : aiWriteFifo;
-	signal iReadFifo                    : aiReadFifo;
-	signal oReadFifo                    : aoReadFifo;
+	signal SdWbSlaveFromReadFifo        : aiReadFifo;
+	signal iReadWriteFifo               : aiReadFifo;
+	signal oReadWriteFifo               : aoReadFifo;
+	signal iWriteReadFifo               : aiWriteFifo;
+	signal oWriteReadFifo               : aoWriteFifo;
 	signal ReadFifoQTemp                : std_logic_vector(31 downto 0);
+	signal WriteFifoQTemp               : std_logic_vector(31 downto 0);
 	signal DisableSdClk                 : std_ulogic;
 
 begin
@@ -142,7 +147,11 @@ begin
 
 		-- To write fifo
 		oWriteFifo          => SdWbSlaveToWriteFifo,
-		iWriteFifo          => WriteFifoToSdWbSlave
+		iWriteFifo          => WriteFifoToSdWbSlave,
+
+		-- To read fifo
+		oReadFifo           => SdWbSlaveToReadFifo,
+		iReadFifo           => SdWbSlaveFromReadFifo
 	);
 
 	SdController_inst: entity work.SdController(Rtl)
@@ -158,8 +167,6 @@ begin
 		oSdCmd       => SdCmdFromController,
 		iSdData      => SdDataToController,
 		oSdData		 => SdDataFromController,
-		iDataRam     => SdControllerFromDataRam,
-		oDataRam     => SdControllerToDataRam,
 		oSdWbSlave   => iSdControllerSync,
 		iSdWbSlave   => oSdControllerSync,
 		oLedBank     => oLedBank
@@ -183,28 +190,13 @@ begin
 		iStrobe               => SdStrobe,
 		iSdDataFromController => SdDataFromController,
 		oSdDataToController   => SdDataToController,
-		iSdDataFromRam        => SdDataFromRam,
-		oSdDataToRam          => SdDataToRam,
 		iData                 => iData,
 		oData                 => oData,
-		oReadFifo			  => oReadFifo,
-		iReadFifo			  => iReadFifo,
+		oReadWriteFifo        => oReadWriteFifo,
+		iReadWriteFifo        => iReadWriteFifo,
+		oWriteReadFifo        => oWriteReadFifo,
+		iWriteReadFifo        => iWriteReadFifo,
 		oDisableSdClk         => DisableSdClk
-	);
-
-	DataRam_inst: entity work.SimpleDualPortedRam
-	generic map (
-		gDataWidth => 32,
-		gAddrWidth => 7
-	)
-	port map (
-		iClk    => iSdClk,
-		iAddrRW => SdDataToRam.Addr,
-		iDataRW => SdDataToRam.Data,
-		iWeRW   => SdDataToRam.We,
-		oDataRW => SdDataFromRam.Data,
-		iAddrR  => SdControllerToDataRam.Addr,
-		oDataR  => SdControllerFromDataRam.Data
 	);
 
 	SdClockMaster_inst: entity work.SdClockMaster
@@ -236,15 +228,29 @@ begin
 	port map (
 		data    => std_logic_vector(SdWbSlaveToWriteFifo.data),
 		rdclk   => iSdClk,
-		rdreq   => oReadFifo.rdreq,
+		rdreq   => oReadWriteFifo.rdreq,
 		wrclk   => iWbClk,
 		wrreq   => SdWbSlaveToWriteFifo.wrreq,
 		q       => ReadFifoQTemp,
-		rdempty => iReadFifo.rdempty,
+		rdempty => iReadWriteFifo.rdempty,
 		wrfull  => WriteFifoToSdWbSlave.wrfull
 	);
 
-	iReadFifo.q <= std_ulogic_vector(ReadFifoQTemp);
+	iReadWriteFifo.q <= std_ulogic_vector(ReadFifoQTemp);
+
+	ReadDataFifo_inst: entity work.WriteDataFifo
+	port map (
+		data    => std_logic_vector(oWriteReadFifo.data),
+		rdclk   => iWbClk,
+		rdreq   => SdWbSlaveToReadFifo.rdreq,
+		wrclk   => iSdClk,
+		wrreq   => oWriteReadFifo.wrreq,
+		q       => WriteFifoQTemp,
+		rdempty => SdWbSlaveFromReadFifo.rdempty,
+		wrfull  => iWriteReadFifo.wrfull
+	);
+
+	SdWbSlaveFromReadFifo.q <= std_ulogic_vector(WriteFifoQTemp);
 
 end architecture Rtl;
 

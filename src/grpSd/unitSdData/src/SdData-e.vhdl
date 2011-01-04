@@ -13,6 +13,7 @@ use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 use work.Global.all;
 use work.Sd.all;
+use work.SdWb.all;
 use work.CRCs.all;
 
 entity SdData is
@@ -25,17 +26,15 @@ entity SdData is
 		iSdDataFromController : in aSdDataFromController;
 		oSdDataToController   : out aSdDataToController;
 
-		-- Ram
-		iSdDataFromRam : in aSdDataFromRam;
-		oSdDataToRam   : out aSdDataToRam;
-
 		-- Card
 		iData : in aiSdData;
 		oData : out aoSdData;
 		
-		-- ReadFifo
-		iReadFifo : in aiReadFifo;
-		oReadFifo : out aoReadFifo;
+		-- Fifos
+		iReadWriteFifo : in aiReadFifo;
+		oReadWriteFifo : out aoReadFifo;
+		iWriteReadFifo : in aiWriteFifo;
+		oWriteReadFifo : out aoWriteFifo;
 
 		oDisableSdClk : out std_ulogic
 	);

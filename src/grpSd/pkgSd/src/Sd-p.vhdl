@@ -160,7 +160,6 @@ package Sd is
 		Mode       : aSdDataBusMode; -- select 1 bit or 4 bit mode
 		DataMode   : aSdDataMode; -- select usual or wide width data
 		ExpectBits : aSdDataBits; -- how many bits are expected in wide with data mode
-		StartAddr  : aAddr;
 		Valid      : std_ulogic; -- valid, when the datablock is valid and has to be sent
 		CheckBusy  : std_ulogic; -- check for busy signaling
 	end record aSdDataFromController;
@@ -169,9 +168,17 @@ package Sd is
 	Mode       => standard,
 	DataMode   => usual,
 	ExpectBits => ScrBits,
-	StartAddr  => 0,
 	Valid      => cInactivated,
 	CheckBusy  => cInactivated);
+
+	type aSpeedBits is record
+		HighSpeedSupported : std_ulogic;
+		SwitchFunctionOK   : std_ulogic_vector(3 downto 0); -- 0x01 when ok
+	end record aSpeedBits;
+
+	constant cDefaultSpeedBits : aSpeedBits := (
+	HighSpeedSupported => '0',
+	SwitchFunctionOK   => (others => '0'));
 
 	type aSdDataToController is record
 		Ack       : std_ulogic; -- gets asserted when a datablock was sent to the card
@@ -179,6 +186,8 @@ package Sd is
 		Valid     : std_ulogic; -- gets asserted when DataBlock is valid and therefore it was received correctly
 		Busy      : std_ulogic; -- gets asserted when the card returns busy
 		Err       : std_ulogic; -- gets asserted when an error occurred during receiving a data block (CRC)
+		SpeedBits : aSpeedBits; -- gets set, when data for check or switch function cmd is received (DataMode = widewidth and ExpectBits = SwitchFunctionBits
+		WideMode  : std_ulogic; -- gets set, when scr is read (datamode = widewidth and ExpectBits = ScrBits)
 	end record aSdDataToController;
 
 	constant cDefaultSdDataToController : aSdDataToController := (
@@ -186,7 +195,9 @@ package Sd is
 	Receiving => cInactivated,
 	Valid     => cInactivated,
 	Busy      => cInactivated,
-	Err       => cInactivated);
+	Err       => cInactivated,
+	SpeedBits => cDefaultSpeedBits,
+	WideMode  => cInactivated);
 
 	-- SdData to Ram
 	type aSdDataToRam is record
@@ -285,7 +296,7 @@ package Sd is
 	-- 3:0 group 1 for access mode
 	constant cSdCmdCheckSpeedSupport        : aSdCmdArg := X"00FFFFF1";
 	constant cSdCmdSwitchSpeed              : aSdCmdArg := X"80FFFFF1";
-	constant cSdHighSpeedFunctionSupportBit : natural   := 400;
+	constant cSdHighSpeedFunctionSupportBit : natural   := 401;
 	constant cSdHighSpeedFunctionGroupLow   : natural   := 376;
 
 	type aiSdCmd is record
@@ -305,18 +316,7 @@ package Sd is
 		Data : std_ulogic_vector(3 downto 0);
 		En : std_ulogic_vector(3 downto 0);
 	end record aoSdData;
-
-	type aoReadFifo is record
-		rdreq : std_ulogic; -- read request
-	end record aoReadFifo;
-
-	constant cDefaultoReadFifo : aoReadFifo := (rdreq => '0');
-
-	type aiReadFifo is record
-		q       : std_ulogic_vector(31 downto 0); -- read data (1 cycle after rdreq)
-		rdempty : std_ulogic; -- no data available
-	end record aiReadFifo;
-
+	
 end package Sd;
 
 package body Sd is

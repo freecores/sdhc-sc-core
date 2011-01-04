@@ -26,6 +26,7 @@ const logic[3:0] cSdStandardVoltage = 'b0001; // 2.7-3.6V
 
 program Test(ISdCard ICmd, WishboneInterface BusInterface);
 	initial begin
+	logic[31:0] rd;
 	Wishbone Bus = new(BusInterface.Master);
 	SDCard card = new(ICmd, $root.Testbed.CmdReceived, $root.Testbed.InitDone);
 	SDCommandToken recvCmd, sendCmd;
@@ -50,6 +51,7 @@ program Test(ISdCard ICmd, WishboneInterface BusInterface);
         begin // driver for SdCardModel
 			card.init();
 			card.write();
+			card.read();
 
 			/*for (int i = 0; i < `cCmdCount; i++) begin
 				@$root.Testbed.CardRecv;
@@ -63,6 +65,10 @@ program Test(ISdCard ICmd, WishboneInterface BusInterface);
 			@$root.Testbed.InitDone;
 
 			Bus.Write('b100, 'h04030201);
+			Bus.Write('b001, 'h00000001);
+			Bus.Write('b000, 'h00000010);
+
+			#10000;
 			Bus.Write('b100, 'h02020202);
 			Bus.Write('b100, 'h03030303);
 			Bus.Write('b100, 'h04040404);
@@ -70,12 +76,16 @@ program Test(ISdCard ICmd, WishboneInterface BusInterface);
 			Bus.Write('b100, 'h06060606);
 			Bus.Write('b100, 'h07070707);
 			Bus.Write('b100, 'h08080808);
-			Bus.Write('b001, 'h00000001);
-			Bus.Write('b000, 'h00000010);
 
-			#10000;
 			for (int i = 0; i < 512; i++)
 				Bus.Write('b100, 'h09090909);
+
+			Bus.Write('b000, 'h00000001);
+
+			for (int i = 0; i < 128; i++) begin
+				Bus.Read('b011, rd);
+				$display("Read: %h", rd);
+			end
 
 		end
 

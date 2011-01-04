@@ -37,10 +37,6 @@ entity SdController is
 		iSdData : in aSdDataToController;
 		oSdData : out aSdDataFromController;
 
-		-- DataRam
-		iDataRam : in aSdControllerFromRam;
-		oDataRam : out aSdControllerToRam;
-
 		-- SdWbSlave
 		iSdWbSlave : in aSdWbSlaveToSdController;
 		oSdWbSlave : out aSdControllerToSdWbSlave;

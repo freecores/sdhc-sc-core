@@ -61,7 +61,7 @@ class SdData;
 
 			// end bits
 			@ICard.cbcard;
-			$display("Endbits: %t", $time);
+			$display("Endbits: %h, %t", ICard.cbcard.Data, $time);
 			assert(ICard.cbcard.Data == 'b1111);
 
 			$display("%b", ICard.cbcard.Data);

@@ -12,8 +12,7 @@ set units {Crc Crc {Rtl}
 	StrobesClocks Counter {Rtl}
 	Sd SdController {Rtl}
 	Sd SdData {Rtl}
-	Memory SimpleDualPortedRam {Rtl}
-	Memory SinglePortedRam {Rtl}
+	Cyclone2 WriteDataFifo {Syn}
 	StrobesClocks StrobeGen {Rtl}
 	Sd SdWbSlave {Rtl}
 	Sd SdClockMaster {Rtl}

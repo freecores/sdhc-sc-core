@@ -108,6 +108,17 @@ package SdWb is
 		wrfull : std_ulogic; -- write full
 
 	end record aiWriteFifo;
+	
+	type aoReadFifo is record
+		rdreq : std_ulogic; -- read request
+	end record aoReadFifo;
+
+	constant cDefaultoReadFifo : aoReadFifo := (rdreq => '0');
+
+	type aiReadFifo is record
+		q       : std_ulogic_vector(31 downto 0); -- read data (1 cycle after rdreq)
+		rdempty : std_ulogic; -- no data available
+	end record aiReadFifo;
 
 end package SdWb;
 

@@ -84,7 +84,6 @@ begin
 
 	oSdCmd     <= R.ToSdCmd;
 	oSdData    <= R.ToSdData;
-	oDataRam   <= R.ToDataRam;
 	oSdWbSlave <= R.ToSdWbSlave;
 	oHighSpeed <= R.HighSpeed;
 
@@ -97,7 +96,7 @@ begin
 		end if;
 	end process Regs;
 
-	Comb : process (iSdCmd, iSdData, iDataRam, iSdWbSlave, Timeout, R)
+	Comb : process (iSdCmd, iSdData, iSdWbSlave, Timeout, R)
 		variable ocr           : aSdRegOCR;
 		variable arg           : aSdCmdArg;
 		variable NextRegion    : aRegion;
@@ -114,21 +113,6 @@ begin
 				TimeoutMax <= cNcrTimeoutHigh;
 			end if;
 		end procedure EnableNcrTimeout;
-
-		procedure CheckSpeedResponse is
-		begin
-			if (R.ToDataRam.Addr = R.ToSdData.StartAddr + (511-400)/32) then
-				if (iDataRam.Data(16) = cActivated) then
-					NextR.ToDataRam.Addr <= R.ToSdData.StartAddr + (511 - 376)/32;
-				else
-					NextState := requestnewoperation;
-				end if;
-			elsif (R.ToDataRam.Addr = R.ToSdData.StartAddr + (511 - 376)/32) then
-				if (iDataRam.Data(27 downto 24) /= X"1") then
-					NextState := requestnewoperation;
-				end if;
-			end if;
-		end procedure CheckSpeedResponse;
 
 	begin
 		-- default assignments
@@ -394,10 +378,9 @@ begin
 
 								when waitstatedata => 
 									NextRegion           := send;
-									NextR.ToDataRam.Addr <= R.ToSdData.StartAddr;
 
 									if (Timeout = cActivated) then
-										if (iDataRam.Data(cSdWideModeBit) = cActivated) then
+										if (iSdData.WideMode = cActivated) then
 											NextCmdRegion   := SetBusWidth;
 											NextR.SendCMD55 <= cActivated;
 
@@ -405,7 +388,6 @@ begin
 											NextCmdRegion := CheckSpeed;
 										end if;
 									end if;
-
 
 								when others => 
 									report "Unhandled region" severity error;
@@ -476,14 +458,19 @@ begin
 								end if;
 
 							when receivedata => 
-								NextR.ToDataRam.Addr <= R.ToSdData.StartAddr + (511-400)/32;
+								null;
 
 							when waitstatedata => 
-								CheckSpeedResponse;
-
 								if (Timeout = cActivated) then
-									NextRegion := send;
-									NextCmdRegion := ChangeSpeed;
+									-- check if high speed mode is supported
+									if (iSdData.SpeedBits.HighSpeedSupported = cActivated and
+									iSdData.SpeedBits.SwitchFunctionOK = X"1") then
+										NextRegion    := send;
+										NextCmdRegion := ChangeSpeed;
+									else
+										NextRegion := idle;
+										NextState  := requestnewoperation;
+									end if;
 								end if;
 
 							when others => 
@@ -511,15 +498,19 @@ begin
 								end if;
 
 							when receivedata => 
-								NextR.ToDataRam.Addr <= R.ToSdData.StartAddr + (511-400)/32;
 
 							when waitstatedata => 
-								CheckSpeedResponse;
-
 								if (Timeout = cActivated) then
-									NextR.HighSpeed <= cActivated;
-									NextCmdRegion   := GetStatus;
-									NextRegion      := idle;
+									-- check if switching was successful
+									if (iSdData.SpeedBits.HighSpeedSupported = cActivated and
+									iSdData.SpeedBits.SwitchFunctionOK = X"1") then
+										NextR.HighSpeed <= cActivated;
+										NextRegion      := send;
+										NextCmdRegion   := GetStatus;
+									else
+										NextRegion := idle;
+										NextState  := requestnewoperation;
+									end if;
 								end if;
 
 							when others => 
@@ -651,8 +642,8 @@ begin
 						NextRegion := waitstatedata;
 
 					when waitstatedata => 
-						NextR.Region <= idle;
-						NextR.State  <= requestnewoperation;
+						NextRegion := idle;
+						NextState  := requestnewoperation;
 
 					when others => 
 						report "Unhandled region";

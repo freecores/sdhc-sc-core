@@ -11,30 +11,37 @@ architecture Rtl of SdWbSlave is
 
 	type aWbState is (idle, ClassicWrite, ClassicRead);
 	type aSdIntState is (idle, newOperation);
+	type aReadBufferState is (invalid, readreq, latchdata, valid);
 
 	type aRegs is record
 
-		WbState        : aWbState; -- state of the wb interface
-		SdIntState     : aSdIntState; -- state of the sd controller interface
-		OperationBlock : aOperationBlock; -- Operation for the SdController
-		ReqOperation   : std_ulogic; -- Register for catching edges on the SdController ReqOperationEdge line
-									 -- Register outputs
-		oWbDat         : aSdWbSlaveDataOutput;
-		oWbCtrl        : aWbSlaveCtrlOutput;
-		oController    : aSdWbSlaveToSdController;
-		oWriteFifo     : aoWriteFifo;
+		WbState             : aWbState; -- state of the wb interface
+		SdIntState          : aSdIntState; -- state of the sd controller interface
+		OperationBlock      : aOperationBlock; -- Operation for the SdController
+		ReqOperation        : std_ulogic; -- Register for catching edges on the SdController ReqOperationEdge line
+		ReadBuffer          : aData;
+		ReadBufferState     : aReadBufferState;
+		-- Register outputs
+		oWbDat              : aSdWbSlaveDataOutput;
+		oWbCtrl             : aWbSlaveCtrlOutput;
+		oController         : aSdWbSlaveToSdController;
+		oWriteFifo          : aoWriteFifo;
+		oReadFifo 			: aoReadFifo;
 
 	end record aRegs;
 
 	constant cDefaultRegs : aRegs := (
-	WbState        => idle,
-	SdIntState     => idle,
-	OperationBlock => cDefaultOperationBlock,
-	ReqOperation   => cInactivated,
-	oWbDat         => (Dat => (others                           => '0')),
-	oWbCtrl        => cDefaultWbSlaveCtrlOutput,
-	oController    => cDefaultSdWbSlaveToSdController,
-	oWriteFifo     => cDefaultoWriteFifo);
+	WbState                            => idle,
+	SdIntState                         => idle,
+	OperationBlock                     => cDefaultOperationBlock,
+	ReqOperation                       => cInactivated,
+	oWbDat                             => (Dat                             => (others => '0')),
+	oWbCtrl                            => cDefaultWbSlaveCtrlOutput,
+	oController                        => cDefaultSdWbSlaveToSdController,
+	oWriteFifo                         => cDefaultoWriteFifo,
+	oReadFifo  					       => cDefaultoReadFifo,
+	ReadBuffer                         => (others                          => '0'),
+	ReadBufferState                    => invalid);
 
 	signal R, NxR : aRegs;
 
@@ -43,6 +50,7 @@ begin
 	oWbCtrl     <= R.oWbCtrl;
 	oController <= R.oController;
 	oWriteFifo  <= R.oWriteFifo;
+	oReadFifo   <= R.oReadFifo;
 
 	WbStateReg  : process (iClk, iRstSync)
 	begin
@@ -55,7 +63,7 @@ begin
 		end if;
 	end process WbStateReg ;
 
-	WbStateAndOutputs : process (iWbCtrl, iWbDat, iController, iWriteFifo, R)
+	WbStateAndOutputs : process (iWbCtrl, iWbDat, iController, iWriteFifo, iReadFifo, R)
 	begin
 		-- Default Assignments
 
@@ -63,6 +71,32 @@ begin
 		NxR.oWbDat.Dat  <= (others => 'X');
 		NxR.oWbCtrl     <= cDefaultWbSlaveCtrlOutput;
 		NxR.oWriteFifo  <= cDefaultoWriteFifo;
+
+		case R.ReadBufferState is
+			when invalid => 
+				-- is new data available?
+				if (iReadFifo.rdempty = cInactivated) then
+					NxR.oReadFifo.rdreq <= cActivated;
+					NxR.ReadBufferState <= readreq;
+				end if;
+
+			when readreq => 
+			-- readreq was sent, data is available next cylce
+				NxR.oReadFifo.rdreq <= cInactivated;
+				NxR.ReadBufferState <= latchdata;
+
+			when latchdata => 
+				NxR.ReadBuffer <= iReadFifo.q;
+				NxR.ReadBufferState <= valid;
+
+			when valid => 
+			-- do nothing, wishbone statemachine sets the state to invalid when it used it
+				null;
+
+			when others => 
+				report "Error: Invalid ReadBufferState" severity error;
+		end case;
+		
 
 		-- Determine next state
 		case R.WbState is
@@ -90,7 +124,31 @@ begin
 												NxR.oWbDat.Dat <= R.OperationBlock.EndAddr;
 
 											when cReadDataAddr => 
-											-- read data from fifo
+												-- check if data is available
+												case R.ReadBufferState is
+													when valid =>
+														-- use buffered data
+														NxR.oWbDat.Dat <= R.ReadBuffer;
+														NxR.ReadBufferState <= invalid;
+
+													when latchdata => 
+														-- use input directly
+														NxR.oWbDat.Dat <= iReadFifo.q;
+														NxR.ReadBufferState <= invalid;
+
+													when readreq => 
+													-- no data available, insert a waitstate
+														NxR.oWbCtrl.Ack <= cInactivated;
+														NxR.WbState     <= idle;
+
+													when invalid => 
+													-- no data available, insert a waitstate
+														NxR.oWbCtrl.Ack <= cInactivated;
+														NxR.WbState     <= idle;
+
+													when others => 
+														report "Invalid ReadBufferState" severity error;
+												end case;
 
 											when others => 
 												report "Read to an invalid address" severity warning;
