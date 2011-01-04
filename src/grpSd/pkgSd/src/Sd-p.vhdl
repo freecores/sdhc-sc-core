@@ -118,8 +118,11 @@ package Sd is
 	type aSdDataMode is (usual, widewidth);
 	type aSdDataBits is (ScrBits, SwitchFunctionBits);
 	
-	constant cScrBitsCount            : integer := 64/32 - 1; -- expressed in words
-	constant cSwitchFunctionBitsCount : integer := 512/32 - 1; -- expressed in words
+	constant cScrBitsCount             : natural := 127 - (64/32 - 1); -- expressed in words
+	constant cSwitchFunctionBitsCount  : natural := 127 - (512/32 - 1); -- expressed in words
+	constant cWideModeBitAddr          : natural := 50;
+	constant cHighSpeedBitAddr 		   : natural := 401;
+	constant cSwitchFunctionBitLowAddr : natural := 376;
 
 	-- Types for entities
 	-- between SdController and SdCmd
