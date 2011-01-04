@@ -34,10 +34,11 @@ class SDCard;
 
 	// Receive a command token and handle it
 	task recv();
+		ICmd.cb.Cmd <= 'z;
+
 		repeat(8) @ICmd.cb;
 
 		recvcmd = new();
-		ICmd.cb.Cmd <= 'z;
 
 		wait(ICmd.cb.Cmd == 0);
 		// Startbit
@@ -150,6 +151,14 @@ class SDCard;
 		// respond with R3
 		rcaresponse = new(rca, state);
 		rcaresponse.send(ICmd);
+
+		// expect CMD7
+		recv();
+		assert(recvcmd.id == cSdCmdSelCard);
+		assert(recvcmd.arg[31:16] == rca);
+
+		// respond with R1b
+		
 
 		-> InitDone;
 

@@ -59,8 +59,17 @@ architecture Rtl of TbdSd is
 		DataAvailable : std_ulogic;
 	end record aReg;
 
-	signal R, NextR        : aReg;
-	signal ReceivedContent : aSdCmdContent;
+	constant cDefaultReg : aReg := (
+		State           => id,
+		Counter         => 3,
+		ReceivedContent => cDefaultSdCmdContent,
+		ValidContent    => cDefaultSdCmdContent,
+		Data            => (others               => '0'),
+		DataAvailable   => cInactivated);
+
+	signal R                     : aReg := cDefaultReg;
+	signal NextR                 : aReg;
+	signal ReceivedContent       : aSdCmdContent;
 	signal oReceivedContentValid : std_ulogic;
 
 begin
@@ -76,12 +85,7 @@ begin
 	Rs232_Send : process (iClk, inResetAsync)
 	begin
 		if (inResetAsync = cnActivated) then
-			R.State <= id;
-			R.Counter <= 3;
-			R.ReceivedContent <= cDefaultSdCmdContent;
-			R.ValidContent <= cDefaultSdCmdContent;
-			R.Data <= (others => '0');
-			R.DataAvailable <= cInactivated;
+			R <= cDefaultReg;
 
 		elsif (iClk'event and iClk = cActivated) then
 			R <= NextR;
