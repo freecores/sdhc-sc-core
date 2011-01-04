@@ -64,21 +64,16 @@ class SDCommandToken;
 	endfunction
 
 	function automatic aCrc calcCrcOfToken();
-		logic[39:0] temp;
-		aCrc crc = 0;
+		logic temp[$];
 
-		temp[39] = startbit;
-		temp[38] = transbit;
-		temp[37:32] = id;
-		temp[31:0] = arg;
+		temp.push_back(startbit);
+		temp.push_back(transbit);
+		for (int i = 5; i >= 0; i--)
+			temp.push_back(id[i]);
+		for (int i = 31; i >= 0; i--)
+			temp.push_back(arg[i]);
 
-		for(int i = 39; i >= 0; i--) begin
-			if (((crc[6] & 1)) != temp[i])
-				 crc = (crc << 1) ^ 'b10001001;
-			else
-				 crc <<= 1;	
-		end
-		return crc;
+		return calcCrc(temp);
 	endfunction
 
 	function automatic bit equals(SDCommandToken rhs);
@@ -97,54 +92,37 @@ class SDCommandResponse;
 	protected SDCommandArg arg;
 	protected aCrc crc;
 	protected logic endbit;
+	protected logic data[$];
 
-	function automatic void calcCrc();
-		logic[39:0] temp;
-		crc = 0;
-
-		temp[39] = startbit;
-		temp[38] = transbit;
-		temp[37:32] = id;
-		temp[31:0] = arg;
-
-		for(int i = 39; i >= 0; i--) begin
-			if (((crc[6] & 1)) != temp[i])
-				 crc = (crc << 1) ^ 'b10001001;
-			else
-				 crc <<= 1;	
-		end
-	endfunction
-
-	
-	task automatic send(virtual ISdCmd.Card ICmd);
-		calcCrc();
-
-		@ICmd.cb;
-		ICmd.cb.Cmd <= startbit;
-
-		@ICmd.cb;
-		ICmd.cb.Cmd <= transbit;
-
-		for(int i = 5; i >= 0; i--) begin
+	task sendData(virtual ISdCmd.Card ICmd);
+		foreach(data[i]) begin
 			@ICmd.cb;
-			ICmd.cb.Cmd <= id[i];
-		end	
-
-		for (int i = 31; i>= 0; i--) begin
-			@ICmd.cb;
-			ICmd.cb.Cmd <= arg[i];
+			ICmd.cb.Cmd <= data[i];
 		end
-
-		for (int i = 6; i >= 0; i--) begin
-			@ICmd.cb;
-			ICmd.cb.Cmd <= crc[i];
-		end
-
-		@ICmd.cb;
-		ICmd.cb.Cmd <= endbit;
 		
+		data = {};
 		@ICmd.cb;
 		ICmd.cb.Cmd <= 'z;
+	endtask
+
+
+	task automatic send(virtual ISdCmd.Card ICmd);
+		aCrc crc = 0;
+		
+		data.push_back(startbit);
+		data.push_back(transbit);
+		for(int i = 5; i >= 0; i--)
+			data.push_back(id[i]);
+
+		for (int i = 31; i>= 0; i--)
+			data.push_back(arg[i]);
+
+		crc = calcCrc(data);
+		for (int i = 6; i >= 0; i--)
+			data.push_back(crc[i]);
+
+		data.push_back(endbit);
+		sendData(ICmd);
 	endtask
 endclass
 
@@ -199,7 +177,6 @@ class SDCommandR2 extends SDCommandResponse;
 	endfunction
 
 	task automatic send(virtual ISdCmd.Card ICmd);
-		logic data[$];
 		cidreg_t cidreg;
 
 		// fill queue
@@ -213,14 +190,8 @@ class SDCommandR2 extends SDCommandResponse;
 			data.push_back(cidreg[i]);
 
 		data.push_back(endbit);
-
-		foreach(data[i]) begin
-			@ICmd.cb;
-			ICmd.cb.Cmd <= data[i];
-		end
-
-		@ICmd.cb;
-		ICmd.cb.Cmd <= 'z;
+		
+		sendData(ICmd);
 	endtask
 	
 endclass

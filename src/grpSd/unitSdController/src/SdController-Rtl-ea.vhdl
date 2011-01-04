@@ -140,9 +140,12 @@ begin
 					if (iSdCmd.Content.id = cSdR3Id) then
 						ocr := ArgToOcr(iSdCmd.Content.arg);					   
 						if (ocr.nBusy = cnInactivated) then
-							-- TODO: check voltage
-							NextReg.CCS <= ocr.ccs;
-							NextState <= CMD2;
+							if (ocr.voltagewindow /= cVoltageWindow) then
+								NextState <= invalidCard;
+							else
+								NextReg.CCS <= ocr.ccs;
+								NextState <= CMD2;
+ 							end if;
 						end if;
 					end if;
 				end if;
@@ -160,7 +163,7 @@ begin
 				if (iSdCmd.Valid = cActivated) then
 					NextState <= invalidCard;
 
-					if (iSdCmd.Content.id = cSdR2Id) then -- Check Response
+					if (iSdCmd.Content.id = cSdR2Id) then 
 						NextState <= CMD3;
 					end if;
 				end if;
