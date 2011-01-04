@@ -2,3 +2,4 @@
 *.aux
 *.dvi
 *.backup
+*work*

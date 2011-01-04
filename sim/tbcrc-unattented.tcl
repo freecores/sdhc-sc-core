@@ -1,0 +1,3 @@
+do tbcrc.tcl
+exit
+
