@@ -10,6 +10,10 @@ include "../../unitSdVerificationTestbench/src/SdCmdInterface.sv";
 
 program Test(ISdCmd ICmd);
 	initial begin
+	SDCard card = new(ICmd, $root.Testbed.CmdReceived);
+	SDCommandToken recvCmd;
+	bit done = 0;
+
 	ICmd.Clk <= 0;
 	#10;
 	ICmd.nResetAsync <= 0;
@@ -27,19 +31,29 @@ program Test(ISdCmd ICmd);
         begin // monitor
 	    end
 
-        begin // driver
+        begin // driver for SdCmd
 			@$root.Testbed.ApplyCommand;
 			ICmd.CmdId <= 0;
 			ICmd.Arg <= 'h00000000;
 			ICmd.Valid <= 1;
+			-> $root.Testbed.CardRecv;
         end
 
-        begin // checker (and agent)
+        begin // driver for SdCardModel
+			while(done == 0) begin
+				card.recv();
+				done = 1;
+			end
         end
+
+		begin // checker
+			@$root.Testbed.CmdReceived;
+			recvCmd = card.getCmd();
+			recvCmd.checkFromHost();
+		end
 
     join;
 
-    #1000ns;
     $display("%t : Test completed.", $time);
     end	
 endprogram
@@ -55,6 +69,6 @@ module Testbed();
 
 	Test tb(CmdInterface);
 
-	event ApplyCommand;
+	event ApplyCommand, CardRecv, CmdReceived;
 
 endmodule

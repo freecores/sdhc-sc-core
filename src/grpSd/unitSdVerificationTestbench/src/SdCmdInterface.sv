@@ -23,8 +23,11 @@ interface ISdCmd;
 		input Clk, clocking cb
 	);
 
+	clocking cbCard @(posedge Clk);
+		inout Cmd;
+	endclocking
 	modport Card (
-		inout Cmd
+		clocking cbCard
 	);
 
 	modport SdCmd (
