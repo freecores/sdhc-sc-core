@@ -49,7 +49,7 @@ architecture Rtl of TbdSd is
 	signal iRs232Tx : aiRs232Tx;
 	signal oRs232Tx : aoRs232Tx;
 
-	type aState is (id, arg, waitforchange);
+	type aState is (id, arg, waitforchange, data, crc);
 	type aReg is record
 		State : aState;
 		Counter : natural;
@@ -60,7 +60,7 @@ architecture Rtl of TbdSd is
 	end record aReg;
 
 	constant cDefaultReg : aReg := (
-		State           => id,
+		State           => waitforchange,
 		Counter         => 3,
 		ReceivedContent => cDefaultSdCmdContent,
 		ValidContent    => cDefaultSdCmdContent,
@@ -71,14 +71,17 @@ architecture Rtl of TbdSd is
 	signal NextR                 : aReg;
 	signal ReceivedContent       : aSdCmdContent;
 	signal oReceivedContentValid : std_ulogic;
+	signal ReceivedData          : std_ulogic_vector(511 downto 0);
+	signal ReceivedDataValid     : std_ulogic;
+	signal ReceivedCrc                   : std_ulogic_vector(15 downto 0);
 
 begin
 
 	oDigitAdr <= "101"; -- DIGIT_6
 	oTx       <= oRs232Tx.Tx;
 
-	iRs232Tx.Transmit <= cActivated;
-	iRs232Tx.Data <= R.Data;
+	iRs232Tx.Transmit      <= cActivated;
+	iRs232Tx.Data          <= R.Data;
 	iRs232Tx.DataAvailable <= R.DataAvailable;
 
 	-- Send ReceivedContent via Rs232
@@ -93,7 +96,7 @@ begin
 		end if;
 	end process Rs232_Send;
 
-	Rs232_comb : process (oRs232Tx.DataWasRead, ReceivedContent, oReceivedContentValid, R)
+	Rs232_comb : process (oRs232Tx.DataWasRead, ReceivedContent, oReceivedContentValid, ReceivedDataValid, ReceivedData, ReceivedCrc, R)
 	begin
 		NextR <= R;
 
@@ -101,9 +104,14 @@ begin
 			when waitforchange => 
 				NextR.DataAvailable <= cInactivated;
 
-				if (R.ReceivedContent /= R.ValidContent) then
-					NextR.ReceivedContent <= R.ValidContent;
-					NextR.State <= id;
+--				if (R.ReceivedContent /= R.ValidContent) then
+--					NextR.ReceivedContent <= R.ValidContent;
+--					NextR.State <= id;
+--				end if;
+
+				if (ReceivedDataValid = cActivated) then
+					NextR.Counter <= 63;
+					NextR.State <= data;
 				end if;
 
 			when id => 
@@ -129,6 +137,34 @@ begin
 					end if;
 				end if;
 
+			when data => 
+				NextR.DataAvailable <= cActivated;
+				NextR.Data <= ReceivedData(R.Counter * 8 + 7 downto R.Counter * 8);
+				
+				if (oRs232Tx.DataWasRead = cActivated) then
+					NextR.DataAvailable <= cInactivated;
+					if (R.Counter = 0) then
+						NextR.Counter <= 1;
+						NextR.State <= crc;
+					else
+						NextR.Counter <= R.Counter - 1;
+					end if;
+				end if;
+
+			when crc => 
+				NextR.DataAvailable <= cActivated;
+				NextR.Data <= ReceivedCrc(R.Counter * 8 + 7 downto R.Counter * 8);
+				
+				if (oRs232Tx.DataWasRead = cActivated) then
+					NextR.DataAvailable <= cInactivated;
+					if (R.Counter = 0) then
+						NextR.Counter <= 0;
+						NextR.State <= waitforchange;
+					else
+						NextR.Counter <= R.Counter - 1;
+					end if;
+				end if;
+
 			when others => 
 				report "Unhandled state" severity error;
 		end case;
@@ -141,13 +177,16 @@ begin
 		
 	SDTop_inst : entity work.SdTop(Rtl)
 	port map (
-		iClk                  => iClk,
+		iClk                 => iClk,
 		inResetAsync          => inResetAsync,
 		ioCmd                 => ioCmd,
 		oSclk                 => oSclk,
 		ioData                => ioData,
 		oReceivedContent      => ReceivedContent,
 		oReceivedContentValid => oReceivedContentValid,
+		oReceivedData         => ReceivedData,
+		oReceivedDataValid    => ReceivedDataValid,
+		oCrc                  => ReceivedCrc,
 		oLedBank              => oLedBank
 	);
 

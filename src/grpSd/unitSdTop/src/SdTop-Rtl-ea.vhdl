@@ -24,6 +24,9 @@ entity SdTop is
 		-- Status
 		oReceivedContent      : out aSdCmdContent;
 		oReceivedContentValid : out std_ulogic;
+		oReceivedData         : out std_ulogic_vector(511 downto 0);
+		oReceivedDataValid    : out std_ulogic;
+		oCrc                  : out std_ulogic_vector(15 downto 0);
 		oLedBank              : out aLedBank
 	);
 end entity SdTop;
@@ -40,6 +43,8 @@ begin
 	oSclk                 <= iClk;
 	oReceivedContent      <= SdCmdToController.Content;
 	oReceivedContentValid <= SdCmdToController.Valid;
+	oReceivedData         <= SdDataToController.DataBlock(511 downto 0);
+	oReceivedDataValid    <= SdDataToController.Valid;
 
 	SdController_inst: entity work.SdController(Rtl)
 	port map (
@@ -68,7 +73,8 @@ begin
 		inResetAsync          => inResetAsync,
 		iSdDataFromController => SdDataFromController,
 		oSdDataToController   => SdDataToController,
-		ioData                => ioData
+		ioData                => ioData,
+		oCrc                  => oCrc
 	);
 
 end architecture Rtl;

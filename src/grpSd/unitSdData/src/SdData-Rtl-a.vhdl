@@ -24,7 +24,8 @@ architecture Rtl of SdData is
 		Data        : aDataOutput;
 		Enable      : std_ulogic;
 		Controller  : aSdDataToController;
-		Mode 		: aSdDataBusMode;
+		Mode        : aSdDataBusMode;
+		Crc         : std_ulogic_vector(15 downto 0);
 	end record aReg;
 
 	constant cDefaultReg : aReg := (
@@ -35,7 +36,8 @@ architecture Rtl of SdData is
 	Data        => "0000",
 	Enable      => cInactivated,
 	Controller  => cDefaultSdDataToController,
-	Mode		=> standard);
+	Mode        => standard,
+	Crc         => (others                              => '0'));
 
 	type aCrcOut is record
 		Clear   : std_ulogic;
@@ -69,6 +71,8 @@ begin
 
 	CrcDataIn <= (others => CrcOut.DataIn) when R.Mode = wide else
 				 "000" & CrcOut.DataIn;
+
+	oCrc <= R.Crc;
 	
 	oSdDataToController <= R.Controller;
 
@@ -114,12 +118,16 @@ begin
 
 				elsif (R.Mode = wide and ioData = std_logic_vector(cSdStartBits)) or
 				(R.Mode = standard and ioData(0) = cSdStartBit) then
-					NextR.Region <= data;
+					NextR.Region     <= data;
 					NextR.State      <= receive;
 					NextR.BitCounter <= to_unsigned(7,aBitCounter'length);
 
 					if (iSdDataFromController.DataMode = widewidth) then
-						NextR.ByteCounter <= to_unsigned(511,aByteCounter'length);
+						if (iSdDataFromController.ExpectBits = ScrBits) then
+							NextR.ByteCounter <= to_unsigned(63, aByteCounter'length);
+						else 
+							NextR.ByteCounter <= to_unsigned(511, aByteCounter'length);
+						end if;
 					end if;
 
 				elsif (iSdDataFromController.Valid = cActivated) then
@@ -248,6 +256,7 @@ begin
 						case R.Mode is
 							when standard => 
 								ShiftIntoCrc("000" & ioData(0));
+								NextR.Crc(to_integer(15 - R.ByteCounter)) <= ioData(0);
 
 							when wide => 
 								ShiftIntoCrc(std_ulogic_vector(ioData));
@@ -256,6 +265,7 @@ begin
 								report "Unhandled mode" severity error;
 						end case;
 
+
 						if (R.ByteCounter = 15) then
 							NextR.Region <= endbit;
 						else
@@ -263,14 +273,14 @@ begin
 						end if;
 
 					when endbit => 
---						if (CrcIn.Correct = "1111" and R.Mode = wide) or
---						(CrcIn.Correct(0) = cActivated and R.Mode = standard) then
+						if (CrcIn.Correct = "1111" and R.Mode = wide) or
+						(CrcIn.Correct(0) = cActivated and R.Mode = standard) then
 							NextR.Controller.Valid <= cActivated;
---
---						else
---							NextR.Controller.Err <= cActivated;
---
---						end if;
+
+						else
+							NextR.Controller.Err <= cActivated;
+
+						end if;
 
 						NextR.ByteCounter <= to_unsigned(0, aByteCounter'length);
 						NextR.Region      <= startbit;

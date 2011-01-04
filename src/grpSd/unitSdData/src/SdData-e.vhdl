@@ -23,6 +23,7 @@ entity SdData is
 		-- Controller
 		iSdDataFromController : in aSdDataFromController;
 		oSdDataToController   : out aSdDataToController;
+		oCrc                  : out std_ulogic_vector(15 downto 0);
 
 		-- Card
 		ioData : inout std_logic_vector(3 downto 0)

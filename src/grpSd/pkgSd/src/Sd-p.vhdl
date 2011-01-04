@@ -110,6 +110,7 @@ package Sd is
 
 	type aSdDataBusMode is (standard, wide);
 	type aSdDataMode is (usual, widewidth);
+	type aSdDataBits is (ScrBits);
 
 	-- Types for entities
 	-- between SdController and SdCmd
@@ -139,19 +140,21 @@ package Sd is
 
 	-- between SdController and SdData
 	type aSdDataFromController is record
-		Mode      : aSdDataBusMode; -- select 1 bit or 4 bit mode
-		DataMode  : aSdDataMode; -- select usual or wide width data
-		DataBlock : aSdDataBlock; -- DataBlock to send to card
-		Valid     : std_ulogic; -- valid, when the datablock is valid and has to be sent
-		CheckBusy : std_ulogic; -- check for busy signaling
+		Mode       : aSdDataBusMode; -- select 1 bit or 4 bit mode
+		DataMode   : aSdDataMode; -- select usual or wide width data
+		ExpectBits : aSdDataBits; -- how many bits are expected in wide with data mode
+		DataBlock  : aSdDataBlock; -- DataBlock to send to card
+		Valid      : std_ulogic; -- valid, when the datablock is valid and has to be sent
+		CheckBusy  : std_ulogic; -- check for busy signaling
 	end record aSdDataFromController;
 
 	constant cDefaultSdDataFromController : aSdDataFromController := (
-	Mode => standard,
-	DataMode => usual,
-	DataBlock => (others => '0'),
-	Valid => cInactivated,
-	CheckBusy => cInactivated);
+	Mode       => standard,
+	DataMode   => usual,
+	DataBlock  => (others        => '0'),
+	ExpectBits => ScrBits,
+	Valid      => cInactivated,
+	CheckBusy  => cInactivated);
 
 	type aSdDataToController is record
 		Ack       : std_ulogic; -- gets asserted when a datablock was sent to the card

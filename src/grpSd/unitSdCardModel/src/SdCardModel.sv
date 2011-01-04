@@ -192,11 +192,11 @@ class SDCard;
 		repeat(2) @ICmd.cb;
 
 		// send dummy SCR
-		for (int i = 0; i < 512; i++)
+		for (int i = 0; i < 64; i++)
 			data.push_back(0);
 		
-		data[511-50] = 1;
-		data[511-48] = 1;
+		data[63-50] = 1;
+		data[63-48] = 1;
 
 		sddata = new(standard, widewidth);
 		sddata.send(ICmd, data);

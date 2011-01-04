@@ -306,6 +306,7 @@ begin
 					when CheckBusWidth => 
 						if (R.SendCMD55 = cInactivated) then
 							NextR.ToSdData.DataMode <= widewidth;
+							NextR.ToSdData.ExpectBits <= ScrBits;
 
 							case R.Region is
 								when send => 
