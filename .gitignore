@@ -19,3 +19,7 @@ work
 modelsim.ini
 src/libaltera_mf/sim/altera_mf/
 src/libcycloneii/sim/cycloneii/
+doc/diplomarbeit/SdControllerSyncFsm.*
+doc/diplomarbeit/SdwbslaveFifo.*
+doc/diplomarbeit/SdwbslaveMain.*
+
