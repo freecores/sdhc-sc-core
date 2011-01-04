@@ -59,18 +59,11 @@ begin
 			end if;
 		end procedure NextStateWhenAllSent;
 
-
-
-		procedure SendBitsAndCalcCrc (signal container : in std_ulogic_vector; constant toState : in aSdCmdState) is
-		begin
-			ioCmd <= container(to_integer(NextCounter));
-			CrcData <= container(to_integer(NextCounter));
-			CrcDataIn <= cActivated;
-			NextStateWhenAllSent(container'length, toState);
-		end procedure SendBitsAndCalcCrc;
-
-
 	begin
+		-- CRC calculation needs one cycle. Therefore we have to start it
+		-- ahead of putting the data on ioCmd.
+
+		-- defaults
 		NextState <= State;
 		NextCounter <= Counter;
 		ioCmd <= 'Z';
@@ -95,10 +88,9 @@ begin
 				ioCmd <= cSdTransBitHost;
 				NextState <= cmdid;
 				CrcDataIn <= cActivated;
-				CrcData <= iCmdContent.id(to_integer(NextCounter));
+				CrcData <= iCmdContent.id(0);
 
 			when cmdid => 
-				-- SendBitsAndCalcCrc(iCmdContent.id, arg);
 				ioCmd <= iCmdContent.id(to_integer(NextCounter));
 				if (NextCounter < iCmdContent.id'length-2) then
 					CrcData <= iCmdContent.id(to_integer(NextCounter)+1);
@@ -110,7 +102,6 @@ begin
 
 
 			when arg => 
-				-- SendBitsAndCalcCrc(iCmdContent.arg, crc);
 				ioCmd <= iCmdContent.arg(to_integer(NextCounter));
 				if (NextCounter < iCmdContent.arg'length-2) then
 					CrcData <= iCmdContent.arg(to_integer(NextCounter)+1);

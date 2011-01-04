@@ -21,7 +21,7 @@ architecture Bhv of tbSdCmd is
 	signal Finished : std_ulogic := cInactivated;
 	signal nResetAsync : std_ulogic;
 	signal CmdContent : aSdCmdContent;
-	signal Cmd : std_ulogic;
+	signal Cmd : std_logic;
 
 	signal sentCmd : std_ulogic_vector(47 downto 0) := (others => 'U');
 	signal counter : integer := 0;
@@ -51,7 +51,7 @@ begin
 	end process SaveCmd ;
 
 	-- Stimuli:
-	--	Cmd <= 'L';
+	Cmd <= 'Z';
 	CmdContent.id <= cSdCmdGoIdleState;
 	CmdContent.arg <= (others => '0');
 
