@@ -13,6 +13,18 @@ class SdCoreTransaction;
 	rand int endAddr;
 	rand DataBlock data[];
 
+	constraint datablocks {
+		if (kind == writeMultipleBlocks) {
+			data.size() inside {[0:1000]};
+		}
+		else if (kind == writeSingleBlock) {
+			data.size() == 1;
+		}
+		else {
+			data.size() == 0;
+		}
+	};
+
 endclass
 
 class SdCoreTransactionSequence;
