@@ -14,7 +14,6 @@
 `include "SDCommandArg.sv"
 `include "SdBusTrans.sv"
 
-typedef mailbox #(SdBusTrans) SdBfmMb;
 typedef enum {
 	standard,
 	wide
@@ -30,7 +29,7 @@ class SdBFM;
 	extern function new(virtual ISdBus card);
 
 	extern task start(); // starts a thread for receiving and sending via mailboxes
-	extern function stop(int AfterCount); // stop the thread
+	extern function void stop(int AfterCount); // stop the thread
 
 	extern task send(input SdBusTrans token);
 	extern task sendBusy();

@@ -9,14 +9,20 @@
 `ifndef WISHBONE
 `define WISHBONE
 
-`include "WishboneInterface.sv";
+`include "IWishboneBus.sv";
+`include "WbTransaction.sv";
 
 class WbBFM;
 
-	virtual WishboneInterface.Master Bus;
+	virtual IWishboneBus.Master Bus;
+	WbTransMb TransInMb;
+	WbTransMb TransOutMb;
 
-	function new(virtual WishboneInterface.Master Bus);
+	function new(virtual IWishboneBus.Master Bus);
 		this.Bus = Bus;
+	endfunction
+
+	function void start();
 	endfunction
 
 	task Idle();

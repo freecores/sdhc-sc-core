@@ -5,6 +5,10 @@
 
 class SdCoreTransactionSeqGen;
 	SdCoreTransSeqMb TransOutMb[2];
+
+	function void start();
+	endfunction
+
 endclass
 
 `endif

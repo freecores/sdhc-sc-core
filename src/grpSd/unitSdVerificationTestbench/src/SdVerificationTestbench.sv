@@ -19,92 +19,17 @@ const aCTI ClassicCycle = "000";
 
 `include "Harness.sv";
 `include "SdCardModel.sv";
-`include "SdBusInterface.sv";
-`include "WishboneInterface.sv";
 
-`define cCmdCount 1000
-
-const logic[3:0] cSdStandardVoltage = 'b0001; // 2.7-3.6V
-
-program Test(ISdCard ICmd, WishboneInterface BusInterface);
+program Test(ISdBus SdBus, IWishboneBus WbBus);
 	initial begin
-	SdCardModel card = new(ICmd, $root.Testbed.CmdReceived, $root.Testbed.InitDone);
-	Logger log = new();
+		SdCardModel card;
+		Harness harness;
 
-	assert(card.randomize());
-	BusInterface.RST_I <= 1;
-	#10;
-	BusInterface.RST_I <= 0;
-	
-	repeat (2) @ICmd.cb;
+		card = new();
+		harness = new(SdBus, WbBus);
+		harness.Card = card;
 
-    fork
-		begin // generator
-		end
-
-        begin // monitor
-	    end
-
-        begin // driver for SdCardModel
-			card.run();
-
-			/*for (int i = 0; i < `cCmdCount; i++) begin
-				@$root.Testbed.CardRecv;
-
-				$display("driver2: %0d", i);
-				card.recv();
-			end*/
-        end
-
-		begin // driver for wishbone interface
-			@$root.Testbed.InitDone;
-
-			Bus.Write('b100, 'h04030201);
-			Bus.Write('b001, 'h00000001);
-			Bus.Write('b000, 'h00000010);
-
-			#10000;
-			Bus.Write('b100, 'h02020202);
-			Bus.Write('b100, 'h03030303);
-			Bus.Write('b100, 'h04040404);
-			Bus.Write('b100, 'h05050505);
-			Bus.Write('b100, 'h06060606);
-			Bus.Write('b100, 'h07070707);
-			Bus.Write('b100, 'h08080808);
-
-			for (int i = 0; i < 512; i++)
-				Bus.Write('b100, 'h09090909);
-
-			Bus.Write('b000, 'h00000001);
-
-			for (int i = 0; i < 128; i++) begin
-				Bus.Read('b011, rd);
-				$display("Read: %h", rd);
-			end
-
-			log.terminate();
-			$finish;
-
-		end
-
-		begin // checker
-			@$root.Testbed.InitDone;
-/*
-			for (int i = 0; i < `cCmdCount; i++) begin
-				@$root.Testbed.CmdReceived;
-				$display("checker: %0d", i);
-				recvCmd = card.getCmd();
-				//recvCmd.display();
-				//sendCmd.display();
-				recvCmd.checkFromHost();
-				assert(recvCmd.equals(sendCmd) == 1);
-				-> $root.Testbed.GenCmd;
-			end*/
-		end
-
-    join;
-
-    $display("%t : Test completed.", $time);
+		harness.start();
     end	
 endprogram
 
@@ -112,25 +37,25 @@ module Testbed();
 	logic Clk = 0;
 	logic nResetAsync = 0;
 
-	ISdCard CardInterface();
-	WishboneInterface BusInterface();	
+	ISdBus CardInterface();
+	IWishboneBus IWbBus();	
 
 	SdTop top(
-			BusInterface.CLK_I,
-			BusInterface.RST_I,
-			BusInterface.CYC_O,
-			BusInterface.LOCK_O,
-			BusInterface.STB_O,
-			BusInterface.WE_O,
-			BusInterface.CTI_O,
-			BusInterface.BTE_O,
-			BusInterface.SEL_O,
-			BusInterface.ADR_O,
-			BusInterface.DAT_O,
-			BusInterface.DAT_I,
-			BusInterface.ACK_I,
-			BusInterface.ERR_I,
-			BusInterface.RTY_I,
+			IWbBus.CLK_I,
+			IWbBus.RST_I,
+			IWbBus.CYC_O,
+			IWbBus.LOCK_O,
+			IWbBus.STB_O,
+			IWbBus.WE_O,
+			IWbBus.CTI_O,
+			IWbBus.BTE_O,
+			IWbBus.SEL_O,
+			IWbBus.ADR_O,
+			IWbBus.DAT_O,
+			IWbBus.DAT_I,
+			IWbBus.ACK_I,
+			IWbBus.ERR_I,
+			IWbBus.RTY_I,
 			Clk,
 			nResetAsync,
 			CardInterface.Cmd,
@@ -138,15 +63,13 @@ module Testbed();
 			CardInterface.Data);
 
 	always #5 Clk <= ~Clk;
-	always #5 BusInterface.CLK_I <= ~BusInterface.CLK_I;
+	always #5 IWbBus.CLK_I <= ~IWbBus.CLK_I;
 
 	initial begin
 		#10 nResetAsync <= 1;
 	end
 
-	Test tb(CardInterface, BusInterface);
-
-	event ApplyCommand, CardRecv, CmdReceived, GenCmd, InitDone;
+	Test tb(CardInterface, IWbBus);
 
 endmodule
 

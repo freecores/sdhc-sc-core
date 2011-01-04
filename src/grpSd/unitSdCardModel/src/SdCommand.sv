@@ -85,7 +85,7 @@ class SDCommandR2 extends SdBusTrans;
 	
 	function new();
 		this.cid = new();
-		this.cid.randomize();
+		assert(this.cid.randomize());
 	endfunction
 
 	virtual function SdBusTransData packToData();

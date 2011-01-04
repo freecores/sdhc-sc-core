@@ -14,6 +14,7 @@ class SdBusTrans;
 	bit SendBusy = 0;
 
 	virtual function SdBusTransData packToData();
+		return {1};
 	endfunction
 
 	virtual function void unpackFromData(ref SdBusTransData data);
@@ -43,5 +44,7 @@ class SdBusTransToken extends SdBusTrans;
 	endfunction
 
 endclass;
+
+typedef mailbox #(SdBusTransToken) SdBfmMb;
 
 `endif

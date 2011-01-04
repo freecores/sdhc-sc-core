@@ -1,8 +1,8 @@
 //
-// file: harness.sv
+// file: Harness.sv
 // author: Rainer Kastl
 //
-// Verification harness for SD-Core
+// Verification Harness for SD-Core
 //
 
 `ifndef HARNESS_SV
@@ -16,7 +16,7 @@
 `include "SdCoreTransferFunction.sv";
 `include "SdCoreChecker.sv";
 
-class harness;
+class Harness;
 
 	SdCoreTransactionBFM TransBfm;
 	WbBFM WbBfm;
@@ -33,21 +33,36 @@ class harness;
 	Logger Log;
 
 	extern function new(virtual ISdBus SdBus, virtual IWishboneBus WbBus);
+	extern task start();
 
 endclass
 
-function harness::new(virtual ISdBus SdBus, virtual IWishboneBus WbBus);
+function Harness::new(virtual ISdBus SdBus, virtual IWishboneBus WbBus);
 	Log = new();
 	
+	TransSeqGen = new();
 	TransBfm = new();
 	WbBfm = new(WbBus);
 	SdBfm = new(SdBus);
 
 	TransFunc = new();
 	Checker = new();
+endfunction
 
-	Card.randomize();
-	TransSeqGen.randomize();
+task Harness::start();
+
+	assert(Card.randomize()) else Log.error("Error randomizing card");
+
+	// create Mailboxes
+	TransSeqGen.TransOutMb[0] = new(1);
+	TransSeqGen.TransOutMb[1] = new(1);
+	TransBfm.WbTransOutMb = new(1);
+	WbBfm.TransOutMb = new(1);
+	TransBfm.SdTransOutMb = new(1);
+	Card.RamActionOutMb = new(1);
+	TransFunc.ExpectedResultOutMb = new(1);
+	Card.SdTransOutMb = new(1);
+	Card.SdTransInMb = new(1);
 
 	// connect Mailboxes
 	TransFunc.TransInMb = TransSeqGen.TransOutMb[0];
@@ -57,8 +72,19 @@ function harness::new(virtual ISdBus SdBus, virtual IWishboneBus WbBus);
 	Checker.SdTransInMb = TransBfm.SdTransOutMb;
 	Checker.RamActionInMb = Card.RamActionOutMb;
 	Checker.ExpectedResultInMb = TransFunc.ExpectedResultOutMb;
+	SdBfm.SendTransMb = Card.SdTransOutMb;
+	SdBfm.ReceivedTransMb = Card.SdTransInMb;
+
+	// start threads
+	TransSeqGen.start();
+	TransBfm.start();
+	WbBfm.start();
+	SdBfm.start();
+	TransFunc.start();
+	Card.start();
+	Checker.start();
 	
-endfunction
+endtask
 
 `endif
  

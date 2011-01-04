@@ -5,10 +5,10 @@
 // Description: Wishbone interface
 //
 
-`ifndef WISHBONEINTERFACE
-`define WISHBONEINTERFACE
+`ifndef IWISHBONEBUS
+`define IWISHBONEBUS
 
-interface WishboneInterface;
+interface IWishboneBus;
 
 		logic 						 ERR_I;
 		logic 												 RTY_I;

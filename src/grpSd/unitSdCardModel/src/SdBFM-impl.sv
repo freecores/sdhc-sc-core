@@ -11,7 +11,7 @@ function SdBFM::new(virtual ISdBus card);
 	ICard.cb.Data <= 'z;
 endfunction 
 
-function SdBFM::stop(int AfterCount);
+function void SdBFM::stop(int AfterCount);
 	StopAfter = AfterCount;
 endfunction
 

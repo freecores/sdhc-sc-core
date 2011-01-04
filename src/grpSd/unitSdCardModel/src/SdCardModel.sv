@@ -15,8 +15,14 @@ const logic cInactivated = 0;
 `include "SdCommand.sv";
 `include "SdBFM.sv";
 `include "Logger.sv";
+`include "RamAction.sv";
 
 class SdCardModel;
+	
+	RamActionMb RamActionOutMb;
+	SdBfmMb SdTransOutMb;
+	SdBfmMb SdTransInMb;
+
 	local SdBFM bfm;
 	local SdCardModelState state;
 	local RCA_t rca;
@@ -24,6 +30,7 @@ class SdCardModel;
 	local Mode_t mode;
 	local DataMode_t datamode;
 	local Logger log;
+
 
 	local rand int datasize; // ram addresses = 2^datasize - 1; 512 byte blocks
 	constraint cdatasize {datasize > 1; datasize <= 32;}
@@ -34,13 +41,16 @@ class SdCardModel;
 		this.ram = new[2^(datasize-1)];
 	endfunction
 
-	function new(SdBFM bfm);
-		this.bfm = bfm;
+	function new();
+		//this.bfm = bfm;
 		state = new();
 		this.CCS = 1;
 		rca = 0;
 		mode = standard;
 		log = new();
+	endfunction
+
+	function void start();
 	endfunction
 
 	task reset();
@@ -303,8 +313,8 @@ endclass
 
 class NoSdCardModel extends SdCardModel;
 
-	function new(SdBFM bfm);
-		super.new(bfm);
+	function new();
+		super.new();
 	endfunction
 
 	task automatic init();
