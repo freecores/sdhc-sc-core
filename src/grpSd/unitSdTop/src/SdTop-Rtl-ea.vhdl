@@ -56,30 +56,30 @@ end entity SdTop;
 
 architecture Rtl of SdTop is
 
-	signal SdCmdToController       : aSdCmdToController;
-	signal SdCmdFromController     : aSdCmdFromController;
-	signal SdDataToController      : aSdDataToController;
-	signal SdDataFromController    : aSdDataFromController;
-	signal SdDataFromRam           : aSdDataFromRam;
-	signal SdDataToRam             : aSdDataToRam;
-	signal SdControllerToDataRam   : aSdControllerToRam;
-	signal SdControllerFromDataRam : aSdControllerFromRam;
-	signal SdWbSlaveToController   : aSdWbSlaveToSdController;
-	signal SdWbSlaveFromController : aSdControllerToSdWbSlave;
+	signal SdCmdToController            : aSdCmdToController;
+	signal SdCmdFromController          : aSdCmdFromController;
+	signal SdDataToController           : aSdDataToController;
+	signal SdDataFromController         : aSdDataFromController;
+	signal SdDataFromRam                : aSdDataFromRam;
+	signal SdDataToRam                  : aSdDataToRam;
+	signal SdControllerToDataRam        : aSdControllerToRam;
+	signal SdControllerFromDataRam      : aSdControllerFromRam;
+	signal iSdWbSync, oSdControllerSync : aSdWbSlaveToSdController;
+	signal iSdControllerSync, oSdWbSync : aSdControllerToSdWbSlave;
 
-	signal SdStrobe                : std_ulogic;
-	signal HighSpeed               : std_ulogic;
+	signal SdStrobe                     : std_ulogic;
+	signal HighSpeed                    : std_ulogic;
 
-	signal iCmd                    : aiSdCmd;
-	signal oCmd                    : aoSdCmd;
-	signal iData                   : aiSdData;
-	signal oData                   : aoSdData;
+	signal iCmd                         : aiSdCmd;
+	signal oCmd                         : aoSdCmd;
+	signal iData                        : aiSdData;
+	signal oData                        : aoSdData;
 
-	signal iWbCtrl                 : aWbSlaveCtrlInput;
-	signal oWbCtrl                 : aWbSlaveCtrlOutput;
-	signal iWbDat                  : aSdWbSlaveDataInput;
-	signal oWbDat                  : aSdWbSlaveDataOutput;
-	
+	signal iWbCtrl                      : aWbSlaveCtrlInput;
+	signal oWbCtrl                      : aWbSlaveCtrlOutput;
+	signal iWbDat                       : aSdWbSlaveDataInput;
+	signal oWbDat                       : aSdWbSlaveDataOutput;
+
 begin
 
 	ioCmd <= oCmd.Cmd when oCmd.En = cActivated else 'Z';
@@ -108,6 +108,20 @@ begin
 			  Dat => iDat
 		  );
 
+	SdWbControllerSync_inst: entity work.SdWbControllerSync
+	generic map (
+		gUseSameClocks => gUseSameClocks
+	)
+	port map (
+		iRstSync      => iRstSync,
+		iWbClk        => iWbClk,
+		iSdClk        => iSdClk,
+		iSdWb         => iSdWbSync,
+		oSdWb         => oSdWbSync,
+		iSdController => iSdControllerSync,
+		oSdController => oSdControllerSync
+	);
+
 	SdWbSlave_inst : entity work.SdWbSlave
 	port map (
 		iClk                => iWbClk,
@@ -118,35 +132,10 @@ begin
 		oWbCtrl             => oWbCtrl,
 		iWbDat              => iWbDat,
 		oWbDat              => oWbDat,
-		
+
 		-- To sd controller
-		iController         => SdWbSlaveFromController,
-		oController         => SdWbSlaveToController
-	);
-
-
-	SdClockMaster_inst: entity work.SdClockMaster
-	generic map (
-		gClkFrequency => gClkFrequency
-	)
-	port map (
-		iClk       => iSdClk,
-		iRstSync   => iRstSync,
-		iHighSpeed => HighSpeed,
-		oSdStrobe  => SdStrobe,
-		oSdCardClk => oSClk
-	);
-
-	SdCardSynchronizer_inst : entity work.SdCardSynchronizer
-	port map (
-
-		iClk       => iSdClk,
-		iRstSync   => iRstSync,
-		iCmd       => ioCmd,
-		iData      => ioData,
-		oCmdSync   => iCmd.Cmd,
-		oDataSync  => iData.Data
-
+		iController         => oSdWbSync,
+		oController         => iSdWbSync
 	);
 
 	SdController_inst: entity work.SdController(Rtl)
@@ -164,8 +153,8 @@ begin
 		oSdData		 => SdDataFromController,
 		iDataRam     => SdControllerFromDataRam,
 		oDataRam     => SdControllerToDataRam,
-		oSdWbSlave   => SdWbSlaveFromController,
-		iSdWbSlave   => SdWbSlaveToController,
+		oSdWbSlave   => iSdControllerSync,
+		iSdWbSlave   => oSdControllerSync,
 		oLedBank     => oLedBank
 	);
 
@@ -206,6 +195,30 @@ begin
 		oDataRW => SdDataFromRam.Data,
 		iAddrR  => SdControllerToDataRam.Addr,
 		oDataR  => SdControllerFromDataRam.Data
+	);
+
+	SdClockMaster_inst: entity work.SdClockMaster
+	generic map (
+		gClkFrequency => gClkFrequency
+	)
+	port map (
+		iClk       => iSdClk,
+		iRstSync   => iRstSync,
+		iHighSpeed => HighSpeed,
+		oSdStrobe  => SdStrobe,
+		oSdCardClk => oSClk
+	);
+
+	SdCardSynchronizer_inst : entity work.SdCardSynchronizer
+	port map (
+
+		iClk       => iSdClk,
+		iRstSync   => iRstSync,
+		iCmd       => ioCmd,
+		iData      => ioData,
+		oCmdSync   => iCmd.Cmd,
+		oDataSync  => iData.Data
+
 	);
 
 end architecture Rtl;

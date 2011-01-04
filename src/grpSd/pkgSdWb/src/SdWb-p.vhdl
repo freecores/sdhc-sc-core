@@ -23,7 +23,7 @@ package SdWb is
 	subtype aOperation is std_ulogic_vector(31 downto 0);
 
 	-- different valid operation values
-	constant cOperationRead : aOperation := (0 => '1', others => '0');
+	constant cOperationRead : aOperation := X"00000001";
 
 
 	-- addresses for register banks in SdWbSlave
@@ -52,16 +52,16 @@ package SdWb is
 	-- ports
 	type aSdWbSlaveToSdController is record
 
-		AckOperationToggle : std_ulogic; -- every edge signals that the OperationBlock is valid
-		OperationBlock     : aOperationBlock;
-		WriteData          : aData; -- data to write to the card (32 bit blocks)
+		AckOperation   : std_ulogic; -- every edge signals that the OperationBlock is valid
+		OperationBlock : aOperationBlock;
+		WriteData      : aData; -- data to write to the card (32 bit blocks)
 
 	end record aSdWbSlaveToSdController;
 
 	type aSdControllerToSdWbSlave is record
 
-		ReqOperationEdge : std_ulogic; -- Request a new OperationBlock
-		ReadData         : aData;
+		ReqOperation : std_ulogic; -- Request a new OperationBlock
+		ReadData     : aData;
 
 	end record aSdControllerToSdWbSlave;
 
@@ -81,9 +81,13 @@ package SdWb is
 
 	-- default port values
 	constant cDefaultSdWbSlaveToSdController : aSdWbSlaveToSdController := (
-	OperationBlock     => cDefaultOperationBlock,
-	WriteData          => (others                 => '0'),
-	AckOperationToggle => '0');
+	OperationBlock => cDefaultOperationBlock,
+	WriteData      => (others                 => '0'),
+	AckOperation   => '0');
+
+	constant cDefaultSdControllerToSdWbSlave : aSdControllerToSdWbSlave := (
+	ReqOperation => '0',
+	ReadData     => (others => '0'));
 
 end package SdWb;
 

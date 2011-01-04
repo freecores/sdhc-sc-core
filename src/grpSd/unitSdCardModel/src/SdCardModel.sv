@@ -13,7 +13,7 @@ include "../../unitSdCardModel/src/SdCommand.sv";
 include "../../unitSdCardModel/src/SdData.sv";
 
 class SDCard;
-	local virtual ISdCmd.Card ICmd;
+	local virtual ISdCard.Card ICard;
 
 	local SDCardState state;
 	local RCA_t rca;
@@ -24,15 +24,15 @@ class SDCard;
 
 	local event CmdReceived, InitDone;
 
-	function new(virtual ISdCmd CmdInterface, event CmdReceived, event InitDone);
-		ICmd = CmdInterface;
+	function new(virtual ISdCard CardInterface, event CmdReceived, event InitDone);
+		ICard = CardInterface;
 		state = new();
 		this.CmdReceived = CmdReceived;
 		this.InitDone = InitDone;
 		this.CCS = 1;
 		rca = 0;
 		mode = standard;
-		ICmd.cbcard.Data <= 'z;
+		ICard.cbcard.Data <= 'z;
 	endfunction
 
 	task reset();
@@ -40,41 +40,41 @@ class SDCard;
 
 	// Receive a command token and handle it
 	task recv();
-		ICmd.cbcard.Cmd <= 'z;
+		ICard.cbcard.Cmd <= 'z;
 
-		repeat(8) @ICmd.cbcard;
+		repeat(8) @ICard.cbcard;
 
 		recvcmd = new();
 
-		wait(ICmd.cbcard.Cmd == 0);
+		wait(ICard.cbcard.Cmd == 0);
 		// Startbit
-		recvcmd.startbit = ICmd.cbcard.Cmd;
+		recvcmd.startbit = ICard.cbcard.Cmd;
 
-		@ICmd.cbcard;
+		@ICard.cbcard;
 		// Transbit
-		recvcmd.transbit = ICmd.cbcard.Cmd;
+		recvcmd.transbit = ICard.cbcard.Cmd;
 
 		// CmdID
 		for (int i = 5; i >= 0; i--) begin
-			@ICmd.cbcard;
-			recvcmd.id[i] = ICmd.cbcard.Cmd;
+			@ICard.cbcard;
+			recvcmd.id[i] = ICard.cbcard.Cmd;
 		end
 
 		// Arg
 		for (int i = 31; i >= 0; i--) begin
-			@ICmd.cbcard;
-			recvcmd.arg[i] = ICmd.cbcard.Cmd;
+			@ICard.cbcard;
+			recvcmd.arg[i] = ICard.cbcard.Cmd;
 		end
 
 		// CRC
 		for (int i = 6; i >= 0; i--) begin
-			@ICmd.cbcard;
-			recvcmd.crc7[i] = ICmd.cbcard.Cmd;
+			@ICard.cbcard;
+			recvcmd.crc7[i] = ICard.cbcard.Cmd;
 		end
 
 		// Endbit
-		@ICmd.cbcard;
-		recvcmd.endbit = ICmd.cbcard.Cmd;
+		@ICard.cbcard;
+		recvcmd.endbit = ICard.cbcard.Cmd;
 
 		recvcmd.checkFromHost();
 		-> CmdReceived;
@@ -102,7 +102,7 @@ class SDCard;
 		// respond with R7: we are SD 2.00 compatible and compatible to the
 		// voltage
 		voltageresponse = new(recvcmd.arg);
-		voltageresponse.send(ICmd);
+		voltageresponse.send(ICard);
 
 		recvCMD55(0);
 
@@ -114,7 +114,7 @@ class SDCard;
 		// respond with R3
 		ocr = new(CCS, cSdVoltageWindow);
 		acmd41response = new(ocr);
-		acmd41response.send(ICmd);		
+		acmd41response.send(ICard);		
 		
 		recvCMD55(0);
 
@@ -127,7 +127,7 @@ class SDCard;
 		// respond with R3
 		ocr.setBusy(cOCRDone);
 		acmd41response = new(ocr);
-		acmd41response.send(ICmd);		
+		acmd41response.send(ICard);		
 
 		// expect CMD2
 		recv();
@@ -135,7 +135,7 @@ class SDCard;
 
 		// respond with R2
 		cidresponse = new();
-		cidresponse.send(ICmd);	
+		cidresponse.send(ICard);	
 
 		// expect CMD3
 		recv();
@@ -143,7 +143,7 @@ class SDCard;
 
 		// respond with R3
 		rcaresponse = new(rca, state);
-		rcaresponse.send(ICmd);
+		rcaresponse.send(ICard);
 
 		// expect CMD7
 		recv();
@@ -153,7 +153,7 @@ class SDCard;
 		// respond with R1, no busy
 		state.ReadyForData = 1;
 		response = new(cSdCmdSelCard, state);
-		response.send(ICmd);
+		response.send(ICard);
 
 		// expect ACMD51
 		recvCMD55(rca);
@@ -162,9 +162,9 @@ class SDCard;
 
 		// respond with R1
 		response = new(cSdCmdSendSCR, state);
-		response.send(ICmd);
+		response.send(ICard);
 
-		repeat(2) @ICmd.cbcard;
+		repeat(2) @ICard.cbcard;
 
 		// send dummy SCR
 		for (int i = 0; i < 64; i++)
@@ -174,7 +174,7 @@ class SDCard;
 		data[63-48] = 1;
 
 		sddata = new(standard, widewidth);
-		sddata.send(ICmd, data);
+		sddata.send(ICard, data);
 
 		// expect ACMD6
 		recvCMD55(rca);
@@ -183,7 +183,7 @@ class SDCard;
 		assert(recvcmd.arg == 'h00000002);
 
 		response = new(cSdCmdSetBusWidth, state);
-		response.send(ICmd);
+		response.send(ICard);
 
 		sddata.mode = wide;
 
@@ -191,7 +191,7 @@ class SDCard;
 		recv();
 		assert(recvcmd.id == cSdCmdSwitchFuntion);
 		assert(recvcmd.arg == 'h00FFFFF1);
-		response.send(ICmd);
+		response.send(ICard);
 
 		// send status data structure
 		data = {};
@@ -201,13 +201,13 @@ class SDCard;
 
 		data[511-400] = 1;
 		data[511-376] = 1;
-		sddata.send(ICmd, data);
+		sddata.send(ICard, data);
 
 		// expect CMD6 with set
 		recv();
 		assert(recvcmd.id == cSdCmdSwitchFuntion);
 		assert(recvcmd.arg == 'h80FFFFF1);
-		response.send(ICmd);
+		response.send(ICard);
 
 		// send status data structure
 		data = {};
@@ -217,7 +217,7 @@ class SDCard;
 
 		data[511-400] = 1;
 		data[511-376] = 1;
-		sddata.send(ICmd, data);
+		sddata.send(ICard, data);
 
 		// switch to 50MHz
 		// expect CMD13
@@ -225,22 +225,30 @@ class SDCard;
 		assert(recvcmd.id == cSdCmdSendStatus);
 		assert(recvcmd.arg == rca);
 		response = new(cSdCmdSendStatus, state);
-		response.send(ICmd);
+		response.send(ICard);
+
+		-> InitDone;
+
+	endtask
+
+	task read();
+		SDCommandR1 response;
+		logic data[$];
+		SdData sddata;
 
 		// expect Read
 		recv();
 		assert(recvcmd.id == cSdCmdReadSingleBlock);
 		// recvcmd.arg = address
 		response = new(cSdCmdReadSingleBlock, state);
-		response.send(ICmd);
+		response.send(ICard);
 
 		data = {};
 		for(int i = 0; i < (512 * 8); i++)
 			data.push_back(1);
 
-		sddata.send(ICmd, data);
+		sddata.send(ICard, data);
 
-		-> InitDone;
 
 	endtask
 
@@ -255,27 +263,19 @@ class SDCard;
 
 		// respond with R1
 		response = new(cSdCmdNextIsACMD, state);
-		response.send(ICmd);	
+		response.send(ICard);	
 	endtask
 	
 	function automatic SDCommandToken getCmd();
 		return recvcmd;
 	endfunction
 
-
-	task recvCmd(input SDCommandToken cmd, output SDCommandResponse response);
-		case (cmd.id)
-			cSdCmdGoIdleState: reset();
-			default: $display("SDCard: CmdId %d not implemented", cmd.id);
-		endcase
-	endtask
-
 endclass
 
 class NoSDCard extends SDCard;
 
-	function new(virtual ISdCmd CmdInterface, event CmdReceived, event InitDone);
-		super.new(CmdInterface, CmdReceived, InitDone);
+	function new(virtual ISdCard CardInterface, event CmdReceived, event InitDone);
+		super.new(CardInterface, CmdReceived, InitDone);
 	endfunction
 
 	task automatic init();

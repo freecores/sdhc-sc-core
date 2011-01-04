@@ -5,24 +5,37 @@
 // SystemVerilog Testbench testing SdCmd and SdController
 //
 
+`define cWishboneWidth 32
+const integer cWishboneWidth = 32;
+const logic   cAsserted = 1;
+const logic   cNegated  = 0;
+const logic   cDontCare = 'X;
+
+typedef logic [2:0] aCTI;
+const aCTI ClassicCycle = "000";
+
+
 include "../../unitSdCardModel/src/SdCardModel.sv";
 include "../../unitSdVerificationTestbench/src/SdCmdInterface.sv";
+include "../../unitSdWbSlave/src/WishboneInterface.sv";
+include "../../unitSdWbSlave/src/Wishbone-BFM.sv";
 
 `define cCmdCount 1000
 
 const logic[3:0] cSdStandardVoltage = 'b0001; // 2.7-3.6V
 
-program Test(ISdCmd ICmd);
+program Test(ISdCard ICmd, WishboneInterface BusInterface);
 	initial begin
+	Wishbone Bus = new(BusInterface.Master);
 	SDCard card = new(ICmd, $root.Testbed.CmdReceived, $root.Testbed.InitDone);
 	SDCommandToken recvCmd, sendCmd;
 	int c = 0;
 
-	ICmd.Clk <= 0;
-	#10;
 	ICmd.nResetAsync <= 0;
+	BusInterface.RST_I <= 1;
 	#10;
 	ICmd.nResetAsync <= 1;
+	BusInterface.RST_I <= 0;
 	
 	repeat (2) @ICmd.cb;
 
@@ -35,6 +48,9 @@ program Test(ISdCmd ICmd);
 
         begin // driver for SdCardModel
 			card.init();
+
+			Bus.Write('b001, 'h00000001);
+			Bus.Write('b000, 'h00000001);
 
 			/*for (int i = 0; i < `cCmdCount; i++) begin
 				@$root.Testbed.CardRecv;
@@ -66,14 +82,35 @@ program Test(ISdCmd ICmd);
 endprogram
 
 module Testbed();
-	ISdCmd CmdInterface();
+	ISdCard CardInterface();
+	WishboneInterface BusInterface();	
 
-	TbdSd top(CmdInterface.Clk, CmdInterface.nResetAsync, CmdInterface.Cmd,
-CmdInterface.SClk,CmdInterface.Data);
+	SdTop top(
+			BusInterface.CLK_I,
+			BusInterface.RST_I,
+			BusInterface.CYC_O,
+			BusInterface.LOCK_O,
+			BusInterface.STB_O,
+			BusInterface.WE_O,
+			BusInterface.CTI_O,
+			BusInterface.BTE_O,
+			BusInterface.SEL_O,
+			BusInterface.ADR_O,
+			BusInterface.DAT_O,
+			BusInterface.DAT_I,
+			BusInterface.ACK_I,
+			BusInterface.ERR_I,
+			BusInterface.RTY_I,
+			CardInterface.Clk,
+			CardInterface.nResetAsync,
+			CardInterface.Cmd,
+			CardInterface.SClk,
+			CardInterface.Data);
 
-	always #5 CmdInterface.Clk <= ~CmdInterface.Clk;
+	always #5 CardInterface.Clk <= ~CardInterface.Clk;
+	always #5 BusInterface.CLK_I <= ~BusInterface.CLK_I;
 
-	Test tb(CmdInterface);
+	Test tb(CardInterface, BusInterface);
 
 	event ApplyCommand, CardRecv, CmdReceived, GenCmd, InitDone;
 

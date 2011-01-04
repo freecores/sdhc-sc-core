@@ -97,7 +97,7 @@ class SDCommandResponse;
 	protected logic endbit;
 	protected logic data[$];
 
-	task sendData(virtual ISdCmd.Card ICmd);
+	task sendData(virtual ISdCard.Card ICmd);
 		foreach(data[i]) begin
 			@ICmd.cbcard
 			ICmd.cbcard.Cmd <= data[i];
@@ -109,7 +109,7 @@ class SDCommandResponse;
 	endtask
 
 
-	task automatic send(virtual ISdCmd.Card ICmd);
+	task automatic send(virtual ISdCard.Card ICmd);
 		aCrc7 crc = 0;
 		
 		data.push_back(startbit);
@@ -164,7 +164,7 @@ class SDCommandR3 extends SDCommandResponse;
 		endbit = 1;
 	endfunction
 	
-	task automatic send(virtual ISdCmd.Card ICmd);
+	task automatic send(virtual ISdCard.Card ICmd);
 		data.push_back(startbit);
 		data.push_back(transbit);
 		for(int i = 5; i >= 0; i--)
@@ -195,7 +195,7 @@ class SDCommandR2 extends SDCommandResponse;
 		endbit = 1;
 	endfunction
 
-	task automatic send(virtual ISdCmd.Card ICmd);
+	task automatic send(virtual ISdCard.Card ICmd);
 		cidreg_t cidreg;
 
 		// fill queue

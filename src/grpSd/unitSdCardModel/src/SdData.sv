@@ -33,7 +33,7 @@ class SdData;
 			data.push_back(crc[i]);
 	endfunction
 
-	task automatic send(virtual ISdCmd.Card ICmd, logic data[$]);
+	task automatic send(virtual ISdCard.Card ICmd, logic data[$]);
 		aCrc16 crc = 0;		
 
 		this.data = data;

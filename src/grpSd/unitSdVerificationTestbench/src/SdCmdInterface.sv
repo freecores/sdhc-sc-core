@@ -5,8 +5,8 @@
 // Interface for the SdCmd entity
 // 
 
-interface ISdCmd;
-	logic Clk;
+interface ISdCard;
+	logic Clk = 0;
 	logic nResetAsync;
 	wire Cmd;
 	logic SClk;

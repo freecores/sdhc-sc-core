@@ -46,15 +46,15 @@ architecture Rtl of TbdSd is
 
 	signal RstSync : std_ulogic_vector(1 downto 0);
 
-	signal iCyc  : std_ulogic;
-	signal iLock : std_ulogic;
-	signal iStb  : std_ulogic;
-	signal iWe   : std_ulogic;
-	signal iCti  : std_ulogic_vector(2 downto 0);
-	signal iBte  : std_ulogic_vector(1 downto 0);
-	signal iSel  : std_ulogic_vector(0 downto 0);
-	signal iAdr  : std_ulogic_vector(6 downto 4);
-	signal iDat  : std_ulogic_vector(31 downto 0);
+	signal iCyc  : std_ulogic := '0';
+	signal iLock : std_ulogic := '0';
+	signal iStb  : std_ulogic := '0';
+	signal iWe   : std_ulogic := '0';
+	signal iCti  : std_ulogic_vector(2 downto 0) := (others => '0');
+	signal iBte  : std_ulogic_vector(1 downto 0) := (others => '0');
+	signal iSel  : std_ulogic_vector(0 downto 0) := (others => '0');
+	signal iAdr  : std_ulogic_vector(6 downto 4) := (others => '0');
+	signal iDat  : std_ulogic_vector(31 downto 0) := (others => '0');
 
 	signal oDat  : std_ulogic_vector(31 downto 0);
 	signal oAck  : std_ulogic;
@@ -67,7 +67,7 @@ begin
 	begin
 		if (rising_edge(iClk)) then
 			RstSync(0) <= inResetAsync;
-			RstSync(1) <= not RstSync(1);
+			RstSync(1) <= not RstSync(0);
 		end if;
 	end process Reg;
 

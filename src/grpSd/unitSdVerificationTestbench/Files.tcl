@@ -19,10 +19,10 @@ set units {Crc Crc {Rtl}
 	Sd SdWbSlave {Rtl}
 	Sd SdClockMaster {Rtl}
 	Sd SdCardSynchronizer {Rtl}
-	Sd SdTop {Rtl}
-	Rs232 Rs232Tx {Rtl}
-	Components Ics307Configurator {Rtl}
-	Sd TbdSd {Rtl}}
+	Synchronization Synchronizer {Rtl}
+	StrobesClocks EdgeDetector {Rtl}
+	Sd SdWbSdControllerSync {Rtl}
+	Sd SdTop {Rtl}}
 
 set svunits {Sd SdCardModel
 	Sd SdVerificationTestbench}

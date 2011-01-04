@@ -160,7 +160,7 @@ begin
 			when idle => 
 				-- save edges on the ReqOperationEdge line which would be missed otherwise
 
-				if (iController.ReqOperationEdge = cActivated) then
+				if (iController.ReqOperation = cActivated) then
 
 					NxR.ReqOperation <= cActivated;
 
@@ -168,10 +168,10 @@ begin
 
 			when newOperation => 
 				-- send a new operation, when the controller requested it
-				if (R.ReqOperation = cActivated or iController.ReqOperationEdge = cActivated) then
+				if (R.ReqOperation = cActivated or iController.ReqOperation = cActivated) then
 
-					NxR.oController.OperationBlock     <= R.OperationBlock;
-					NxR.oController.AckOperationToggle <= not R.oController.AckOperationToggle;
+					NxR.oController.OperationBlock <= R.OperationBlock;
+					NxR.oController.AckOperation   <= not R.oController.AckOperation;
 
 					-- go to idle state, the next request will come only after the SdController received this block
 

@@ -10,7 +10,7 @@
 
 architecture Rtl of SdController is
 
-	type aSdControllerState is (startup, init, config, idle, invalidCard, read, write);
+	type aSdControllerState is (startup, init, config, requestnewoperation, idle, invalidCard, read, write);
 	type aCmdRegion is (CMD0, CMD8, ACMD41, CMD2, CMD3, SelectCard, CheckBusWidth, SetBusWidth, CheckSpeed, ChangeSpeed, GetStatus);
 	type aRegion is (idle, send, response, waitstate, senddata, receivedata, checkbusy, waitstatedata);
 
@@ -24,37 +24,41 @@ architecture Rtl of SdController is
 	CheckCrc  => cActivated);
 
 	type aSdControllerReg is record
-		State       : aSdControllerState;
-		CmdRegion   : aCmdRegion;
-		Region      : aRegion;
-		Counter     : aCounter;
-		SendCMD55   : std_ulogic;
-		SentCMD55   : std_ulogic;
-		HCS         : std_ulogic;
-		CCS         : std_ulogic;
-		RCA         : aSdRCA;
-		CardStatus  : aSdCardStatus;
-		ToSdCmd     : aSdCmdFromController;
-		ToSdData    : aSdDataFromController;
-		ToDataRam   : aSdControllerToRam;
-		HighSpeed   : std_ulogic;
+		State          : aSdControllerState;
+		CmdRegion      : aCmdRegion;
+		Region         : aRegion;
+		Counter        : aCounter;
+		SendCMD55      : std_ulogic;
+		SentCMD55      : std_ulogic;
+		HCS            : std_ulogic;
+		CCS            : std_ulogic;
+		RCA            : aSdRCA;
+		CardStatus     : aSdCardStatus;
+		ToSdCmd        : aSdCmdFromController;
+		ToSdData       : aSdDataFromController;
+		ToDataRam      : aSdControllerToRam;
+		ToSdWbSlave    : aSdControllerToSdWbSlave;
+		HighSpeed      : std_ulogic;
+		OperationBlock : aOperationBlock;
 	end record aSdControllerReg;
 
 	constant cDefaultSdControllerReg : aSdControllerReg := (
-	State       => startup,
-	CmdRegion   => CMD0,
-	Region      => idle,
-	Counter     => 0,
-	SendCMD55   => cInactivated,
-	SentCMD55   => cInactivated,
-	HCS         => cActivated,
-	CCS         => cInactivated,
-	RCA         => cDefaultRCA,
-	CardStatus  => cDefaultSdCardStatus,
-	ToSdCmd     => cDefaultToSdCmd,
-	ToSdData    => cDefaultSdDataFromController,
-	ToDataRam   => cDefaultSdControllerToRam,
-	HighSpeed   => cInactivated);
+	State          => startup,
+	CmdRegion      => CMD0,
+	Region         => idle,
+	Counter        => 0,
+	SendCMD55      => cInactivated,
+	SentCMD55      => cInactivated,
+	HCS            => cActivated,
+	CCS            => cInactivated,
+	RCA            => cDefaultRCA,
+	CardStatus     => cDefaultSdCardStatus,
+	ToSdCmd        => cDefaultToSdCmd,
+	ToSdData       => cDefaultSdDataFromController,
+	ToDataRam      => cDefaultSdControllerToRam,
+	ToSdWbSlave    => cDefaultSdControllerToSdWbSlave,
+	HighSpeed      => cInactivated,
+	OperationBlock => cDefaultOperationBlock);
 
 	signal R, NextR       : aSdControllerReg;
 
@@ -81,6 +85,7 @@ begin
 	oSdCmd     <= R.ToSdCmd;
 	oSdData    <= R.ToSdData;
 	oDataRam   <= R.ToDataRam;
+	oSdWbSlave <= R.ToSdWbSlave;
 	oHighSpeed <= R.HighSpeed;
 
 	Regs : process (iClk, inResetAsync)
@@ -116,11 +121,11 @@ begin
 				if (iDataRam.Data(16) = cActivated) then
 					NextR.ToDataRam.Addr <= R.ToSdData.StartAddr + (511 - 376)/32;
 				else
-					NextState := idle;
+					NextState := requestnewoperation;
 				end if;
 			elsif (R.ToDataRam.Addr = R.ToSdData.StartAddr + (511 - 376)/32) then
 				if (iDataRam.Data(27 downto 24) /= X"1") then
-					NextState := idle;
+					NextState := requestnewoperation;
 				end if;
 			end if;
 		end procedure CheckSpeedResponse;
@@ -464,7 +469,7 @@ begin
 										NextR.Region     <= receivedata;
 
 									else
-										NextR.State <= idle;
+										NextR.State <= invalidCard;
 									end if;
 								elsif (Timeout = cActivated) then
 									NextR.State <= invalidCard;
@@ -549,8 +554,8 @@ begin
 								end if;
 
 							when waitstate => 
-								NextRegion    := send;
-								NextState     := read;
+								NextRegion    := idle;
+								NextState     := requestnewoperation;
 
 							when others => 
 								report "Unhandled region" severity error;
@@ -583,15 +588,43 @@ begin
 						end if;
 
 					when receivedata => 
+						-- TODO: send to interface
+
 					when waitstatedata => 
-						NextR.State <= idle;
+						NextR.Region <= idle;
+						NextR.State  <= requestnewoperation;
 
 					when others => 
 						report "Unhandled region";
 				end case;
 
+			when requestnewoperation => 
+
+				NextR.ToSdWbSlave.ReqOperation <= not R.ToSdWbSlave.ReqOperation;
+				NextR.State                    <= idle;
+
 			when idle => 
 				oLedBank(6) <= cActivated;
+
+				-- wait for next operation
+				if (iSdWbSlave.AckOperation = cActivated) then
+
+					-- save operation
+					NextR.OperationBlock <= iSdWbSlave.OperationBlock;
+					
+					-- handle operations
+					case iSdWbSlave.OperationBlock.Operation is
+						when cOperationRead => 
+
+							NextR.State  <= read;
+							NextR.Region <= send;
+
+						when others => 
+							NextR.State <= requestnewoperation;
+							report "Unknown operation" severity error;
+					end case;
+
+				end if;
 
 			when invalidCard => 
 				oLedBank(7) <= cActivated;
