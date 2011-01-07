@@ -1,6 +1,0 @@
-#!/bin/bash
-
-mkdir -p "$1"/src
-mkdir -p "$1"/sim
-mkdir -p "$1"/syn
-
