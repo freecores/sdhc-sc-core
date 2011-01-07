@@ -1,4 +1,4 @@
-include ../../../../Makefile.rules
+include ../../../Makefile.rules
 
 all: SDCardModel-unattended.sim
 

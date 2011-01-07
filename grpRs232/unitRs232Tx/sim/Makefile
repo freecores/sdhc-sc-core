@@ -1,6 +1,6 @@
 # Makefile for simulating wishbone slaves
 
-include ../../../../Makefile.rules
+include ../../../Makefile.rules
 
 all: Rs232Tx-unattended.sim
 

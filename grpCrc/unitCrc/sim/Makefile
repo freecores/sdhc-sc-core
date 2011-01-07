@@ -1,6 +1,6 @@
 # Makefile for simulating crcs
 
-include ../../../../Makefile.rules
+include ../../../Makefile.rules
 
 all: tbcrc-unattended.sim
 

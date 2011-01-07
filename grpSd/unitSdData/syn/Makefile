@@ -1,6 +1,6 @@
 # Makefile for synthesizing crcs
 
-include ../../../../Makefile.rules
+include ../../../Makefile.rules
 
 all: SdDatasyn.syn
 
