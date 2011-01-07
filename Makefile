@@ -5,6 +5,8 @@ SIMS = grpCrc/unitCrc grpStrobesClocks/unitTimeoutGenerator
 SYSVSIMS = grpSdVerification/unitSdVerificationTestbench
 SYNS = grpSd/unitTbdSd 
 
+.PHONY: libs sim svsim syn clean
+
 all: clean libs sim svsim syn
 
 libs:
